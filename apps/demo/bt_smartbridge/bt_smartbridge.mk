@@ -30,8 +30,6 @@ GLOBAL_DEFINES     := USE_SELF_SIGNED_TLS_CERT
 
 APPLICATION_DCT    := bt_smartbridge_dct.c
 
-WIFI_CONFIG_DCT_H  := wifi_config_dct.h
-
 VALID_PLATFORMS    := BCM9WCDPLUS114 \
                       BCM943341WCD1 \
                       BCM9WCD1AUDIO

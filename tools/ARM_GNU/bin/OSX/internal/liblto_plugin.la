@@ -17,7 +17,7 @@ old_library=''
 inherited_linker_flags=' '
 
 # Libraries that this one depends upon.
-dependency_libs=' -L/Users/hwlab/Wiced-Tool-Source/ARM_GNU/addontools/lib'
+dependency_libs=' -L/Users/lab/wiced/Wiced-Tool-Source/ARM_GNU/addontools/lib'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''
@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/Users/hwlab/Wiced-Tool-Source/ARM_GNU/install/bin/OSX/internal'
+libdir='/Users/lab/wiced/Wiced-Tool-Source/ARM_GNU/install/bin/OSX/internal'

@@ -46,7 +46,7 @@ extern "C"
  * @return WWD_SUCCESS or Error code
  */
 
-extern wwd_result_t wwd_wifi_get_random( uint16_t* val );
+extern wwd_result_t wwd_wifi_get_random( void* buffer, uint16_t buffer_length );
 
 /** @} */
 

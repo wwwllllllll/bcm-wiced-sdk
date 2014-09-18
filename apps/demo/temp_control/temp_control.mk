@@ -36,4 +36,5 @@ WIFI_CONFIG_DCT_H  := wifi_config_dct.h
 
 VALID_PLATFORMS    := BCM943362WCD4 \
                       BCM943362WCD6 \
+                      BCM943362WCD8 \
                       BCM9WCDPLUS114

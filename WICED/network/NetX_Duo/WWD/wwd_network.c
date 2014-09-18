@@ -19,6 +19,7 @@
 #include "wwd_network.h"
 #include "network/wwd_network_constants.h"
 #include "wwd_assert.h"
+#include "wwd_crypto.h"
 
 #if ( NX_PHYSICAL_HEADER != WICED_PHYSICAL_HEADER )
 #error ERROR PHYSICAL HEADER SIZE CHANGED - PREBUILT NETX-DUO LIBRARY WILL NOT WORK
@@ -38,6 +39,10 @@
  *                    Constants
  ******************************************************/
 
+#ifndef WICED_TCP_RX_DEPTH_QUEUE
+#define WICED_TCP_RX_DEPTH_QUEUE    WICED_DEFAULT_TCP_RX_DEPTH_QUEUE
+#endif
+
 /******************************************************
  *                   Enumerations
  ******************************************************/
@@ -51,7 +56,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void nx_wiced_add_ethernet_header( NX_IP* ip_ptr_in, NX_PACKET* packet_ptr, ULONG destination_mac_msw, ULONG destination_mac_lsw, USHORT ethertype );
@@ -62,11 +67,14 @@ static VOID wiced_netx_driver_entry( NX_IP_DRIVER* driver, wwd_interface_t inter
 #endif
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* Saves pointers to the IP instances so that the receive function knows where to send data */
 static NX_IP* ip_ptr[2] = { NULL, NULL };
+
+/* WICED specific NetX_Duo variable used to control the TCP RX queue depth when NetX_Duo is released as a library */
+const ULONG nx_tcp_max_out_of_order_packets = WICED_TCP_RX_DEPTH_QUEUE;
 
 /******************************************************
  *               Function Definitions
@@ -119,7 +127,7 @@ static VOID wiced_netx_driver_entry( NX_IP_DRIVER* driver, wwd_interface_t inter
             break;
 
         case NX_LINK_ENABLE:
-            if ( wwd_wifi_get_mac_address( &mac ) != WWD_SUCCESS )
+            if ( wwd_wifi_get_mac_address( &mac, WWD_STA_INTERFACE ) != WWD_SUCCESS )
             {
                 ip->nx_ip_driver_link_up = NX_FALSE;
                 break;
@@ -304,6 +312,22 @@ void host_network_process_ethernet_data( wiced_buffer_t buffer, wwd_interface_t 
 
     ethertype = (USHORT)(buff[12] << 8 | buff[13]);
 
+    /* Check if this is an 802.1Q VLAN tagged packet */
+    if ( ethertype == WICED_ETHERTYPE_8021Q )
+    {
+        /* Need to remove the 4 octet VLAN Tag, by moving src and dest addresses 4 octets to the right,
+         * and then read the actual ethertype. The VLAN ID and priority fields are currently ignored. */
+        uint8_t temp_buffer[12];
+        memcpy( temp_buffer, packet_ptr->nx_packet_prepend_ptr, 12 );
+        memcpy( packet_ptr->nx_packet_prepend_ptr + 4, temp_buffer, 12 );
+
+        packet_ptr->nx_packet_prepend_ptr = packet_ptr->nx_packet_prepend_ptr + 4;
+        packet_ptr->nx_packet_length      = packet_ptr->nx_packet_length - 4;
+
+        buff      = packet_ptr->nx_packet_prepend_ptr;
+        ethertype = (USHORT) ( buff[12] << 8 | buff[13] );
+    }
+
 #ifdef ADD_NETX_EAPOL_SUPPORT
     if ( ethertype == WICED_ETHERTYPE_EAPOL )
     {
@@ -351,6 +375,15 @@ void host_network_process_ethernet_data( wiced_buffer_t buffer, wwd_interface_t 
         }
     }
 }
+
+
+UINT nx_rand16( void )
+{
+    uint16_t output;
+    wwd_wifi_get_random( &output, 2 );
+    return output;
+}
+
 
 /******************************************************************************
  Static functions

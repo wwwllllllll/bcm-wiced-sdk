@@ -59,12 +59,35 @@
 #include <stdlib.h>
 #include "wwd_debug.h"
 
+
+/******************************************************
+ *                      Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define MAX_LINE_LENGTH  128
 #define MAX_HISTORY_LENGTH 20
 #define DELIMIT ((char*) " ")
 #define MAX_PARAMS      16
+#define MAX_LOOP_CMDS   16
 
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
 static void history_load_line              ( uint32_t line, char* buffer );
 static void history_store_line             ( char* buffer );
 static uint32_t history_get_num_lines      ( void );
@@ -86,8 +109,6 @@ static void console_do_backspace ( void );
 static void console_do_tab       ( void );
 static cmd_err_t console_do_enter( void );
 static cmd_err_t console_do_newline_without_command_repeat( void );
-
-
 static void send_char( char c );
 static void send_str( char* s );
 static void send_charstr( char* s );
@@ -96,13 +117,17 @@ static void send_charstr( char* s );
 /* for general use these are the only things you need to worry about */
 static void console_init(const command_t *command_table, uint32_t line_len, char *buffer, uint32_t history_len, char *history_buffer);
 static cmd_err_t console_process_char(char c);
+static int help_command( int argc, char* argv[] );
+static int loop_command( char * line );
 #if 0
 static cmd_err_t console_process_char_with_tab_complete(char c);
 #endif
-static int help_command( int argc, char* argv[] );
 
 
 
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 const command_t* console_command_table;
 
 static char line_buffer[MAX_LINE_LENGTH];
@@ -155,6 +180,7 @@ static uint32_t history_newest_line;
 static const command_t commands[] = {
     { (char*) "?",                 help_command,              0, DELIMIT, NULL, NULL, NULL},
     { (char*) "help",              help_command,              0, DELIMIT, NULL, (char*) "[<command> [<example_num>]]", "Print help message or command example."},
+    { (char*) "loop",              NULL,                      0, DELIMIT, NULL, (char*) " <times> [ <semicolon_separated_commands_list> ]", "Loops the commands inside [ ] for specified number of times."},
     WIFI_COMMANDS
     PING_COMMANDS
     WPS_COMMANDS
@@ -175,7 +201,12 @@ static void (*tab_handling_func)( void ) = console_do_tab;
 static cmd_err_t (*newline_handling_func)( void ) = console_do_newline_without_command_repeat;
 
 
-void app_main( void )
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
+
+void console_app_main( void )
 {
     /* turn off buffers, so IO occurs immediately */
     setvbuf( stdin, NULL, _IONBF, 0 );
@@ -743,11 +774,15 @@ cmd_err_t console_parse_cmd( char* line )
     const command_t* cmd_ptr = NULL;
     char* params[MAX_PARAMS];
     uint32_t param_cnt = 0;
+    char    copy[strlen(line) + 1];
+
+    /* Copy original buffer into local buffer, as tokenize will change the original string */
+    strcpy( copy, line );
 
     cmd_err_t err = ERR_CMD_OK;
 
     /* First call to strtok. */
-    params[param_cnt++] = strtok( line, console_delimit_string );
+    params[param_cnt++] = strtok( copy, console_delimit_string );
 
     if ( params[0] == NULL ) /* no command entered */
     {
@@ -767,6 +802,10 @@ cmd_err_t console_parse_cmd( char* line )
         if ( cmd_ptr->name == NULL )
         {
             err = ERR_UNKNOWN_CMD;
+        }
+        else if ( strcmp(cmd_ptr->name, "loop") == 0 )
+        {
+            loop_command( line );
         }
         else
         {
@@ -1040,6 +1079,54 @@ int help_command( int argc, char* argv[] )
                 }
             }
             break;
+    }
+
+    return err;
+}
+
+/*!
+ ******************************************************************************
+ * Loop function : Loops a command or series of commands specified for the no. of times specified
+ *
+ * @param[in] argc  The number of arguments.
+ * @param[in] argv  The arguments.
+ *
+ * @return    Console error code indicating if the command ran correctly.
+ */
+int loop_command( char * line )
+{
+    int         i, j, times = 0, numcmds = 0;
+    cmd_err_t   err = ERR_CMD_OK;
+    char        *token;
+    char        cmdline[MAX_LOOP_CMDS][MAX_LINE_LENGTH];
+    char        copy[strlen(line) + 1];
+
+    strcpy( copy, line );
+
+    /* Parse copy of line to extract repeat count */
+    token = strtok( copy, console_delimit_string );
+    token = strtok( NULL, console_delimit_string );
+
+    times = str_to_int( token );
+
+    /* Tokenize original line according to ';' to extract individual cmds to repeat */
+    token = strtok( line, ";" );
+
+    while ( (token = strtok( NULL, ";" )) )
+    {
+        strcpy( cmdline[numcmds], token );
+        numcmds++;
+    }
+
+    for ( i = 0; i < times; i++)
+    {
+        for ( j = 0; j < numcmds; j++)
+        {
+            err = console_parse_cmd( cmdline[j] );
+
+            if ( err != ERR_CMD_OK )
+                return err;
+        }
     }
 
     return err;

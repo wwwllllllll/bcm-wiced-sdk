@@ -10,6 +10,8 @@
 #ifndef INCLUDED_WWD_TOOLCHAIN_H
 #define INCLUDED_WWD_TOOLCHAIN_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -18,9 +20,9 @@ extern "C"
 /******************************************************
  *                      Macros
  ******************************************************/
-
+#ifndef WEAK
 #define WEAK __attribute__((weak))
-
+#endif /* WEAK */
 /******************************************************
  *                    Constants
  ******************************************************/
@@ -44,6 +46,8 @@ extern "C"
 /******************************************************
  *               Function Declarations
  ******************************************************/
+void *memrchr( const void *s, int c, size_t n );
+
 
 #ifdef __cplusplus
 } /* extern "C" */

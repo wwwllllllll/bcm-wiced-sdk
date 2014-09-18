@@ -281,13 +281,14 @@ ESCAPE_BACKSLASHES =$(subst \,\\,$(1))
 # Broadcom internal only - Add gerrit hook for changeid
 ifneq ($(wildcard $(TOOLS_ROOT)/style/gerrit_commit-msg),)
 ifneq ($(wildcard $(SOURCE_ROOT).git),)
-ifeq ($(wildcard $(SOURCE_ROOT).git/hooks/commit-msg),)
 
-$(info Adding gerrit git hook)
+TOOLCHAIN_HOOK_TARGETS += $(SOURCE_ROOT).git/hooks/commit-msg
 
-$(shell $(CP) $(TOOLS_ROOT)/style/gerrit_commit-msg $(SOURCE_ROOT).git/hooks/commit-msg )
+$(SOURCE_ROOT).git/hooks/commit-msg:  $(TOOLS_ROOT)/style/gerrit_commit-msg
+	$(QUIET)$(ECHO) Adding gerrit git hook
+	$(QUIET)$(CP) $(TOOLS_ROOT)/style/gerrit_commit-msg $(SOURCE_ROOT).git/hooks/commit-msg
 
-endif
+
 endif
 endif
 
@@ -295,13 +296,13 @@ endif
 ifneq ($(wildcard $(TOOLS_ROOT)/style/git_style_checker.pl),)
 ifneq ($(wildcard $(TOOLS_ROOT)/style/pre-commit),)
 ifneq ($(wildcard $(SOURCE_ROOT).git),)
-ifeq ($(wildcard $(SOURCE_ROOT).git/hooks/pre-commit),)
 
-$(info Adding style checker git hook)
+TOOLCHAIN_HOOK_TARGETS += $(SOURCE_ROOT).git/hooks/pre-commit
 
-$(shell $(CP) $(TOOLS_ROOT)/style/pre-commit $(SOURCE_ROOT).git/hooks/pre-commit )
+$(SOURCE_ROOT).git/hooks/pre-commit: $(TOOLS_ROOT)/style/pre-commit
+	$(QUIET)$(ECHO) Adding style checker git hook
+	$(QUIET)$(CP) $(TOOLS_ROOT)/style/pre-commit $(SOURCE_ROOT).git/hooks/pre-commit
 
-endif
 endif
 endif
 endif
@@ -347,4 +348,7 @@ $(foreach compdir, $(2),$(eval $(1) := $(patsubst $(compdir)/%,%,$($(strip $(1))
 $(eval $(1) := $(subst /,.,$($(strip $(1)))))
 endef
 
-
+##########
+# Strip duplicate items in list without sorting
+# $(1) = List of items to de-duplicate
+unique = $(eval seen :=)$(foreach _,$1,$(if $(filter $_,${seen}),,$(eval seen += $_)))${seen}

@@ -12,6 +12,7 @@
  * Defines board support package for BCM94390WCD2 board
  */
 #include "platform.h"
+#include "platform_assert.h"
 #include "platform_cmsis.h"
 #include "platform_config.h"
 #include "platform_init.h"
@@ -43,11 +44,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* NOTE: Peripheral interrupts are managed internally in BCM4390 peripheral libraries
@@ -119,8 +120,8 @@ const platform_uart_t platform_uart_peripherals[] =
     [WICED_UART_2] =
     {
         .port    = UART2,
-        .tx_pin  = &platform_gpio_pins[WICED_GPIO_8],
-        .rx_pin  = &platform_gpio_pins[WICED_GPIO_10],
+        .tx_pin  = &platform_gpio_pins[WICED_GPIO_10],
+        .rx_pin  = &platform_gpio_pins[WICED_GPIO_8],
         .cts_pin = &platform_gpio_pins[WICED_GPIO_7],
         .rts_pin = &platform_gpio_pins[WICED_GPIO_9],
 
@@ -129,6 +130,14 @@ const platform_uart_t platform_uart_peripherals[] =
         /* .rx_pin  = &platform_gpio_pins[WICED_PERIPHERAL_PIN_1], */
         /* .cts_pin = &platform_gpio_pins[WICED_GPIO_2],           */
         /* .rts_pin = &platform_gpio_pins[WICED_GPIO_1],           */
+    },
+    [WICED_UART_3] =
+    {
+        .port    = UART3,
+        .tx_pin  = &platform_gpio_pins[WICED_GPIO_8],
+        .rx_pin  = &platform_gpio_pins[WICED_GPIO_9],
+        .cts_pin = NULL,
+        .rts_pin = NULL,
     },
     [WICED_UART_4] = /* this uart resides in wlan core */
     {
@@ -146,12 +155,38 @@ const platform_spi_t platform_spi_peripherals[] =
 {
     [WICED_SPI_1] =
     {
+        .port                  = SPI1,
+        .is_master_supported   = WICED_TRUE,
+        .is_slave_supported    = WICED_TRUE,
+        .clock_pin             = &platform_gpio_pins[WICED_GPIO_2],               /* UART1_CTS_N_A1   - pin 20 expansion header */
+        .mosi_pin              = &platform_gpio_pins[WICED_PERIPHERAL_PIN_1],     /* UART1_RX_GPIO_A5 - pin 17 expansion header */
+        .miso_pin              = &platform_gpio_pins[WICED_PERIPHERAL_PIN_2],     /* UART1_TX_GPIO_A4 - pin 16 expansion header */
+        .slave_chip_select_pin = &platform_gpio_pins[WICED_GPIO_1],               /* UART1_RTS_N_A0   - pin 22 expansion header */
+        .slave_ready_pin       = &platform_gpio_pins[WICED_GPIO_7],               /* I2S_DI_A6        - pin 15 expansion header */
+    },
+    [WICED_SPI_2] =
+    {
+        .port                  = SPI2,
+        .is_master_supported   = WICED_TRUE,
+        .is_slave_supported    = WICED_TRUE,
+        .clock_pin             = &platform_gpio_pins[WICED_PERIPHERAL_PIN_2],     /* UART1_TX_GPIO_A4 - pin 16 expansion header */
+        .mosi_pin              = &platform_gpio_pins[WICED_PERIPHERAL_PIN_1],     /* UART1_RX_GPIO_A5 - pin 17 expansion header */
+        .miso_pin              = &platform_gpio_pins[WICED_GPIO_1],               /* UART1_RTS_N_A0   - pin 22 expansion header */
+        .slave_chip_select_pin = &platform_gpio_pins[WICED_GPIO_2],               /* UART1_CTS_N_A1   - pin 20 expansion header */
+        .slave_ready_pin       = &platform_gpio_pins[WICED_GPIO_7],               /* I2S_DI_A6        - pin 15 expansion header */
+    },
+
+    [WICED_SPI_3] =
+    {
 #ifdef EXPOSED_4390_SFLASH_PINS
-        .port     = SPI2,
-        .clk_pin  = &platform_gpio_pins[WICED_PERIPHERAL_PIN_3],
-        .mosi_pin = &platform_gpio_pins[WICED_PERIPHERAL_PIN_6],
-        .miso_pin = &platform_gpio_pins[WICED_PERIPHERAL_PIN_5],
-        .intr_pin = NULL,
+        .port                  = SPI2,
+        .is_master_supported   = WICED_TRUE,
+        .is_slave_supported    = WICED_FALSE,
+        .clock_pin             = &platform_gpio_pins[WICED_PERIPHERAL_PIN_3],
+        .mosi_pin              = &platform_gpio_pins[WICED_PERIPHERAL_PIN_6],
+        .miso_pin              = &platform_gpio_pins[WICED_PERIPHERAL_PIN_5],
+        .slave_chip_select_pin = NULL,
+        .slave_ready_pin       = NULL,
 #endif /* ifdef EXPOSED_4390_SFLASH_PINS */
     },
 };
@@ -167,6 +202,8 @@ const wiced_spi_device_t wiced_spi_flash =
     .bits        = 8
 };
 #endif
+
+platform_spi_slave_driver_t platform_spi_slave_drivers[WICED_SPI_MAX];
 
 /* UART standard I/O configuration */
 #ifndef WICED_DISABLE_STDIO
@@ -187,15 +224,19 @@ static platform_uart_config_t stdio_config =
 void platform_init_peripheral_irq_priorities( void )
 {
     /* Interrupt priority setup. Called by WICED/platform/MCU/BCM439x/platform_init.c */
-    NVIC_SetPriority( DmaDoneInt_IRQn,   2 ); /* DMA   */
-    NVIC_SetPriority( PTU_IRQn,          6 ); /* UART1 */
-    NVIC_SetPriority( PTU2_IRQn,         6 ); /* UART2 */
+    NVIC_SetPriority( DmaDoneInt_IRQn,   2 ); /* DMA */
+    NVIC_SetPriority( PTU1_IRQn,         6 ); /* PTU1 (UART1 and SPI1) */
+    NVIC_SetPriority( PTU2_IRQn,         6 ); /* PTU2 (UART2 and SPI2) */
     NVIC_SetPriority( GPIOA_BANK0_IRQn, 14 ); /* GPIOA */
     NVIC_SetPriority( GPIOA_BANK1_IRQn, 14 ); /* GPIOA */
 }
 
 void platform_init_external_devices( void )
 {
+    /* Initialise wake up pin */
+    platform_gpio_init( &platform_gpio_pins[WICED_GPIO_11], INPUT_HIGH_IMPEDANCE );
+    platform_wakeup_pin_enable( platform_gpio_pins[WICED_GPIO_11].pin, WAKEUP_PIN_ACTIVE_HIGH );
+
     /* Initialise LEDs and turn off by default */
     platform_gpio_init( &platform_gpio_pins[WICED_LED1], OUTPUT_PUSH_PULL );
     platform_gpio_init( &platform_gpio_pins[WICED_LED2], OUTPUT_PUSH_PULL );
@@ -216,15 +257,17 @@ void platform_init_external_devices( void )
  *            Interrupt Handlers Mapping
  ******************************************************/
 
-WWD_RTOS_DEFINE_ISR( uart1_irq )
+WWD_RTOS_DEFINE_ISR( ptu1_irq )
 {
+    platform_spi_slave_irq( &platform_spi_slave_drivers[WICED_SPI_1] );
     platform_uart_irq( &platform_uart_drivers[WICED_UART_1] );
 }
 
-WWD_RTOS_DEFINE_ISR( uart2_irq )
+WWD_RTOS_DEFINE_ISR( ptu2_irq )
 {
+    platform_spi_slave_irq( &platform_spi_slave_drivers[WICED_SPI_2] );
     platform_uart_irq( &platform_uart_drivers[WICED_UART_2] );
 }
 
-WWD_RTOS_MAP_ISR( uart1_irq, PTU_irq  );
-WWD_RTOS_MAP_ISR( uart2_irq, PTU2_irq );
+WWD_RTOS_MAP_ISR( ptu1_irq, PTU1_irq );
+WWD_RTOS_MAP_ISR( ptu2_irq, PTU2_irq );

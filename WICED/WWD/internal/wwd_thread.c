@@ -63,7 +63,7 @@ static wiced_bool_t          wwd_thread_quit_flag = WICED_FALSE;
 static wiced_bool_t          wwd_inited           = WICED_FALSE;
 static host_thread_type_t    wwd_thread;
 static host_semaphore_type_t wwd_transceive_semaphore;
-static wiced_bool_t          wwd_bus_interrupt;
+static wiced_bool_t          wwd_bus_interrupt = WICED_FALSE;
 
 /******************************************************
  *             Static Function Prototypes
@@ -247,10 +247,11 @@ void wwd_thread_quit( void )
  */
 void wwd_thread_notify_irq( void )
 {
+    wwd_bus_interrupt = WICED_TRUE;
+
     /* just wake up the main thread and let it deal with the data */
     if ( wwd_inited == WICED_TRUE )
     {
-        wwd_bus_interrupt = WICED_TRUE;
         (void) host_rtos_set_semaphore( &wwd_transceive_semaphore, WICED_TRUE ); /* ignore failure since there is nothing that can be done about it in a ISR */
     }
 }
@@ -281,14 +282,11 @@ void wwd_thread_notify( void )
  */
 static void wwd_thread_func( uint32_t /*@unused@*/thread_input ) /*@globals killed wwd_transceive_semaphore@*/ /*@modifies wwd_wlan_status, wwd_bus_interrupt, wwd_thread_quit_flag, wwd_inited, wwd_thread@*/
 {
-    int8_t         rx_status;
-    int8_t         tx_status;
-
+    int8_t       rx_status;
+    int8_t       tx_status;
     wwd_result_t result;
 
     UNUSED_PARAMETER(thread_input);
-
-    wwd_bus_interrupt = WICED_FALSE;
 
     while ( wwd_thread_quit_flag != WICED_TRUE )
     {

@@ -18,6 +18,7 @@
 #include "lwip/ip_addr.h"
 #include "lwip/netif.h"
 #include "wiced_result.h"
+#include "wiced_wifi.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -37,8 +38,7 @@ extern "C"
 #define MAX_IP_PAYLOAD_SIZE     ( WICED_PAYLOAD_MTU - IP_HLEN - WICED_PHYSICAL_HEADER )
 
 
-#define IP_STACK_SIZE               (1024*4)
-#define ARP_CACHE_SIZE              (3*52)
+#define IP_STACK_SIZE               (4*1024)
 #define DHCP_STACK_SIZE             (1024)
 
 #define WICED_ANY_PORT              (0)
@@ -48,6 +48,8 @@ extern "C"
 
 #define IP_HANDLE(interface)   (wiced_ip_handle[(interface==WICED_STA_INTERFACE)?0:1])
 
+#define WICED_MAXIMUM_NUMBER_OF_SOCKETS_WITH_CALLBACKS    (5)
+#define WICED_MAXIMUM_NUMBER_OF_ACCEPT_SOCKETS            (5)
 
 /******************************************************
  *                   Enumerations
@@ -61,11 +63,20 @@ typedef enum
 
 typedef enum
 {
+    WICED_SOCKET_CLOSED,
+    WICED_SOCKET_CLOSING,
+    WICED_SOCKET_CONNECTING,
+    WICED_SOCKET_CONNECTED,
+    WICED_SOCKET_DATA_PENDING,
+    WICED_SOCKET_ERROR
+} wiced_socket_state_t;
+
+typedef enum
+{
     WICED_TCP_DISCONNECT_CALLBACK_INDEX = 0,
     WICED_TCP_RECEIVE_CALLBACK_INDEX    = 1,
     WICED_TCP_CONNECT_CALLBACK_INDEX    = 2,
 } wiced_tcp_callback_index_t;
-
 
 /******************************************************
  *                 Type Definitions
@@ -73,7 +84,6 @@ typedef enum
 
 typedef struct netbuf       wiced_packet_t;
 typedef wiced_result_t (*wiced_socket_callback_t)( void* socket );
-
 
 /******************************************************
  *                    Structures
@@ -86,7 +96,6 @@ typedef struct
     wiced_tls_session_t      session;
     wiced_packet_t*          temp_packet;
 } wiced_tls_simple_context_t;
-
 
 typedef struct
 {
@@ -110,8 +119,16 @@ typedef struct
     wiced_tls_simple_context_t* tls_context;
     wiced_bool_t                context_malloced;
     wiced_socket_callback_t     callbacks[3];
-
 } wiced_tcp_socket_t;
+
+typedef struct
+{
+    wiced_tcp_socket_t   listen_socket;
+    wiced_tcp_socket_t   accept_socket [WICED_MAXIMUM_NUMBER_OF_ACCEPT_SOCKETS];
+    wiced_socket_state_t accept_socket_state [WICED_MAXIMUM_NUMBER_OF_ACCEPT_SOCKETS];
+    int                  data_pending_on_socket;
+    uint16_t             port;
+} wiced_tcp_server_t;
 
 typedef wiced_tcp_socket_t  wiced_udp_socket_t;
 
@@ -129,9 +146,7 @@ typedef struct
  *                 Global Variables
  ******************************************************/
 
-/* WiHi objects.
- * Note: These objects are for internal use only!
- */
+/* Note: These objects are for internal use only! */
 extern xTaskHandle     wiced_thread_handle;
 extern struct netif    wiced_ip_handle[2];
 extern struct dhcp     wiced_dhcp_handle;

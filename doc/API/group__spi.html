@@ -31,7 +31,7 @@
         <td style="width:117px"><img src="brcmlogo.png" alt="Broadcom Logo" /></td>
         <td style="width:20px;background-image:url('brcmlogo_line.png');"></td>
         <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('brcmlogo_line.png');">
-        WICED&trade; v3.0.1 - API Reference Guide
+        WICED&trade; v3.1.0 - API Reference Guide
         </td>
         <td style="width:20px"></td>
         <td style="width:1px"><img src="wiced_logo.png" alt="WICED Logo" /></td>
@@ -118,6 +118,24 @@ Functions</h2></td></tr>
 <tr class="memitem:gaf7917bb47d3702b60af17512b02f9e27"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__spi.html#gaf7917bb47d3702b60af17512b02f9e27">wiced_spi_deinit</a> (const wiced_spi_device_t *spi)</td></tr>
 <tr class="memdesc:gaf7917bb47d3702b60af17512b02f9e27"><td class="mdescLeft">&#160;</td><td class="mdescRight">De-initialises a SPI interface.  <a href="#gaf7917bb47d3702b60af17512b02f9e27">More...</a><br/></td></tr>
 <tr class="separator:gaf7917bb47d3702b60af17512b02f9e27"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae5336959b654c023e4b13e8379f17f36"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__spi.html#gae5336959b654c023e4b13e8379f17f36">wiced_spi_slave_init</a> (wiced_spi_t spi, const wiced_spi_slave_config_t *config)</td></tr>
+<tr class="memdesc:gae5336959b654c023e4b13e8379f17f36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialises a SPI slave interface.  <a href="#gae5336959b654c023e4b13e8379f17f36">More...</a><br/></td></tr>
+<tr class="separator:gae5336959b654c023e4b13e8379f17f36"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf56514aef2976e6f374c19c5c8b0867a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__spi.html#gaf56514aef2976e6f374c19c5c8b0867a">wiced_spi_slave_deinit</a> (wiced_spi_t spi)</td></tr>
+<tr class="memdesc:gaf56514aef2976e6f374c19c5c8b0867a"><td class="mdescLeft">&#160;</td><td class="mdescRight">De-initialises a SPI slave interface.  <a href="#gaf56514aef2976e6f374c19c5c8b0867a">More...</a><br/></td></tr>
+<tr class="separator:gaf56514aef2976e6f374c19c5c8b0867a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaafd1c0838c54a4e616a22d44946b66bd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__spi.html#gaafd1c0838c54a4e616a22d44946b66bd">wiced_spi_slave_receive_command</a> (wiced_spi_t spi, wiced_spi_slave_command_t *command, uint32_t timeout_ms)</td></tr>
+<tr class="memdesc:gaafd1c0838c54a4e616a22d44946b66bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Receive command from the remote SPI master.  <a href="#gaafd1c0838c54a4e616a22d44946b66bd">More...</a><br/></td></tr>
+<tr class="separator:gaafd1c0838c54a4e616a22d44946b66bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7f91105c8a20b848ab91c1b1c1d4d7ab"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__spi.html#ga7f91105c8a20b848ab91c1b1c1d4d7ab">wiced_spi_slave_transfer_data</a> (wiced_spi_t spi, wiced_spi_slave_transfer_direction_t direction, wiced_spi_slave_data_buffer_t *buffer, uint32_t timeout_ms)</td></tr>
+<tr class="memdesc:ga7f91105c8a20b848ab91c1b1c1d4d7ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Transfer data to/from the remote SPI master.  <a href="#ga7f91105c8a20b848ab91c1b1c1d4d7ab">More...</a><br/></td></tr>
+<tr class="separator:ga7f91105c8a20b848ab91c1b1c1d4d7ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac370c4eb9eb7b775d31aa3affd9cb961"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__spi.html#gac370c4eb9eb7b775d31aa3affd9cb961">wiced_spi_slave_send_error_status</a> (wiced_spi_t spi, wiced_spi_slave_transfer_status_t error_status)</td></tr>
+<tr class="memdesc:gac370c4eb9eb7b775d31aa3affd9cb961"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send an error status over the SPI slave interface.  <a href="#gac370c4eb9eb7b775d31aa3affd9cb961">More...</a><br/></td></tr>
+<tr class="separator:gac370c4eb9eb7b775d31aa3affd9cb961"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga3ee9efc49d468431fc6ba06ec34ae937"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__spi.html#ga3ee9efc49d468431fc6ba06ec34ae937">wiced_spi_slave_generate_interrupt</a> (wiced_spi_t spi, uint32_t pulse_duration_ms)</td></tr>
+<tr class="memdesc:ga3ee9efc49d468431fc6ba06ec34ae937"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate an interrupt on the SPI slave interface.  <a href="#ga3ee9efc49d468431fc6ba06ec34ae937">More...</a><br/></td></tr>
+<tr class="separator:ga3ee9efc49d468431fc6ba06ec34ae937"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Serial Peripheral Interface (SPI) Functions. </p>
@@ -175,6 +193,232 @@ WICED_ERROR : if an error occurred </dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>WICED_SUCCESS : on success. </dd>
 <dd>
 WICED_ERROR : if the SPI device could not be initialised </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="gaf56514aef2976e6f374c19c5c8b0867a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> wiced_spi_slave_deinit </td>
+          <td>(</td>
+          <td class="paramtype">wiced_spi_t&#160;</td>
+          <td class="paramname"><em>spi</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>De-initialises a SPI slave interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">spi</td><td>: the SPI slave interface to be de-initialised</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga3ee9efc49d468431fc6ba06ec34ae937"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> wiced_spi_slave_generate_interrupt </td>
+          <td>(</td>
+          <td class="paramtype">wiced_spi_t&#160;</td>
+          <td class="paramname"><em>spi</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>pulse_duration_ms</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Generate an interrupt on the SPI slave interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">spi</td><td>: the SPI slave interface </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">pulse_duration_ms</td><td>: interrupt pulse duration in milliseconds</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="gae5336959b654c023e4b13e8379f17f36"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> wiced_spi_slave_init </td>
+          <td>(</td>
+          <td class="paramtype">wiced_spi_t&#160;</td>
+          <td class="paramname"><em>spi</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const wiced_spi_slave_config_t *&#160;</td>
+          <td class="paramname"><em>config</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Initialises a SPI slave interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">spi</td><td>: the SPI slave interface to be initialised </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">config</td><td>: SPI slave configuration</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="gaafd1c0838c54a4e616a22d44946b66bd"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> wiced_spi_slave_receive_command </td>
+          <td>(</td>
+          <td class="paramtype">wiced_spi_t&#160;</td>
+          <td class="paramname"><em>spi</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">wiced_spi_slave_command_t *&#160;</td>
+          <td class="paramname"><em>command</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>timeout_ms</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Receive command from the remote SPI master. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">spi</td><td>: the SPI slave interface </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">command</td><td>: pointer to the variable which will contained the received command </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">timeout_ms</td><td>: timeout in milliseconds</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="gac370c4eb9eb7b775d31aa3affd9cb961"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> wiced_spi_slave_send_error_status </td>
+          <td>(</td>
+          <td class="paramtype">wiced_spi_t&#160;</td>
+          <td class="paramname"><em>spi</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">wiced_spi_slave_transfer_status_t&#160;</td>
+          <td class="paramname"><em>error_status</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send an error status over the SPI slave interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">spi</td><td>: the SPI slave interface </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">error_status</td><td>: SPI slave error status</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga7f91105c8a20b848ab91c1b1c1d4d7ab"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> wiced_spi_slave_transfer_data </td>
+          <td>(</td>
+          <td class="paramtype">wiced_spi_t&#160;</td>
+          <td class="paramname"><em>spi</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">wiced_spi_slave_transfer_direction_t&#160;</td>
+          <td class="paramname"><em>direction</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">wiced_spi_slave_data_buffer_t *&#160;</td>
+          <td class="paramname"><em>buffer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>timeout_ms</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Transfer data to/from the remote SPI master. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">spi</td><td>: the SPI slave interface </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">direction</td><td>: transfer direction </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">buffer</td><td>: the buffer which contain the data to transfer </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">timeout_ms</td><td>: timeout in milliseconds</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> </dd></dl>
 
 </div>
 </div>

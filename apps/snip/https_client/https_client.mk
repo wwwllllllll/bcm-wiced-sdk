@@ -10,10 +10,7 @@
 
 NAME := App_HTTPS_Client
 
-$(NAME)_SOURCES := https_client.c
+$(NAME)_SOURCES    := https_client.c
 
 $(NAME)_COMPONENTS := protocols/HTTP
 
-GLOBAL_DEFINES :=
-
-WIFI_CONFIG_DCT_H := wifi_config_dct.h

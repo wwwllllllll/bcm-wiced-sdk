@@ -100,18 +100,18 @@ typedef struct
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
-static int            process_app_settings_page ( const char* url, wiced_tcp_stream_t* socket, void* arg );
-static int            process_wps_go            ( const char* url, wiced_tcp_stream_t* socket, void* arg );
-static int            process_scan              ( const char* url, wiced_tcp_stream_t* socket, void* arg );
-static int            process_connect           ( const char* url, wiced_tcp_stream_t* socket, void* arg );
-static int            process_config_save       ( const char* url, wiced_tcp_stream_t* stream, void* arg );
+static int32_t        process_app_settings_page ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_wps_go            ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_scan              ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_connect           ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_config_save       ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
 static wiced_result_t scan_handler              ( wiced_scan_handler_result_t* malloced_scan_result );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /**
@@ -158,16 +158,17 @@ extern char                         config_wps_pin[9];
  *               Function Definitions
  ******************************************************/
 
-int process_app_settings_page( const char* url, wiced_tcp_stream_t* stream, void* arg )
+int32_t process_app_settings_page( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
     const configuration_entry_t* config_entry;
-    char temp_buf[10];
+    char                  temp_buf[10];
     const resource_hnd_t* end_str_res;
-    uint32_t utoa_size;
-    char config_count[2] = {'0','0'};
+    uint32_t              utoa_size;
+    char                  config_count[2] = {'0','0'};
 
-    UNUSED_PARAMETER( url );
+    UNUSED_PARAMETER( url_parameters );
     UNUSED_PARAMETER( arg );
+    UNUSED_PARAMETER( http_message_body );
 
     wiced_tcp_stream_write_resource( stream, &resources_config_DIR_device_settings_html );
 
@@ -281,8 +282,8 @@ static wiced_result_t scan_handler( wiced_scan_handler_result_t* malloced_scan_r
 
     malloc_transfer_to_curr_thread( malloced_scan_result );
 
-    /* Check if scan is finished (Invalid scan result) */
-    if (malloced_scan_result->scan_complete != WICED_TRUE)
+    /* Check if scan is not finished */
+    if ( malloced_scan_result->status == WICED_SCAN_INCOMPLETE )
     {
         char temp_buffer[70];
         char* temp_ptr;
@@ -298,9 +299,9 @@ static wiced_result_t scan_handler( wiced_scan_handler_result_t* malloced_scan_r
 
         /* SSID */
         temp_ptr = temp_buffer;
-        for( i = 0; i < malloced_scan_result->ap_details.SSID.len; i++)
+        for( i = 0; i < malloced_scan_result->ap_details.SSID.length; i++)
         {
-            temp_ptr += sprintf( temp_ptr, "%02X", malloced_scan_result->ap_details.SSID.val[i] );
+            temp_ptr += sprintf( temp_ptr, "%02X", malloced_scan_result->ap_details.SSID.value[i] );
         }
         temp_ptr += sprintf( temp_ptr, "\n" );
 
@@ -344,12 +345,13 @@ static wiced_result_t scan_handler( wiced_scan_handler_result_t* malloced_scan_r
 }
 
 
-static int process_scan( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_scan( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
     process_scan_data_t scan_data;
 
-    UNUSED_PARAMETER( url );
+    UNUSED_PARAMETER( url_parameters );
     UNUSED_PARAMETER( arg );
+    UNUSED_PARAMETER( http_message_body );
 
     scan_data.stream = stream;
     scan_data.result_count = 0;
@@ -372,36 +374,37 @@ static int process_scan( const char* url, wiced_tcp_stream_t* stream, void* arg 
 }
 
 
-static int process_wps_go( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_wps_go( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
-    unsigned int params_len;
+    unsigned int url_parameters_len;
 
     UNUSED_PARAMETER( stream );
     UNUSED_PARAMETER( arg );
+    UNUSED_PARAMETER( http_message_body );
 
-    params_len = strlen(url);
+    url_parameters_len = strlen(url_parameters);
 
     /* client has signalled to start client mode via WPS. */
     config_use_wps = WICED_TRUE;
 
     /* Check if config method is PIN */
-    if ( ( strlen( PIN_FIELD_NAME ) + 1 < params_len ) &&
-         ( 0 == strncmp( url, PIN_FIELD_NAME "=", strlen( PIN_FIELD_NAME ) + 1 ) ) )
+    if ( ( strlen( PIN_FIELD_NAME ) + 1 < url_parameters_len ) &&
+         ( 0 == strncmp( url_parameters, PIN_FIELD_NAME "=", strlen( PIN_FIELD_NAME ) + 1 ) ) )
     {
         unsigned int pinlen = 0;
 
-        url += strlen( PIN_FIELD_NAME ) + 1;
+        url_parameters += strlen( PIN_FIELD_NAME ) + 1;
 
         /* Find length of pin */
-        while ( ( url[pinlen] != '&'    ) &&
-                ( url[pinlen] != '\n'   ) &&
-                ( url[pinlen] != '\x00' ) &&
-                ( params_len > 0 ) )
+        while ( ( url_parameters[pinlen] != '&'    ) &&
+                ( url_parameters[pinlen] != '\n'   ) &&
+                ( url_parameters[pinlen] != '\x00' ) &&
+                ( url_parameters_len > 0 ) )
         {
             pinlen++;
-            params_len--;
+            url_parameters_len--;
         }
-        memcpy( config_wps_pin, url, pinlen );
+        memcpy( config_wps_pin, url_parameters, pinlen );
         config_wps_pin[pinlen] = '\x00';
     }
     else
@@ -424,10 +427,10 @@ static int process_wps_go( const char* url, wiced_tcp_stream_t* stream, void* ar
  * for the web server to shut down
  *
  * @param  socket  : a handle for the TCP socket over which the data will be sent
- * @param  params     : a byte array containing any parameters included in the URL
- * @param  params_len : size of the params byte array in bytes
+ * @param  url_parameters     : a byte array containing any parameters included in the URL
+ * @param  url_parameters_len : size of the url_parameters byte array in bytes
  */
-static int process_connect( const char* params, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_connect( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
     /* This is the first part of the platform_dct_wifi_config_t structure */
     struct
@@ -436,53 +439,54 @@ static int process_connect( const char* params, wiced_tcp_stream_t* stream, void
         wiced_config_ap_entry_t  ap_entry;
     } temp_config;
 
+    UNUSED_PARAMETER( http_message_body );
     UNUSED_PARAMETER( stream );
     UNUSED_PARAMETER( arg );
 
     memset( &temp_config, 0, sizeof(temp_config) );
 
     /* First, parse AP details */
-    while (params[0] == 'a' && params[3] == '=')
+    while (url_parameters[0] == 'a' && url_parameters[3] == '=')
     {
         uint8_t ap_index;
         const char* end_of_value;
 
         /* Extract the AP index and check validity */
-        ap_index = (uint8_t)( params[2] - '0' );
+        ap_index = (uint8_t)( url_parameters[2] - '0' );
         if (ap_index >= CONFIG_AP_LIST_SIZE)
         {
             return -1;
         }
 
         /* Find the end of the value */
-        end_of_value = &params[4];
+        end_of_value = &url_parameters[4];
         while( (*end_of_value != '&') && (*end_of_value != '\x00') && (*end_of_value != '\n') )
         {
             ++end_of_value;
         }
 
         /* Parse either the SSID or PSK*/
-        if (params[1] == 's')
+        if ( url_parameters[1] == 's' )
         {
-            memcpy( temp_config.ap_entry.details.SSID.val, &params[4], (size_t) ( end_of_value - &params[4] ) );
-            temp_config.ap_entry.details.SSID.len = (uint8_t) ( end_of_value - &params[4] );
-            temp_config.ap_entry.details.SSID.val[temp_config.ap_entry.details.SSID.len] = 0;
+            memcpy( temp_config.ap_entry.details.SSID.value, &url_parameters[4], (size_t) ( end_of_value - &url_parameters[4] ) );
+            temp_config.ap_entry.details.SSID.length = (uint8_t) ( end_of_value - &url_parameters[4] );
+            temp_config.ap_entry.details.SSID.value[temp_config.ap_entry.details.SSID.length] = 0;
         }
-        else if (params[1] == 'p')
+        else if (url_parameters[1] == 'p')
         {
-            temp_config.ap_entry.security_key_length = (uint8_t) ( end_of_value - &params[4] );
-            memcpy( temp_config.ap_entry.security_key, &params[4], temp_config.ap_entry.security_key_length);
+            temp_config.ap_entry.security_key_length = (uint8_t) ( end_of_value - &url_parameters[4] );
+            memcpy( temp_config.ap_entry.security_key, &url_parameters[4], temp_config.ap_entry.security_key_length);
             temp_config.ap_entry.security_key[temp_config.ap_entry.security_key_length] = 0;
         }
-        else if (params[1] == 't')
+        else if (url_parameters[1] == 't')
         {
-            temp_config.ap_entry.details.security = (wiced_security_t) atoi( &params[4] );
+            temp_config.ap_entry.details.security = (wiced_security_t) atoi( &url_parameters[4] );
         }
         else
         {
             return -1;
         }
-        params = end_of_value + 1;
+        url_parameters = end_of_value + 1;
     }
 
     /* Save updated config details */
@@ -494,9 +498,10 @@ static int process_connect( const char* params, wiced_tcp_stream_t* stream, void
     return 0;
 }
 
-static int process_config_save( const char* params, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_config_save( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
     UNUSED_PARAMETER( arg );
+    UNUSED_PARAMETER( http_message_body );
 
     if ( app_configuration != NULL )
     {
@@ -521,13 +526,13 @@ static int process_config_save( const char* params, wiced_tcp_stream_t* stream, 
         wiced_dct_read_lock( (void**)&app_dct, WICED_TRUE, DCT_APP_SECTION, earliest_offset, end_of_last_offset - earliest_offset );
         if ( app_dct != NULL )
         {
-            while ( params[0] == 'v' && params[3] == '=' )
+            while ( url_parameters[0] == 'v' && url_parameters[3] == '=' )
             {
                 /* Extract the variable index and check validity */
-                uint16_t variable_index = (uint16_t) ( ( ( params[1] - '0' ) << 8 ) | ( params[2] - '0' ) );
+                uint16_t variable_index = (uint16_t) ( ( ( url_parameters[1] - '0' ) << 8 ) | ( url_parameters[2] - '0' ) );
 
                 /* Find the end of the value */
-                const char* end_of_value = &params[4];
+                const char* end_of_value = &url_parameters[4];
                 while ( ( *end_of_value != '&' ) && ( *end_of_value != '\n' ) )
                 {
                     ++end_of_value;
@@ -538,23 +543,23 @@ static int process_config_save( const char* params, wiced_tcp_stream_t* stream, 
                 switch ( config_entry->data_type )
                 {
                     case CONFIG_STRING_DATA:
-                        memcpy( (uint8_t*) ( app_dct + config_entry->dct_offset ), &params[4], (size_t) ( end_of_value - &params[4] ) );
-                        ( (uint8_t*) ( app_dct + config_entry->dct_offset ) )[end_of_value - &params[4]] = 0;
+                        memcpy( (uint8_t*) ( app_dct + config_entry->dct_offset ), &url_parameters[4], (size_t) ( end_of_value - &url_parameters[4] ) );
+                        ( (uint8_t*) ( app_dct + config_entry->dct_offset ) )[end_of_value - &url_parameters[4]] = 0;
                         break;
                     case CONFIG_UINT8_DATA:
-                        *(uint8_t*) ( app_dct + config_entry->dct_offset - earliest_offset ) = (uint8_t) atoi( &params[4] );
+                        *(uint8_t*) ( app_dct + config_entry->dct_offset - earliest_offset ) = (uint8_t) atoi( &url_parameters[4] );
                         break;
                     case CONFIG_UINT16_DATA:
-                        *(uint16_t*) ( app_dct + config_entry->dct_offset - earliest_offset ) = (uint16_t) atoi( &params[4] );
+                        *(uint16_t*) ( app_dct + config_entry->dct_offset - earliest_offset ) = (uint16_t) atoi( &url_parameters[4] );
                         break;
                     case CONFIG_UINT32_DATA:
-                        *(uint32_t*) ( app_dct + config_entry->dct_offset - earliest_offset ) = (uint32_t) atoi( &params[4] );
+                        *(uint32_t*) ( app_dct + config_entry->dct_offset - earliest_offset ) = (uint32_t) atoi( &url_parameters[4] );
                         break;
                     default:
                         break;
                 }
 
-                params = end_of_value + 1;
+                url_parameters = end_of_value + 1;
             }
 
             /* Write the app DCT */

@@ -31,7 +31,7 @@
         <td style="width:117px"><img src="brcmlogo.png" alt="Broadcom Logo" /></td>
         <td style="width:20px;background-image:url('brcmlogo_line.png');"></td>
         <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('brcmlogo_line.png');">
-        WICED&trade; v3.0.1 - API Reference Guide
+        WICED&trade; v3.1.0 - API Reference Guide
         </td>
         <td style="width:20px"></td>
         <td style="width:1px"><img src="wiced_logo.png" alt="WICED Logo" /></td>
@@ -144,120 +144,198 @@ Functions</h2></td></tr>
 <tr class="separator:ga3dbdc14df456bddb1e875daf760b2a5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga99e716e8909c586908c29ce76ee32745"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__aes.html#ga99e716e8909c586908c29ce76ee32745">aes_ccm_decrypt</a> (uint32_t *rk, const size_t key_len, const uint8_t *nonce, const size_t aad_len, const uint8_t *aad, const size_t data_len, const uint8_t *ctxt, uint8_t *ptxt)</td></tr>
 <tr class="separator:ga99e716e8909c586908c29ce76ee32745"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga84fd4afbb929bdcb21170006072e195c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga84fd4afbb929bdcb21170006072e195c">des_setkey_enc</a> (des_context *ctx, unsigned char key[8])</td></tr>
-<tr class="memdesc:ga84fd4afbb929bdcb21170006072e195c"><td class="mdescLeft">&#160;</td><td class="mdescRight">DES key schedule (56-bit, encryption)  <a href="group__des.html#ga84fd4afbb929bdcb21170006072e195c">More...</a><br/></td></tr>
-<tr class="separator:ga84fd4afbb929bdcb21170006072e195c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga83ac4de32678c6317b92779b4c5adcd9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga83ac4de32678c6317b92779b4c5adcd9">des_setkey_dec</a> (des_context *ctx, unsigned char key[8])</td></tr>
-<tr class="memdesc:ga83ac4de32678c6317b92779b4c5adcd9"><td class="mdescLeft">&#160;</td><td class="mdescRight">DES key schedule (56-bit, decryption)  <a href="group__des.html#ga83ac4de32678c6317b92779b4c5adcd9">More...</a><br/></td></tr>
-<tr class="separator:ga83ac4de32678c6317b92779b4c5adcd9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gacae3216a8542b424c16f6dd1009fc635"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gacae3216a8542b424c16f6dd1009fc635">des3_set2key_enc</a> (des3_context *ctx, unsigned char key[16])</td></tr>
-<tr class="memdesc:gacae3216a8542b424c16f6dd1009fc635"><td class="mdescLeft">&#160;</td><td class="mdescRight">Triple-DES key schedule (112-bit, encryption)  <a href="group__des.html#gacae3216a8542b424c16f6dd1009fc635">More...</a><br/></td></tr>
-<tr class="separator:gacae3216a8542b424c16f6dd1009fc635"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga1217f25a61f16c29200eb3f8454eabc7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga1217f25a61f16c29200eb3f8454eabc7">des3_set2key_dec</a> (des3_context *ctx, unsigned char key[16])</td></tr>
-<tr class="memdesc:ga1217f25a61f16c29200eb3f8454eabc7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Triple-DES key schedule (112-bit, decryption)  <a href="group__des.html#ga1217f25a61f16c29200eb3f8454eabc7">More...</a><br/></td></tr>
-<tr class="separator:ga1217f25a61f16c29200eb3f8454eabc7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad1a5893314b2ebff4f04ef6566162c99"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gad1a5893314b2ebff4f04ef6566162c99">des3_set3key_enc</a> (des3_context *ctx, unsigned char key[24])</td></tr>
-<tr class="memdesc:gad1a5893314b2ebff4f04ef6566162c99"><td class="mdescLeft">&#160;</td><td class="mdescRight">Triple-DES key schedule (168-bit, encryption)  <a href="group__des.html#gad1a5893314b2ebff4f04ef6566162c99">More...</a><br/></td></tr>
-<tr class="separator:gad1a5893314b2ebff4f04ef6566162c99"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9e6d1092e714f2f332d0ae9582b5f033"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga9e6d1092e714f2f332d0ae9582b5f033">des3_set3key_dec</a> (des3_context *ctx, unsigned char key[24])</td></tr>
-<tr class="memdesc:ga9e6d1092e714f2f332d0ae9582b5f033"><td class="mdescLeft">&#160;</td><td class="mdescRight">Triple-DES key schedule (168-bit, decryption)  <a href="group__des.html#ga9e6d1092e714f2f332d0ae9582b5f033">More...</a><br/></td></tr>
-<tr class="separator:ga9e6d1092e714f2f332d0ae9582b5f033"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9aea0589a86a26f01fdf5ceeffcd671a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga9aea0589a86a26f01fdf5ceeffcd671a">des_crypt_ecb</a> (des_context *ctx, unsigned char input[8], unsigned char output[8])</td></tr>
-<tr class="memdesc:ga9aea0589a86a26f01fdf5ceeffcd671a"><td class="mdescLeft">&#160;</td><td class="mdescRight">DES-ECB block encryption/decryption.  <a href="group__des.html#ga9aea0589a86a26f01fdf5ceeffcd671a">More...</a><br/></td></tr>
-<tr class="separator:ga9aea0589a86a26f01fdf5ceeffcd671a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaef38f85ab8e2b2cefcc498883ba91cde"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gaef38f85ab8e2b2cefcc498883ba91cde">des_crypt_cbc</a> (des_context *ctx, int32_t mode, int32_t length, unsigned char iv[8], unsigned char *input, unsigned char *output)</td></tr>
-<tr class="memdesc:gaef38f85ab8e2b2cefcc498883ba91cde"><td class="mdescLeft">&#160;</td><td class="mdescRight">DES-CBC buffer encryption/decryption.  <a href="group__des.html#gaef38f85ab8e2b2cefcc498883ba91cde">More...</a><br/></td></tr>
-<tr class="separator:gaef38f85ab8e2b2cefcc498883ba91cde"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaeb066824399aee5a8fbe3bedfec99db5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gaeb066824399aee5a8fbe3bedfec99db5">des3_crypt_ecb</a> (des3_context *ctx, unsigned char input[8], unsigned char output[8])</td></tr>
-<tr class="memdesc:gaeb066824399aee5a8fbe3bedfec99db5"><td class="mdescLeft">&#160;</td><td class="mdescRight">3DES-ECB block encryption/decryption  <a href="group__des.html#gaeb066824399aee5a8fbe3bedfec99db5">More...</a><br/></td></tr>
-<tr class="separator:gaeb066824399aee5a8fbe3bedfec99db5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae0045110b27d760e1c4838253123cf56"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gae0045110b27d760e1c4838253123cf56">des3_crypt_cbc</a> (des3_context *ctx, int32_t mode, int32_t length, unsigned char iv[8], unsigned char *input, unsigned char *output)</td></tr>
-<tr class="memdesc:gae0045110b27d760e1c4838253123cf56"><td class="mdescLeft">&#160;</td><td class="mdescRight">3DES-CBC buffer encryption/decryption  <a href="group__des.html#gae0045110b27d760e1c4838253123cf56">More...</a><br/></td></tr>
-<tr class="separator:gae0045110b27d760e1c4838253123cf56"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaee64993375c58c97b3fc965f76645232"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gaee64993375c58c97b3fc965f76645232">des_setkey_enc</a> (des_context *ctx, const unsigned char key[8])</td></tr>
+<tr class="memdesc:gaee64993375c58c97b3fc965f76645232"><td class="mdescLeft">&#160;</td><td class="mdescRight">DES key schedule (56-bit, encryption)  <a href="group__des.html#gaee64993375c58c97b3fc965f76645232">More...</a><br/></td></tr>
+<tr class="separator:gaee64993375c58c97b3fc965f76645232"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7dffe952ce9419e747d0a4633946eabd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga7dffe952ce9419e747d0a4633946eabd">des_setkey_dec</a> (des_context *ctx, const unsigned char key[8])</td></tr>
+<tr class="memdesc:ga7dffe952ce9419e747d0a4633946eabd"><td class="mdescLeft">&#160;</td><td class="mdescRight">DES key schedule (56-bit, decryption)  <a href="group__des.html#ga7dffe952ce9419e747d0a4633946eabd">More...</a><br/></td></tr>
+<tr class="separator:ga7dffe952ce9419e747d0a4633946eabd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8cf7aa7333feb45e083f3f4ffe32ab74"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga8cf7aa7333feb45e083f3f4ffe32ab74">des3_set2key_enc</a> (des3_context *ctx, const unsigned char key[16])</td></tr>
+<tr class="memdesc:ga8cf7aa7333feb45e083f3f4ffe32ab74"><td class="mdescLeft">&#160;</td><td class="mdescRight">Triple-DES key schedule (112-bit, encryption)  <a href="group__des.html#ga8cf7aa7333feb45e083f3f4ffe32ab74">More...</a><br/></td></tr>
+<tr class="separator:ga8cf7aa7333feb45e083f3f4ffe32ab74"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga29a04fcca2236e62a119381645b65782"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga29a04fcca2236e62a119381645b65782">des3_set2key_dec</a> (des3_context *ctx, const unsigned char key[16])</td></tr>
+<tr class="memdesc:ga29a04fcca2236e62a119381645b65782"><td class="mdescLeft">&#160;</td><td class="mdescRight">Triple-DES key schedule (112-bit, decryption)  <a href="group__des.html#ga29a04fcca2236e62a119381645b65782">More...</a><br/></td></tr>
+<tr class="separator:ga29a04fcca2236e62a119381645b65782"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6aba8975626002db39adaa92a1d1ed90"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga6aba8975626002db39adaa92a1d1ed90">des3_set3key_enc</a> (des3_context *ctx, const unsigned char key[24])</td></tr>
+<tr class="memdesc:ga6aba8975626002db39adaa92a1d1ed90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Triple-DES key schedule (168-bit, encryption)  <a href="group__des.html#ga6aba8975626002db39adaa92a1d1ed90">More...</a><br/></td></tr>
+<tr class="separator:ga6aba8975626002db39adaa92a1d1ed90"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gada6d7a926e262017c012a5e160b6f26e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gada6d7a926e262017c012a5e160b6f26e">des3_set3key_dec</a> (des3_context *ctx, const unsigned char key[24])</td></tr>
+<tr class="memdesc:gada6d7a926e262017c012a5e160b6f26e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Triple-DES key schedule (168-bit, decryption)  <a href="group__des.html#gada6d7a926e262017c012a5e160b6f26e">More...</a><br/></td></tr>
+<tr class="separator:gada6d7a926e262017c012a5e160b6f26e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabb21c4e55b6253d292869c4278974bd9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gabb21c4e55b6253d292869c4278974bd9">des_crypt_ecb</a> (des_context *ctx, const unsigned char input[8], unsigned char output[8])</td></tr>
+<tr class="memdesc:gabb21c4e55b6253d292869c4278974bd9"><td class="mdescLeft">&#160;</td><td class="mdescRight">DES-ECB block encryption/decryption.  <a href="group__des.html#gabb21c4e55b6253d292869c4278974bd9">More...</a><br/></td></tr>
+<tr class="separator:gabb21c4e55b6253d292869c4278974bd9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9a8d02b113764c584b620af03975ee7b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga9a8d02b113764c584b620af03975ee7b">des_crypt_cbc</a> (des_context *ctx, int32_t mode, int32_t length, unsigned char iv[8], const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:ga9a8d02b113764c584b620af03975ee7b"><td class="mdescLeft">&#160;</td><td class="mdescRight">DES-CBC buffer encryption/decryption.  <a href="group__des.html#ga9a8d02b113764c584b620af03975ee7b">More...</a><br/></td></tr>
+<tr class="separator:ga9a8d02b113764c584b620af03975ee7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaeb90ce5f4ba334de266464b3acd541b4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#gaeb90ce5f4ba334de266464b3acd541b4">des3_crypt_ecb</a> (des3_context *ctx, const unsigned char input[8], unsigned char output[8])</td></tr>
+<tr class="memdesc:gaeb90ce5f4ba334de266464b3acd541b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">3DES-ECB block encryption/decryption  <a href="group__des.html#gaeb90ce5f4ba334de266464b3acd541b4">More...</a><br/></td></tr>
+<tr class="separator:gaeb90ce5f4ba334de266464b3acd541b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga02934e46d5c559e81151f6fb996dd1f7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__des.html#ga02934e46d5c559e81151f6fb996dd1f7">des3_crypt_cbc</a> (des3_context *ctx, int32_t mode, int32_t length, unsigned char iv[8], const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:ga02934e46d5c559e81151f6fb996dd1f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">3DES-CBC buffer encryption/decryption  <a href="group__des.html#ga02934e46d5c559e81151f6fb996dd1f7">More...</a><br/></td></tr>
+<tr class="separator:ga02934e46d5c559e81151f6fb996dd1f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1055bb44108c1e8d9692f3e3b8acd568"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga1055bb44108c1e8d9692f3e3b8acd568">sha1_starts</a> (sha1_context *ctx)</td></tr>
 <tr class="memdesc:ga1055bb44108c1e8d9692f3e3b8acd568"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 context setup.  <a href="group__sha1.html#ga1055bb44108c1e8d9692f3e3b8acd568">More...</a><br/></td></tr>
 <tr class="separator:ga1055bb44108c1e8d9692f3e3b8acd568"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab9e70c341eb101fea46bb780992d2d5d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#gab9e70c341eb101fea46bb780992d2d5d">sha1_update</a> (sha1_context *ctx, unsigned char *input, int32_t ilen)</td></tr>
-<tr class="memdesc:gab9e70c341eb101fea46bb780992d2d5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 process buffer.  <a href="group__sha1.html#gab9e70c341eb101fea46bb780992d2d5d">More...</a><br/></td></tr>
-<tr class="separator:gab9e70c341eb101fea46bb780992d2d5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8bc9828a88e67af680e53dd261d3f956"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga8bc9828a88e67af680e53dd261d3f956">sha1_update</a> (sha1_context *ctx, const unsigned char *input, int32_t ilen)</td></tr>
+<tr class="memdesc:ga8bc9828a88e67af680e53dd261d3f956"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 process buffer.  <a href="group__sha1.html#ga8bc9828a88e67af680e53dd261d3f956">More...</a><br/></td></tr>
+<tr class="separator:ga8bc9828a88e67af680e53dd261d3f956"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga83ee41b9375fb1cfaa52a98b86b92c58"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga83ee41b9375fb1cfaa52a98b86b92c58">sha1_finish</a> (sha1_context *ctx, unsigned char output[20])</td></tr>
 <tr class="memdesc:ga83ee41b9375fb1cfaa52a98b86b92c58"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 final digest.  <a href="group__sha1.html#ga83ee41b9375fb1cfaa52a98b86b92c58">More...</a><br/></td></tr>
 <tr class="separator:ga83ee41b9375fb1cfaa52a98b86b92c58"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa6fcd8a2e04c77a5c22559b22b0f8f64"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#gaa6fcd8a2e04c77a5c22559b22b0f8f64">sha1</a> (unsigned char *input, int32_t ilen, unsigned char output[20])</td></tr>
-<tr class="memdesc:gaa6fcd8a2e04c77a5c22559b22b0f8f64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = SHA-1( input buffer )  <a href="group__sha1.html#gaa6fcd8a2e04c77a5c22559b22b0f8f64">More...</a><br/></td></tr>
-<tr class="separator:gaa6fcd8a2e04c77a5c22559b22b0f8f64"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae9a2a277f2db4dcdbe8fa5a9c97d14ce"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#gae9a2a277f2db4dcdbe8fa5a9c97d14ce">sha1_file</a> (char *path, unsigned char output[20])</td></tr>
-<tr class="memdesc:gae9a2a277f2db4dcdbe8fa5a9c97d14ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = SHA-1( file contents )  <a href="group__sha1.html#gae9a2a277f2db4dcdbe8fa5a9c97d14ce">More...</a><br/></td></tr>
-<tr class="separator:gae9a2a277f2db4dcdbe8fa5a9c97d14ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaf72aa892b562a65316f34ae02e8f8b7c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#gaf72aa892b562a65316f34ae02e8f8b7c">sha1_hmac_starts</a> (sha1_context *ctx, unsigned char *key, int32_t keylen)</td></tr>
-<tr class="memdesc:gaf72aa892b562a65316f34ae02e8f8b7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 HMAC context setup.  <a href="group__sha1.html#gaf72aa892b562a65316f34ae02e8f8b7c">More...</a><br/></td></tr>
-<tr class="separator:gaf72aa892b562a65316f34ae02e8f8b7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0f9332bae9f7c3b9b3831ade00c54136"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga0f9332bae9f7c3b9b3831ade00c54136">sha1_hmac_update</a> (sha1_context *ctx, unsigned char *input, int32_t ilen)</td></tr>
-<tr class="memdesc:ga0f9332bae9f7c3b9b3831ade00c54136"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 HMAC process buffer.  <a href="group__sha1.html#ga0f9332bae9f7c3b9b3831ade00c54136">More...</a><br/></td></tr>
-<tr class="separator:ga0f9332bae9f7c3b9b3831ade00c54136"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga53d1319a9d2be682cf319b4efb2f5b49"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga53d1319a9d2be682cf319b4efb2f5b49">sha1</a> (const unsigned char *input, int32_t ilen, unsigned char output[20])</td></tr>
+<tr class="memdesc:ga53d1319a9d2be682cf319b4efb2f5b49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = SHA-1( input buffer )  <a href="group__sha1.html#ga53d1319a9d2be682cf319b4efb2f5b49">More...</a><br/></td></tr>
+<tr class="separator:ga53d1319a9d2be682cf319b4efb2f5b49"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8c5c513695c0a429c8241843905b5344"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga8c5c513695c0a429c8241843905b5344">sha1_hmac_starts</a> (sha1_context *ctx, const unsigned char *key, uint32_t keylen)</td></tr>
+<tr class="memdesc:ga8c5c513695c0a429c8241843905b5344"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 HMAC context setup.  <a href="group__sha1.html#ga8c5c513695c0a429c8241843905b5344">More...</a><br/></td></tr>
+<tr class="separator:ga8c5c513695c0a429c8241843905b5344"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9edddbd1b28d97e5e09664b6e51f3bf2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga9edddbd1b28d97e5e09664b6e51f3bf2">sha1_hmac_update</a> (sha1_context *ctx, const unsigned char *input, uint32_t ilen)</td></tr>
+<tr class="memdesc:ga9edddbd1b28d97e5e09664b6e51f3bf2"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 HMAC process buffer.  <a href="group__sha1.html#ga9edddbd1b28d97e5e09664b6e51f3bf2">More...</a><br/></td></tr>
+<tr class="separator:ga9edddbd1b28d97e5e09664b6e51f3bf2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga38679c6fef6af534896808974a98c884"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga38679c6fef6af534896808974a98c884">sha1_hmac_finish</a> (sha1_context *ctx, unsigned char output[20])</td></tr>
 <tr class="memdesc:ga38679c6fef6af534896808974a98c884"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-1 HMAC final digest.  <a href="group__sha1.html#ga38679c6fef6af534896808974a98c884">More...</a><br/></td></tr>
 <tr class="separator:ga38679c6fef6af534896808974a98c884"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga022fd616b59896e8a1eec880d04bf67f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#ga022fd616b59896e8a1eec880d04bf67f">sha1_hmac</a> (unsigned char *key, int32_t keylen, unsigned char *input, int32_t ilen, unsigned char output[20])</td></tr>
-<tr class="memdesc:ga022fd616b59896e8a1eec880d04bf67f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = HMAC-SHA-1( hmac key, input buffer )  <a href="group__sha1.html#ga022fd616b59896e8a1eec880d04bf67f">More...</a><br/></td></tr>
-<tr class="separator:ga022fd616b59896e8a1eec880d04bf67f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaeb721dfb4a025a5f4fb24b32563b619e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha1.html#gaeb721dfb4a025a5f4fb24b32563b619e">sha1_hmac</a> (const unsigned char *key, int32_t keylen, const unsigned char *input, int32_t ilen, unsigned char output[20])</td></tr>
+<tr class="memdesc:gaeb721dfb4a025a5f4fb24b32563b619e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = HMAC-SHA-1( hmac key, input buffer )  <a href="group__sha1.html#gaeb721dfb4a025a5f4fb24b32563b619e">More...</a><br/></td></tr>
+<tr class="separator:gaeb721dfb4a025a5f4fb24b32563b619e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7f11153888fb24425b72f221ad4d971a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga7f11153888fb24425b72f221ad4d971a">sha2_starts</a> (sha2_context *ctx, int32_t is224)</td></tr>
-<tr class="memdesc:ga7f11153888fb24425b72f221ad4d971a"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-256 context setup.  <a href="group__sha256.html#ga7f11153888fb24425b72f221ad4d971a">More...</a><br/></td></tr>
+<tr class="memdesc:ga7f11153888fb24425b72f221ad4d971a"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-224 or SHA-256 context setup.  <a href="group__sha256.html#ga7f11153888fb24425b72f221ad4d971a">More...</a><br/></td></tr>
 <tr class="separator:ga7f11153888fb24425b72f221ad4d971a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga69687959f83a182b5ffbe4f167d8c933"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga69687959f83a182b5ffbe4f167d8c933">sha2_update</a> (sha2_context *ctx, unsigned char *input, int32_t ilen)</td></tr>
-<tr class="memdesc:ga69687959f83a182b5ffbe4f167d8c933"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-256 process buffer.  <a href="group__sha256.html#ga69687959f83a182b5ffbe4f167d8c933">More...</a><br/></td></tr>
-<tr class="separator:ga69687959f83a182b5ffbe4f167d8c933"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga596db520f82f7f0876a9dbd6ce91005a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga596db520f82f7f0876a9dbd6ce91005a">sha2_update</a> (sha2_context *ctx, const unsigned char *input, uint32_t ilen)</td></tr>
+<tr class="memdesc:ga596db520f82f7f0876a9dbd6ce91005a"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-224 or SHA-256 process buffer.  <a href="group__sha256.html#ga596db520f82f7f0876a9dbd6ce91005a">More...</a><br/></td></tr>
+<tr class="separator:ga596db520f82f7f0876a9dbd6ce91005a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga2762ab9bf6601a7ab2f2bee3eb72b22a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga2762ab9bf6601a7ab2f2bee3eb72b22a">sha2_finish</a> (sha2_context *ctx, unsigned char output[32])</td></tr>
-<tr class="memdesc:ga2762ab9bf6601a7ab2f2bee3eb72b22a"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-256 final digest.  <a href="group__sha256.html#ga2762ab9bf6601a7ab2f2bee3eb72b22a">More...</a><br/></td></tr>
+<tr class="memdesc:ga2762ab9bf6601a7ab2f2bee3eb72b22a"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-224 or SHA-256 final digest.  <a href="group__sha256.html#ga2762ab9bf6601a7ab2f2bee3eb72b22a">More...</a><br/></td></tr>
 <tr class="separator:ga2762ab9bf6601a7ab2f2bee3eb72b22a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga3e7c9a1ec705843474d14f074ecb1f9c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga3e7c9a1ec705843474d14f074ecb1f9c">sha2</a> (unsigned char *input, int32_t ilen, unsigned char output[32], int32_t is224)</td></tr>
-<tr class="memdesc:ga3e7c9a1ec705843474d14f074ecb1f9c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = SHA-256( input buffer )  <a href="group__sha256.html#ga3e7c9a1ec705843474d14f074ecb1f9c">More...</a><br/></td></tr>
-<tr class="separator:ga3e7c9a1ec705843474d14f074ecb1f9c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga63a542f9194127e8fb2299b0871a4915"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga63a542f9194127e8fb2299b0871a4915">sha2_file</a> (char *path, unsigned char output[32], int32_t is224)</td></tr>
-<tr class="memdesc:ga63a542f9194127e8fb2299b0871a4915"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = SHA-256( file contents )  <a href="group__sha256.html#ga63a542f9194127e8fb2299b0871a4915">More...</a><br/></td></tr>
-<tr class="separator:ga63a542f9194127e8fb2299b0871a4915"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae792371be270c91c84b9434c4143e221"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#gae792371be270c91c84b9434c4143e221">sha2_hmac_starts</a> (sha2_context *ctx, unsigned char *key, int32_t keylen, int32_t is224)</td></tr>
-<tr class="memdesc:gae792371be270c91c84b9434c4143e221"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-256 HMAC context setup.  <a href="group__sha256.html#gae792371be270c91c84b9434c4143e221">More...</a><br/></td></tr>
-<tr class="separator:gae792371be270c91c84b9434c4143e221"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gac7d283603c73da6e73e24f6ee798c67c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#gac7d283603c73da6e73e24f6ee798c67c">sha2_hmac_update</a> (sha2_context *ctx, unsigned char *input, int32_t ilen)</td></tr>
-<tr class="memdesc:gac7d283603c73da6e73e24f6ee798c67c"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-256 HMAC process buffer.  <a href="group__sha256.html#gac7d283603c73da6e73e24f6ee798c67c">More...</a><br/></td></tr>
-<tr class="separator:gac7d283603c73da6e73e24f6ee798c67c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga512a0d281bb959197abf434e8210bfc0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga512a0d281bb959197abf434e8210bfc0">sha2</a> (const unsigned char *input, uint32_t ilen, unsigned char output[32], int32_t is224)</td></tr>
+<tr class="memdesc:ga512a0d281bb959197abf434e8210bfc0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = SHA-224/256( input buffer )  <a href="group__sha256.html#ga512a0d281bb959197abf434e8210bfc0">More...</a><br/></td></tr>
+<tr class="separator:ga512a0d281bb959197abf434e8210bfc0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7d8395396340769dc9bb428972b30da0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga7d8395396340769dc9bb428972b30da0">sha2_hmac_starts</a> (sha2_context *ctx, const unsigned char *key, uint32_t keylen, int32_t is224)</td></tr>
+<tr class="memdesc:ga7d8395396340769dc9bb428972b30da0"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-224 or SHA-256 HMAC context setup.  <a href="group__sha256.html#ga7d8395396340769dc9bb428972b30da0">More...</a><br/></td></tr>
+<tr class="separator:ga7d8395396340769dc9bb428972b30da0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gace3befd10e03dfd1737f6d5bb330e706"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#gace3befd10e03dfd1737f6d5bb330e706">sha2_hmac_update</a> (sha2_context *ctx, const unsigned char *input, uint32_t ilen)</td></tr>
+<tr class="memdesc:gace3befd10e03dfd1737f6d5bb330e706"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-224 or SHA-256 HMAC process buffer.  <a href="group__sha256.html#gace3befd10e03dfd1737f6d5bb330e706">More...</a><br/></td></tr>
+<tr class="separator:gace3befd10e03dfd1737f6d5bb330e706"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gafad853fc439a23fe3595d3486649d3cf"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#gafad853fc439a23fe3595d3486649d3cf">sha2_hmac_finish</a> (sha2_context *ctx, unsigned char output[32])</td></tr>
-<tr class="memdesc:gafad853fc439a23fe3595d3486649d3cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-256 HMAC final digest.  <a href="group__sha256.html#gafad853fc439a23fe3595d3486649d3cf">More...</a><br/></td></tr>
+<tr class="memdesc:gafad853fc439a23fe3595d3486649d3cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-224 or SHA-256 HMAC final digest.  <a href="group__sha256.html#gafad853fc439a23fe3595d3486649d3cf">More...</a><br/></td></tr>
 <tr class="separator:gafad853fc439a23fe3595d3486649d3cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga939c822f28355991165467e6d7971fc1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#ga939c822f28355991165467e6d7971fc1">sha2_hmac</a> (unsigned char *key, int32_t keylen, unsigned char *input, int32_t ilen, unsigned char output[32], int32_t is224)</td></tr>
-<tr class="memdesc:ga939c822f28355991165467e6d7971fc1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = HMAC-SHA-256( hmac key, input buffer )  <a href="group__sha256.html#ga939c822f28355991165467e6d7971fc1">More...</a><br/></td></tr>
-<tr class="separator:ga939c822f28355991165467e6d7971fc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafaa89ae2cef8a87b84f7c9d58d99711c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha256.html#gafaa89ae2cef8a87b84f7c9d58d99711c">sha2_hmac</a> (const unsigned char *key, uint32_t keylen, const unsigned char *input, uint32_t ilen, unsigned char output[32], int32_t is224)</td></tr>
+<tr class="memdesc:gafaa89ae2cef8a87b84f7c9d58d99711c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = HMAC-SHA-224/256( hmac key, input buffer )  <a href="group__sha256.html#gafaa89ae2cef8a87b84f7c9d58d99711c">More...</a><br/></td></tr>
+<tr class="separator:gafaa89ae2cef8a87b84f7c9d58d99711c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae088715ecd0c108a940a383f4ded9df3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha512.html#gae088715ecd0c108a940a383f4ded9df3">sha4</a> (const unsigned char *input_data, int32_t input_len, unsigned char output[64], int32_t is384)</td></tr>
+<tr class="memdesc:gae088715ecd0c108a940a383f4ded9df3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hash data using the SHA384 or SHA512 algorithm.  <a href="group__sha512.html#gae088715ecd0c108a940a383f4ded9df3">More...</a><br/></td></tr>
+<tr class="separator:gae088715ecd0c108a940a383f4ded9df3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga3c22a90c634a6027c723e7805a670cef"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha512.html#ga3c22a90c634a6027c723e7805a670cef">sha4_starts</a> (sha4_context *context, int32_t is384)</td></tr>
+<tr class="memdesc:ga3c22a90c634a6027c723e7805a670cef"><td class="mdescLeft">&#160;</td><td class="mdescRight">a SHA384 / SHA512 hash  <a href="group__sha512.html#ga3c22a90c634a6027c723e7805a670cef">More...</a><br/></td></tr>
+<tr class="separator:ga3c22a90c634a6027c723e7805a670cef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga172c45abc76b3a4a16978060dfff5b1d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha512.html#ga172c45abc76b3a4a16978060dfff5b1d">sha4_update</a> (sha4_context *context, const unsigned char *input_data, int32_t input_len)</td></tr>
+<tr class="memdesc:ga172c45abc76b3a4a16978060dfff5b1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hash a block of data using the SHA384 / SHA512 hash.  <a href="group__sha512.html#ga172c45abc76b3a4a16978060dfff5b1d">More...</a><br/></td></tr>
+<tr class="separator:ga172c45abc76b3a4a16978060dfff5b1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab94699019fc93637e91cf88403f80360"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha512.html#gab94699019fc93637e91cf88403f80360">sha4_finish</a> (sha4_context *context, unsigned char hash_output[64])</td></tr>
+<tr class="memdesc:gab94699019fc93637e91cf88403f80360"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finish hashing data using the SHA384 / SHA512 hash.  <a href="group__sha512.html#gab94699019fc93637e91cf88403f80360">More...</a><br/></td></tr>
+<tr class="separator:gab94699019fc93637e91cf88403f80360"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2dcee9ca44dc6a764e14f1db114aaae8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha512.html#ga2dcee9ca44dc6a764e14f1db114aaae8">sha4_hmac</a> (const unsigned char *key, int32_t key_len, const unsigned char *input_data, int32_t input_len, unsigned char output[64], int32_t is384)</td></tr>
+<tr class="memdesc:ga2dcee9ca44dc6a764e14f1db114aaae8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate a SHA384 / SHA512 Hash-based Message Authentication Code (HMAC)  <a href="group__sha512.html#ga2dcee9ca44dc6a764e14f1db114aaae8">More...</a><br/></td></tr>
+<tr class="separator:ga2dcee9ca44dc6a764e14f1db114aaae8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga25f24beba6d42f07cee79eb5783eafba"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha512.html#ga25f24beba6d42f07cee79eb5783eafba">sha4_hmac_starts</a> (sha4_context *context, const unsigned char *key, int32_t keylen, int32_t is384)</td></tr>
+<tr class="memdesc:ga25f24beba6d42f07cee79eb5783eafba"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-384/SHA-512 HMAC context setup.  <a href="group__sha512.html#ga25f24beba6d42f07cee79eb5783eafba">More...</a><br/></td></tr>
+<tr class="separator:ga25f24beba6d42f07cee79eb5783eafba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga71a54c32b3ecdca9e4d8dd2584998a0b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha512.html#ga71a54c32b3ecdca9e4d8dd2584998a0b">sha4_hmac_update</a> (sha4_context *context, const unsigned char *input, int32_t ilen)</td></tr>
+<tr class="memdesc:ga71a54c32b3ecdca9e4d8dd2584998a0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-384/SHA-512 HMAC process buffer.  <a href="group__sha512.html#ga71a54c32b3ecdca9e4d8dd2584998a0b">More...</a><br/></td></tr>
+<tr class="separator:ga71a54c32b3ecdca9e4d8dd2584998a0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga77d7aa2fdbde82954ad31ba2d912e368"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__sha512.html#ga77d7aa2fdbde82954ad31ba2d912e368">sha4_hmac_finish</a> (sha4_context *context, unsigned char output[64])</td></tr>
+<tr class="memdesc:ga77d7aa2fdbde82954ad31ba2d912e368"><td class="mdescLeft">&#160;</td><td class="mdescRight">SHA-384/SHA-512 HMAC final digest.  <a href="group__sha512.html#ga77d7aa2fdbde82954ad31ba2d912e368">More...</a><br/></td></tr>
+<tr class="separator:ga77d7aa2fdbde82954ad31ba2d912e368"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga330b73ce4f2d31f088af1a9fb616ce67"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ga330b73ce4f2d31f088af1a9fb616ce67"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>sha4_hkdf</b> (const unsigned char *salt, int salt_len, const unsigned char *ikm, int ikm_len, const unsigned char *info, int info_len, uint8_t okm[], int okm_len, int32_t is384)</td></tr>
+<tr class="separator:ga330b73ce4f2d31f088af1a9fb616ce67"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadb175a5eb51aa977a29b2a785a94133b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gadb175a5eb51aa977a29b2a785a94133b">poly1305_auth</a> (unsigned char mac[16], const unsigned char *message_data, size_t bytes, const unsigned char key[32])</td></tr>
+<tr class="memdesc:gadb175a5eb51aa977a29b2a785a94133b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the poly1305 Message-Authentication code for a buffer of message data The Key MUST ONLY BE USED ONCE ONLY The sender MUST NOT use poly1305_auth to authenticate more than one message under the same key.  <a href="group__md5.html#gadb175a5eb51aa977a29b2a785a94133b">More...</a><br/></td></tr>
+<tr class="separator:gadb175a5eb51aa977a29b2a785a94133b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6ca964edd174ee2aa325da83ad77de31"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga6ca964edd174ee2aa325da83ad77de31">poly1305_init</a> (poly1305_context *context, const unsigned char key[32])</td></tr>
+<tr class="memdesc:ga6ca964edd174ee2aa325da83ad77de31"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise a poly1305 session with a key.  <a href="group__md5.html#ga6ca964edd174ee2aa325da83ad77de31">More...</a><br/></td></tr>
+<tr class="separator:ga6ca964edd174ee2aa325da83ad77de31"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5c8f63b69d2a631c172fef4dbb4222cd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga5c8f63b69d2a631c172fef4dbb4222cd">poly1305_update</a> (poly1305_context *context, const unsigned char *message_data, size_t bytes)</td></tr>
+<tr class="memdesc:ga5c8f63b69d2a631c172fef4dbb4222cd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process message data through poly1305 authenticator.  <a href="group__md5.html#ga5c8f63b69d2a631c172fef4dbb4222cd">More...</a><br/></td></tr>
+<tr class="separator:ga5c8f63b69d2a631c172fef4dbb4222cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacab4e95c76ace4fcbb069768b55ebd75"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gacab4e95c76ace4fcbb069768b55ebd75">poly1305_finish</a> (poly1305_context *context, unsigned char mac[16])</td></tr>
+<tr class="memdesc:gacab4e95c76ace4fcbb069768b55ebd75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finish processing a poly1305 authenticator session.  <a href="group__md5.html#gacab4e95c76ace4fcbb069768b55ebd75">More...</a><br/></td></tr>
+<tr class="separator:gacab4e95c76ace4fcbb069768b55ebd75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga38347d3af3913463cfe5403488f6b654"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga38347d3af3913463cfe5403488f6b654">poly1305_verify</a> (const unsigned char mac1[16], const unsigned char mac2[16])</td></tr>
+<tr class="memdesc:ga38347d3af3913463cfe5403488f6b654"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that two Message-Authentication Codes match.  <a href="group__md5.html#ga38347d3af3913463cfe5403488f6b654">More...</a><br/></td></tr>
+<tr class="separator:ga38347d3af3913463cfe5403488f6b654"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac0f29c9047262b232a78c3d3b0805f5a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#gac0f29c9047262b232a78c3d3b0805f5a">chacha_keysetup</a> (chacha_context_t *context, const uint8_t *key, uint32_t key_bits)</td></tr>
+<tr class="memdesc:gac0f29c9047262b232a78c3d3b0805f5a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise ChaCha context with a key.  <a href="group__chacha.html#gac0f29c9047262b232a78c3d3b0805f5a">More...</a><br/></td></tr>
+<tr class="separator:gac0f29c9047262b232a78c3d3b0805f5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf1c956a011ee43b6a5ab27ef4f3105d8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#gaf1c956a011ee43b6a5ab27ef4f3105d8">chacha_ivsetup</a> (chacha_context_t *context, const uint8_t *initial_value)</td></tr>
+<tr class="memdesc:gaf1c956a011ee43b6a5ab27ef4f3105d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add an initial value to a ChaCha context.  <a href="group__chacha.html#gaf1c956a011ee43b6a5ab27ef4f3105d8">More...</a><br/></td></tr>
+<tr class="separator:gaf1c956a011ee43b6a5ab27ef4f3105d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacc1bc28632765576792c2702d1a0cf2b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#gacc1bc28632765576792c2702d1a0cf2b">chacha20_block_ivsetup</a> (chacha_context_t *context, const uint8_t nonce[12], uint32_t block_count)</td></tr>
+<tr class="memdesc:gacc1bc28632765576792c2702d1a0cf2b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add an nonce initial value to a ChaCha20 block context.  <a href="group__chacha.html#gacc1bc28632765576792c2702d1a0cf2b">More...</a><br/></td></tr>
+<tr class="separator:gacc1bc28632765576792c2702d1a0cf2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6b09c2446c07d512e9223015225009e3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#ga6b09c2446c07d512e9223015225009e3">chacha20_tls_ivsetup</a> (chacha_context_t *context, const uint8_t nonce[8], uint64_t block_count)</td></tr>
+<tr class="memdesc:ga6b09c2446c07d512e9223015225009e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add an nonce initial value to a ChaCha20 TLS context.  <a href="group__chacha.html#ga6b09c2446c07d512e9223015225009e3">More...</a><br/></td></tr>
+<tr class="separator:ga6b09c2446c07d512e9223015225009e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaffb0154164c47042b10862f0ade0e8bd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#gaffb0154164c47042b10862f0ade0e8bd">chacha_encrypt_bytes</a> (chacha_context_t *context, const uint8_t *plaintext, uint8_t *ciphertext, uint32_t bytes, uint8_t rounds)</td></tr>
+<tr class="memdesc:gaffb0154164c47042b10862f0ade0e8bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encrypt data with the ChaCha Cipher.  <a href="group__chacha.html#gaffb0154164c47042b10862f0ade0e8bd">More...</a><br/></td></tr>
+<tr class="separator:gaffb0154164c47042b10862f0ade0e8bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae2ceb5704ed157c4d1a9a644c7d4ed5f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#gae2ceb5704ed157c4d1a9a644c7d4ed5f">chacha_decrypt_bytes</a> (chacha_context_t *context, const uint8_t *ciphertext, uint8_t *plaintext, uint32_t bytes, uint8_t rounds)</td></tr>
+<tr class="memdesc:gae2ceb5704ed157c4d1a9a644c7d4ed5f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decrypt data with the ChaCha Cipher.  <a href="group__chacha.html#gae2ceb5704ed157c4d1a9a644c7d4ed5f">More...</a><br/></td></tr>
+<tr class="separator:gae2ceb5704ed157c4d1a9a644c7d4ed5f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4e894fd52f93b1cabfd63045edef5b40"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#ga4e894fd52f93b1cabfd63045edef5b40">chacha_keystream_bytes</a> (chacha_context_t *context, uint8_t *stream, uint32_t bytes, uint8_t rounds)</td></tr>
+<tr class="memdesc:ga4e894fd52f93b1cabfd63045edef5b40"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates a stream that can be used for key material using the chacha cipher.  <a href="group__chacha.html#ga4e894fd52f93b1cabfd63045edef5b40">More...</a><br/></td></tr>
+<tr class="separator:ga4e894fd52f93b1cabfd63045edef5b40"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab65837a622aa9577f75b92a32d8a69ff"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#gab65837a622aa9577f75b92a32d8a69ff">chacha20_block_function</a> (const uint8_t key[32], const uint8_t nonce[12], uint32_t block_count, uint8_t output_random[64])</td></tr>
+<tr class="memdesc:gab65837a622aa9577f75b92a32d8a69ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pseudo-random key generator using the ChaCha20 Cipher.  <a href="group__chacha.html#gab65837a622aa9577f75b92a32d8a69ff">More...</a><br/></td></tr>
+<tr class="separator:gab65837a622aa9577f75b92a32d8a69ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae1f6f8bd756540a20335943366297e13"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#gae1f6f8bd756540a20335943366297e13">chacha20_poly1305_aead_irtf_cfrg</a> (const uint8_t key[32], const uint8_t fixed_common_value[4], const uint8_t non_repeating_initial_value[8], const uint8_t *additional_authenticated_data, uint64_t additional_authenticated_data_length, const uint8_t *input_crypt_data, uint64_t crypt_data_length, uint8_t *output_crypt_data, uint8_t output_tag[16])</td></tr>
+<tr class="memdesc:gae1f6f8bd756540a20335943366297e13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encrypt / Decrypt using ChaCha20-Poly1305 AEAD (IETF CFRG version)  <a href="group__chacha.html#gae1f6f8bd756540a20335943366297e13">More...</a><br/></td></tr>
+<tr class="separator:gae1f6f8bd756540a20335943366297e13"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga73899974775ccfdb991e34037ebfb128"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__chacha.html#ga73899974775ccfdb991e34037ebfb128">chacha20_poly1305_aead_tls_encrypt</a> (const uint8_t key[32], const uint8_t nonce[8], const uint8_t *additional_authenticated_data, uint64_t additional_authenticated_data_length, const uint8_t *input_crypt_data, uint64_t crypt_data_length, uint8_t *output_crypt_data, uint8_t output_tag[16])</td></tr>
+<tr class="memdesc:ga73899974775ccfdb991e34037ebfb128"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encrypt using ChaCha20-Poly1305 AEAD (TLS version)  <a href="group__chacha.html#ga73899974775ccfdb991e34037ebfb128">More...</a><br/></td></tr>
+<tr class="separator:ga73899974775ccfdb991e34037ebfb128"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64bc96eb029a0e2557b7e45a2b0d0de3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="wiced__security_8h.html#a64bc96eb029a0e2557b7e45a2b0d0de3">chacha20_poly1305_aead_tls_decrypt</a> (const uint8_t key[32], const uint8_t nonce[8], const uint8_t *additional_authenticated_data, uint64_t additional_authenticated_data_length, const uint8_t *input_crypt_data, uint64_t crypt_data_length, uint8_t *output_crypt_data, uint8_t output_tag[16])</td></tr>
+<tr class="memdesc:a64bc96eb029a0e2557b7e45a2b0d0de3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decrypt using ChaCha20-Poly1305 AEAD (TLS version)  <a href="#a64bc96eb029a0e2557b7e45a2b0d0de3">More...</a><br/></td></tr>
+<tr class="separator:a64bc96eb029a0e2557b7e45a2b0d0de3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0854945002ad786a5fac1de6a815ca32"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__curve25519.html#ga0854945002ad786a5fac1de6a815ca32">curve25519</a> (uint8_t *mypublic_output, const uint8_t *secret, const uint8_t *basepoint)</td></tr>
+<tr class="memdesc:ga0854945002ad786a5fac1de6a815ca32"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate a public (shared) key given a basepoint and secret key.  <a href="group__curve25519.html#ga0854945002ad786a5fac1de6a815ca32">More...</a><br/></td></tr>
+<tr class="separator:ga0854945002ad786a5fac1de6a815ca32"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8c3d21080d78c79c43ad547b8675ee85"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ed25519.html#ga8c3d21080d78c79c43ad547b8675ee85">ed25519_publickey</a> (const ed25519_secret_key secret_key, ed25519_public_key public_key)</td></tr>
+<tr class="memdesc:ga8c3d21080d78c79c43ad547b8675ee85"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate a Ed25519 public key from a secret key.  <a href="group__ed25519.html#ga8c3d21080d78c79c43ad547b8675ee85">More...</a><br/></td></tr>
+<tr class="separator:ga8c3d21080d78c79c43ad547b8675ee85"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8bd81c03a1802a5815ef3619010f8b2d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ed25519.html#ga8bd81c03a1802a5815ef3619010f8b2d">ed25519_sign</a> (const unsigned char *message_data, size_t message_len, const ed25519_secret_key secret_key, const ed25519_public_key public_key, ed25519_signature signature_output)</td></tr>
+<tr class="memdesc:ga8bd81c03a1802a5815ef3619010f8b2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sign a message using Ed25519.  <a href="group__ed25519.html#ga8bd81c03a1802a5815ef3619010f8b2d">More...</a><br/></td></tr>
+<tr class="separator:ga8bd81c03a1802a5815ef3619010f8b2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga820cb791f7dc64a91d7b6f2cb8f21b3f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ed25519.html#ga820cb791f7dc64a91d7b6f2cb8f21b3f">ed25519_sign_open</a> (const unsigned char *message_data, size_t message_len, const ed25519_public_key public_key, const ed25519_signature signature)</td></tr>
+<tr class="memdesc:ga820cb791f7dc64a91d7b6f2cb8f21b3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify an Ed25519 message signature.  <a href="group__ed25519.html#ga820cb791f7dc64a91d7b6f2cb8f21b3f">More...</a><br/></td></tr>
+<tr class="separator:ga820cb791f7dc64a91d7b6f2cb8f21b3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac6e9fda1d8fda7d51fd1c0c036f87cfe"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gac6e9fda1d8fda7d51fd1c0c036f87cfe">md5_starts</a> (md5_context *ctx)</td></tr>
 <tr class="memdesc:gac6e9fda1d8fda7d51fd1c0c036f87cfe"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 context setup.  <a href="group__md5.html#gac6e9fda1d8fda7d51fd1c0c036f87cfe">More...</a><br/></td></tr>
 <tr class="separator:gac6e9fda1d8fda7d51fd1c0c036f87cfe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga95bdd25cfc0627809aca6f492840e9aa"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga95bdd25cfc0627809aca6f492840e9aa">md5_update</a> (md5_context *ctx, unsigned char *input, int32_t ilen)</td></tr>
-<tr class="memdesc:ga95bdd25cfc0627809aca6f492840e9aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 process buffer.  <a href="group__md5.html#ga95bdd25cfc0627809aca6f492840e9aa">More...</a><br/></td></tr>
-<tr class="separator:ga95bdd25cfc0627809aca6f492840e9aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaba2f69cf403347df173738555dd47b2e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gaba2f69cf403347df173738555dd47b2e">md5_update</a> (md5_context *ctx, const unsigned char *input, int32_t ilen)</td></tr>
+<tr class="memdesc:gaba2f69cf403347df173738555dd47b2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 process buffer.  <a href="group__md5.html#gaba2f69cf403347df173738555dd47b2e">More...</a><br/></td></tr>
+<tr class="separator:gaba2f69cf403347df173738555dd47b2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9f91661d81cffc55facccc8e0fbf50a0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga9f91661d81cffc55facccc8e0fbf50a0">md5_finish</a> (md5_context *ctx, unsigned char output[16])</td></tr>
 <tr class="memdesc:ga9f91661d81cffc55facccc8e0fbf50a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 final digest.  <a href="group__md5.html#ga9f91661d81cffc55facccc8e0fbf50a0">More...</a><br/></td></tr>
 <tr class="separator:ga9f91661d81cffc55facccc8e0fbf50a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga867b311a6210ab84406080c68342caa7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga867b311a6210ab84406080c68342caa7">md5</a> (unsigned char *input, int32_t ilen, unsigned char output[16])</td></tr>
-<tr class="memdesc:ga867b311a6210ab84406080c68342caa7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = MD5( input buffer )  <a href="group__md5.html#ga867b311a6210ab84406080c68342caa7">More...</a><br/></td></tr>
-<tr class="separator:ga867b311a6210ab84406080c68342caa7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga119bf25b936c0fc34c29733f53462f7d"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga119bf25b936c0fc34c29733f53462f7d">md5_file</a> (char *path, unsigned char output[16])</td></tr>
-<tr class="memdesc:ga119bf25b936c0fc34c29733f53462f7d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = MD5( file contents )  <a href="group__md5.html#ga119bf25b936c0fc34c29733f53462f7d">More...</a><br/></td></tr>
-<tr class="separator:ga119bf25b936c0fc34c29733f53462f7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga6ea0fa1e35463f2891b8bcbe034df361"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga6ea0fa1e35463f2891b8bcbe034df361">md5_hmac_starts</a> (md5_context *ctx, unsigned char *key, int32_t keylen)</td></tr>
-<tr class="memdesc:ga6ea0fa1e35463f2891b8bcbe034df361"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC context setup.  <a href="group__md5.html#ga6ea0fa1e35463f2891b8bcbe034df361">More...</a><br/></td></tr>
-<tr class="separator:ga6ea0fa1e35463f2891b8bcbe034df361"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa9498653d161d04ed64de9e70cd5875e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gaa9498653d161d04ed64de9e70cd5875e">md5_hmac_update</a> (md5_context *ctx, unsigned char *input, int32_t ilen)</td></tr>
-<tr class="memdesc:gaa9498653d161d04ed64de9e70cd5875e"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC process buffer.  <a href="group__md5.html#gaa9498653d161d04ed64de9e70cd5875e">More...</a><br/></td></tr>
-<tr class="separator:gaa9498653d161d04ed64de9e70cd5875e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabd54148cb2a6530d72adf33a05daf45a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gabd54148cb2a6530d72adf33a05daf45a">md5</a> (const unsigned char *input, int32_t ilen, unsigned char output[16])</td></tr>
+<tr class="memdesc:gabd54148cb2a6530d72adf33a05daf45a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = MD5( input buffer )  <a href="group__md5.html#gabd54148cb2a6530d72adf33a05daf45a">More...</a><br/></td></tr>
+<tr class="separator:gabd54148cb2a6530d72adf33a05daf45a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8daaf0556288630055a66ee07a37b3da"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga8daaf0556288630055a66ee07a37b3da">md5_hmac_starts</a> (md5_context *ctx, const unsigned char *key, uint32_t keylen)</td></tr>
+<tr class="memdesc:ga8daaf0556288630055a66ee07a37b3da"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC context setup.  <a href="group__md5.html#ga8daaf0556288630055a66ee07a37b3da">More...</a><br/></td></tr>
+<tr class="separator:ga8daaf0556288630055a66ee07a37b3da"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8dcc7990090403a195ce8fff836fe920"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga8dcc7990090403a195ce8fff836fe920">md5_hmac_update</a> (md5_context *ctx, const unsigned char *input, uint32_t ilen)</td></tr>
+<tr class="memdesc:ga8dcc7990090403a195ce8fff836fe920"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC process buffer.  <a href="group__md5.html#ga8dcc7990090403a195ce8fff836fe920">More...</a><br/></td></tr>
+<tr class="separator:ga8dcc7990090403a195ce8fff836fe920"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0d6858d863b6e4409000b08bceafbd98"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga0d6858d863b6e4409000b08bceafbd98">md5_hmac_finish</a> (md5_context *ctx, unsigned char output[16])</td></tr>
 <tr class="memdesc:ga0d6858d863b6e4409000b08bceafbd98"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC final digest.  <a href="group__md5.html#ga0d6858d863b6e4409000b08bceafbd98">More...</a><br/></td></tr>
 <tr class="separator:ga0d6858d863b6e4409000b08bceafbd98"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaf6a943835f3c4dbf993190cc1d673c14"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gaf6a943835f3c4dbf993190cc1d673c14">md5_hmac</a> (unsigned char *key, int32_t keylen, unsigned char *input, int32_t ilen, unsigned char output[16])</td></tr>
-<tr class="memdesc:gaf6a943835f3c4dbf993190cc1d673c14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = HMAC-MD5( hmac key, input buffer )  <a href="group__md5.html#gaf6a943835f3c4dbf993190cc1d673c14">More...</a><br/></td></tr>
-<tr class="separator:gaf6a943835f3c4dbf993190cc1d673c14"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga045e1a327296adbd8fdae41de48804c8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__arc4.html#ga045e1a327296adbd8fdae41de48804c8">arc4_setup</a> (arc4_context *ctx, unsigned char *key, int32_t keylen)</td></tr>
-<tr class="memdesc:ga045e1a327296adbd8fdae41de48804c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">ARC4 key schedule.  <a href="group__arc4.html#ga045e1a327296adbd8fdae41de48804c8">More...</a><br/></td></tr>
-<tr class="separator:ga045e1a327296adbd8fdae41de48804c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad3f4c47545d8cc205d4bc3a966486707"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gad3f4c47545d8cc205d4bc3a966486707">md5_hmac</a> (const unsigned char *key, int32_t keylen, const unsigned char *input, int32_t ilen, unsigned char output[16])</td></tr>
+<tr class="memdesc:gad3f4c47545d8cc205d4bc3a966486707"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = HMAC-MD5( hmac key, input buffer )  <a href="group__md5.html#gad3f4c47545d8cc205d4bc3a966486707">More...</a><br/></td></tr>
+<tr class="separator:gad3f4c47545d8cc205d4bc3a966486707"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab8e8617b289d74c9b48da17dcc421d47"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__arc4.html#gab8e8617b289d74c9b48da17dcc421d47">arc4_setup</a> (arc4_context *ctx, const unsigned char *key, int32_t keylen_bits)</td></tr>
+<tr class="memdesc:gab8e8617b289d74c9b48da17dcc421d47"><td class="mdescLeft">&#160;</td><td class="mdescRight">ARC4 key schedule.  <a href="group__arc4.html#gab8e8617b289d74c9b48da17dcc421d47">More...</a><br/></td></tr>
+<tr class="separator:gab8e8617b289d74c9b48da17dcc421d47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga327d970599a3d2f21b4fd7d3b7fac8b6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__arc4.html#ga327d970599a3d2f21b4fd7d3b7fac8b6">arc4_crypt</a> (arc4_context *ctx, unsigned char *buf, int32_t buflen)</td></tr>
 <tr class="memdesc:ga327d970599a3d2f21b4fd7d3b7fac8b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">ARC4 cipher function.  <a href="group__arc4.html#ga327d970599a3d2f21b4fd7d3b7fac8b6">More...</a><br/></td></tr>
 <tr class="separator:ga327d970599a3d2f21b4fd7d3b7fac8b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -273,32 +351,134 @@ Functions</h2></td></tr>
 <tr class="memitem:ga4b55fc908c514de84df8ad55d547dadb"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga4b55fc908c514de84df8ad55d547dadb">rsa_check_privkey</a> (rsa_context *ctx)</td></tr>
 <tr class="memdesc:ga4b55fc908c514de84df8ad55d547dadb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check a private RSA key.  <a href="group__rsa.html#ga4b55fc908c514de84df8ad55d547dadb">More...</a><br/></td></tr>
 <tr class="separator:ga4b55fc908c514de84df8ad55d547dadb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab3e07cec489e90688307f058d15441d3"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#gab3e07cec489e90688307f058d15441d3">rsa_public</a> (rsa_context *ctx, unsigned char *input, unsigned char *output)</td></tr>
-<tr class="memdesc:gab3e07cec489e90688307f058d15441d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA public key operation.  <a href="group__rsa.html#gab3e07cec489e90688307f058d15441d3">More...</a><br/></td></tr>
-<tr class="separator:gab3e07cec489e90688307f058d15441d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga91e903d2b7d1fdb8a9eb76a487c15005"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga91e903d2b7d1fdb8a9eb76a487c15005">rsa_private</a> (rsa_context *ctx, unsigned char *input, unsigned char *output)</td></tr>
-<tr class="memdesc:ga91e903d2b7d1fdb8a9eb76a487c15005"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA private key operation.  <a href="group__rsa.html#ga91e903d2b7d1fdb8a9eb76a487c15005">More...</a><br/></td></tr>
-<tr class="separator:ga91e903d2b7d1fdb8a9eb76a487c15005"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga83660114e357a3ecb8b0759f9da882e5"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga83660114e357a3ecb8b0759f9da882e5">rsa_pkcs1_encrypt</a> (rsa_context *ctx, int32_t mode, int32_t ilen, unsigned char *input, unsigned char *output)</td></tr>
-<tr class="memdesc:ga83660114e357a3ecb8b0759f9da882e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add the message padding, then do an RSA operation.  <a href="group__rsa.html#ga83660114e357a3ecb8b0759f9da882e5">More...</a><br/></td></tr>
-<tr class="separator:ga83660114e357a3ecb8b0759f9da882e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga52edf417adca2632d0cd52726a9490e0"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga52edf417adca2632d0cd52726a9490e0">rsa_pkcs1_decrypt</a> (rsa_context *ctx, int32_t mode, int32_t *olen, unsigned char *input, unsigned char *output, int32_t output_max_len)</td></tr>
-<tr class="memdesc:ga52edf417adca2632d0cd52726a9490e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA operation, then remove the message padding.  <a href="group__rsa.html#ga52edf417adca2632d0cd52726a9490e0">More...</a><br/></td></tr>
-<tr class="separator:ga52edf417adca2632d0cd52726a9490e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8d2ad430d921610985314fb75fff7e9a"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga8d2ad430d921610985314fb75fff7e9a">rsa_pkcs1_sign</a> (rsa_context *ctx, int32_t mode, int32_t hash_id, int32_t hashlen, unsigned char *hash, unsigned char *sig)</td></tr>
-<tr class="memdesc:ga8d2ad430d921610985314fb75fff7e9a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do a private RSA to sign a message digest.  <a href="group__rsa.html#ga8d2ad430d921610985314fb75fff7e9a">More...</a><br/></td></tr>
-<tr class="separator:ga8d2ad430d921610985314fb75fff7e9a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga305e8d1f7a13cde232c7330009182a79"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga305e8d1f7a13cde232c7330009182a79">rsa_pkcs1_verify</a> (rsa_context *ctx, int32_t mode, int32_t hash_id, int32_t hashlen, unsigned char *hash, unsigned char *sig)</td></tr>
-<tr class="memdesc:ga305e8d1f7a13cde232c7330009182a79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do a public RSA and check the message digest.  <a href="group__rsa.html#ga305e8d1f7a13cde232c7330009182a79">More...</a><br/></td></tr>
-<tr class="separator:ga305e8d1f7a13cde232c7330009182a79"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad0ca8a6ae5505a97c09355ca33554dd0"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#gad0ca8a6ae5505a97c09355ca33554dd0">rsa_public</a> (rsa_context *ctx, const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:gad0ca8a6ae5505a97c09355ca33554dd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA public key operation.  <a href="group__rsa.html#gad0ca8a6ae5505a97c09355ca33554dd0">More...</a><br/></td></tr>
+<tr class="separator:gad0ca8a6ae5505a97c09355ca33554dd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga42f9ac8ede1571dd76aa3b4159b51ad5"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga42f9ac8ede1571dd76aa3b4159b51ad5">rsa_private</a> (rsa_context *ctx, const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:ga42f9ac8ede1571dd76aa3b4159b51ad5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA private key operation.  <a href="group__rsa.html#ga42f9ac8ede1571dd76aa3b4159b51ad5">More...</a><br/></td></tr>
+<tr class="separator:ga42f9ac8ede1571dd76aa3b4159b51ad5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga26e98584635674d29f3d71c2f96d45a5"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga26e98584635674d29f3d71c2f96d45a5">rsa_pkcs1_encrypt</a> (rsa_context *ctx, int32_t mode, int32_t ilen, const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:ga26e98584635674d29f3d71c2f96d45a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add the message padding, then do an RSA operation.  <a href="group__rsa.html#ga26e98584635674d29f3d71c2f96d45a5">More...</a><br/></td></tr>
+<tr class="separator:ga26e98584635674d29f3d71c2f96d45a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga351768edafba33a5a1cdb3e419b39f2d"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga351768edafba33a5a1cdb3e419b39f2d">rsa_pkcs1_decrypt</a> (rsa_context *ctx, int32_t mode, int32_t *olen, const unsigned char *input, unsigned char *output, int32_t output_max_len)</td></tr>
+<tr class="memdesc:ga351768edafba33a5a1cdb3e419b39f2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA operation, then remove the message padding.  <a href="group__rsa.html#ga351768edafba33a5a1cdb3e419b39f2d">More...</a><br/></td></tr>
+<tr class="separator:ga351768edafba33a5a1cdb3e419b39f2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6a50c341bbec36bdbf57a9d57ccd9f56"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga6a50c341bbec36bdbf57a9d57ccd9f56">rsa_pkcs1_sign</a> (rsa_context *ctx, int32_t mode, int32_t hash_id, int32_t hashlen, const unsigned char *hash, unsigned char *sig)</td></tr>
+<tr class="memdesc:ga6a50c341bbec36bdbf57a9d57ccd9f56"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do a private RSA to sign a message digest.  <a href="group__rsa.html#ga6a50c341bbec36bdbf57a9d57ccd9f56">More...</a><br/></td></tr>
+<tr class="separator:ga6a50c341bbec36bdbf57a9d57ccd9f56"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae357e4a1028ff5fe1fac2236cf39d105"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#gae357e4a1028ff5fe1fac2236cf39d105">rsa_pkcs1_verify</a> (rsa_context *ctx, int32_t mode, int32_t hash_id, int32_t hashlen, const unsigned char *hash, const unsigned char *sig)</td></tr>
+<tr class="memdesc:gae357e4a1028ff5fe1fac2236cf39d105"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do a public RSA and check the message digest.  <a href="group__rsa.html#gae357e4a1028ff5fe1fac2236cf39d105">More...</a><br/></td></tr>
+<tr class="separator:gae357e4a1028ff5fe1fac2236cf39d105"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabb5d26b09e183c8a885eaee270c38fc7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gabb5d26b09e183c8a885eaee270c38fc7"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#gabb5d26b09e183c8a885eaee270c38fc7">rsa_free</a> (rsa_context *ctx)</td></tr>
 <tr class="memdesc:gabb5d26b09e183c8a885eaee270c38fc7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free the components of an RSA key. <br/></td></tr>
 <tr class="separator:gabb5d26b09e183c8a885eaee270c38fc7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga192688db34ab7bd994e24b8f28df0d48"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___camellia.html#ga192688db34ab7bd994e24b8f28df0d48">camellia_setkey_enc</a> (camellia_context *ctx, const unsigned char *key, int keysize)</td></tr>
+<tr class="memdesc:ga192688db34ab7bd994e24b8f28df0d48"><td class="mdescLeft">&#160;</td><td class="mdescRight">CAMELLIA key schedule (encryption)  <a href="group___camellia.html#ga192688db34ab7bd994e24b8f28df0d48">More...</a><br/></td></tr>
+<tr class="separator:ga192688db34ab7bd994e24b8f28df0d48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac77a1628bc5c607edac9b25d3bab0633"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___camellia.html#gac77a1628bc5c607edac9b25d3bab0633">camellia_setkey_dec</a> (camellia_context *ctx, const unsigned char *key, int keysize)</td></tr>
+<tr class="memdesc:gac77a1628bc5c607edac9b25d3bab0633"><td class="mdescLeft">&#160;</td><td class="mdescRight">CAMELLIA key schedule (decryption)  <a href="group___camellia.html#gac77a1628bc5c607edac9b25d3bab0633">More...</a><br/></td></tr>
+<tr class="separator:gac77a1628bc5c607edac9b25d3bab0633"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga26593bb4eea4ba22303a16f6f42e7a2f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___camellia.html#ga26593bb4eea4ba22303a16f6f42e7a2f">camellia_crypt_ecb</a> (camellia_context *ctx, int mode, const unsigned char input[16], unsigned char output[16])</td></tr>
+<tr class="memdesc:ga26593bb4eea4ba22303a16f6f42e7a2f"><td class="mdescLeft">&#160;</td><td class="mdescRight">CAMELLIA-ECB block encryption/decryption.  <a href="group___camellia.html#ga26593bb4eea4ba22303a16f6f42e7a2f">More...</a><br/></td></tr>
+<tr class="separator:ga26593bb4eea4ba22303a16f6f42e7a2f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga313f6d7ddeadeb5766d61096f53fd799"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___camellia.html#ga313f6d7ddeadeb5766d61096f53fd799">camellia_crypt_cbc</a> (camellia_context *ctx, int mode, int length, unsigned char iv[16], const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:ga313f6d7ddeadeb5766d61096f53fd799"><td class="mdescLeft">&#160;</td><td class="mdescRight">CAMELLIA-CBC buffer encryption/decryption.  <a href="group___camellia.html#ga313f6d7ddeadeb5766d61096f53fd799">More...</a><br/></td></tr>
+<tr class="separator:ga313f6d7ddeadeb5766d61096f53fd799"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad7fe86e6c243fc22fc73044c58abb404"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___camellia.html#gad7fe86e6c243fc22fc73044c58abb404">camellia_crypt_cfb128</a> (camellia_context *ctx, int mode, int length, int *iv_off, unsigned char iv[16], const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:gad7fe86e6c243fc22fc73044c58abb404"><td class="mdescLeft">&#160;</td><td class="mdescRight">CAMELLIA-CFB128 buffer encryption/decryption.  <a href="group___camellia.html#gad7fe86e6c243fc22fc73044c58abb404">More...</a><br/></td></tr>
+<tr class="separator:gad7fe86e6c243fc22fc73044c58abb404"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga15b8e3246e19373fc9095cd29afcf249"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___s_e_e_d.html#ga15b8e3246e19373fc9095cd29afcf249">seed_set_key</a> (const unsigned char rawkey[16], seed_context_t *ks)</td></tr>
+<tr class="memdesc:ga15b8e3246e19373fc9095cd29afcf249"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set SEED key.  <a href="group___s_e_e_d.html#ga15b8e3246e19373fc9095cd29afcf249">More...</a><br/></td></tr>
+<tr class="separator:ga15b8e3246e19373fc9095cd29afcf249"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadeb0bb1450549fe9e6b2d627f6a37672"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___s_e_e_d.html#gadeb0bb1450549fe9e6b2d627f6a37672">seed_cbc_encrypt</a> (const seed_context_t *ctx, uint8_t ivec[16], const uint8_t *in, uint32_t len, uint8_t *out)</td></tr>
+<tr class="memdesc:gadeb0bb1450549fe9e6b2d627f6a37672"><td class="mdescLeft">&#160;</td><td class="mdescRight">SEED-CBC buffer encryption.  <a href="group___s_e_e_d.html#gadeb0bb1450549fe9e6b2d627f6a37672">More...</a><br/></td></tr>
+<tr class="separator:gadeb0bb1450549fe9e6b2d627f6a37672"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga93fe6e54733a54ed2e9cfa747c9c909a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group___s_e_e_d.html#ga93fe6e54733a54ed2e9cfa747c9c909a">seed_cbc_decrypt</a> (const seed_context_t *ctx, uint8_t ivec[16], const uint8_t *in, uint32_t len, uint8_t *out)</td></tr>
+<tr class="memdesc:ga93fe6e54733a54ed2e9cfa747c9c909a"><td class="mdescLeft">&#160;</td><td class="mdescRight">SEED-CBC buffer decryption.  <a href="group___s_e_e_d.html#ga93fe6e54733a54ed2e9cfa747c9c909a">More...</a><br/></td></tr>
+<tr class="separator:ga93fe6e54733a54ed2e9cfa747c9c909a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Defines cryptography functions for encryption, decryption and hashing. </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Function Documentation</h2>
+<a class="anchor" id="a64bc96eb029a0e2557b7e45a2b0d0de3"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void chacha20_poly1305_aead_tls_decrypt </td>
+          <td>(</td>
+          <td class="paramtype">const uint8_t&#160;</td>
+          <td class="paramname"><em>key</em>[32], </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint8_t&#160;</td>
+          <td class="paramname"><em>nonce</em>[8], </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint8_t *&#160;</td>
+          <td class="paramname"><em>additional_authenticated_data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>additional_authenticated_data_length</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint8_t *&#160;</td>
+          <td class="paramname"><em>input_crypt_data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>crypt_data_length</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>output_crypt_data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t&#160;</td>
+          <td class="paramname"><em>output_tag</em>[16]&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Decrypt using ChaCha20-Poly1305 AEAD (TLS version) </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">key</td><td>The 256 bit key </td></tr>
+    <tr><td class="paramname">nonce</td><td>8 byte nonce </td></tr>
+    <tr><td class="paramname">additional_authenticated_data</td><td>Additional data (non encrypted) to be authenticated in tag </td></tr>
+    <tr><td class="paramname">additional_authenticated_data_length</td><td>The length of the additional data in bytes </td></tr>
+    <tr><td class="paramname">input_crypt_data</td><td>The data to be decrypted </td></tr>
+    <tr><td class="paramname">crypt_data_length</td><td>Length of the data being encrypted/decrypted </td></tr>
+    <tr><td class="paramname">output_crypt_data</td><td>The output encrypted or decrypted data. </td></tr>
+    <tr><td class="paramname">output_tag</td><td>The authentication tag calculated for the data </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+</div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

@@ -17,10 +17,35 @@
 #define INCLUDED_SENSOR_H
 
 #include "wwd_wifi.h"
+#include "web_server.h"
+
+#ifdef APPLIANCE_ENABLE_WPS
+#include "wps_host.h"
+#endif /* ifdef APPLIANCE_ENABLE_WPS */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/******************************************************
+ *                     Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
 
 typedef struct
 {
@@ -46,7 +71,25 @@ typedef struct
     } vals;
 } appliance_config_t;
 
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
 extern appliance_config_t       appliance_config;
+extern const url_list_elem_t    config_STA_url_list[];
+extern const url_list_elem_t    config_AP_url_list[];
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+void start_dns_server( uint32_t local_addr );
+void quit_dns_server( void );
+void start_dhcp_server( uint32_t local_addr );
+void quit_dhcp_server( void );
+
+#ifdef APPLIANCE_ENABLE_WPS
+void do_wps( wiced_wps_mode_t wps_mode, char* pin );
+#endif /* ifdef APPLIANCE_ENABLE_WPS */
+
 
 #ifdef __cplusplus
 } /*extern "C" */

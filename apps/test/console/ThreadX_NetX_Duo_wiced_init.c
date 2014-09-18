@@ -24,43 +24,36 @@
 #include "wiced.h"
 
 /******************************************************
- *        Settable Constants
- ******************************************************/
-#define COUNTRY                 WICED_COUNTRY_AUSTRALIA
-#define NUM_INTERFACES          (2)
-#define ARP_CACHE_SIZE          (3*52)
-
-#ifdef ENABLE_LONG_PING
-#undef APP_TX_BUFFER_POOL_SIZE
-#undef APP_RX_BUFFER_POOL_SIZE
-#define LONG_PING_PACKET_POOL_SIZE ((LONG_PING_MAX_PAYLOAD_SIZE / WICED_LINK_MTU) * 3 + 2)
-#define APP_TX_BUFFER_POOL_SIZE    NUM_BUFFERS_POOL_SIZE(LONG_PING_PACKET_POOL_SIZE)
-#define APP_RX_BUFFER_POOL_SIZE    NUM_BUFFERS_POOL_SIZE(LONG_PING_PACKET_POOL_SIZE)
-#endif
-
-/******************************************************
- * @cond       Macros
- ******************************************************/
-
-
-/** @endcond */
-
-
-/******************************************************
- *             Static Variables
+ *                      Macros
  ******************************************************/
 
 /******************************************************
- *             Global Variables
+ *                    Constants
  ******************************************************/
-extern NX_IP          wiced_ip_handle[NUM_INTERFACES]; /* 0=STA, 1=AP */
-NX_IP*                ip_handle_default = &wiced_ip_handle[0];
-extern NX_PACKET_POOL wiced_packet_pools[2]; /* 0=TX, 1=RX */
 
 /******************************************************
- *             Prototypes
+ *                   Enumerations
  ******************************************************/
-extern int app_main( void );
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 /**
  *  Application start called byfunction in wiced_rtos.c
@@ -71,7 +64,7 @@ void application_start( void )
     wiced_init( );
 
     /* Run the main application function */
-    app_main( );
+    console_app_main( );
 
 }
 

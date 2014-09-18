@@ -109,7 +109,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t start_scan                      ( void );
@@ -119,14 +119,14 @@ static wiced_result_t connect_handler                 ( void* arg );
 static wiced_result_t disconnection_handler           ( wiced_bt_smartbridge_socket_t* socket );
 static wiced_result_t pairing_handler                 ( wiced_bt_smartbridge_socket_t* socket, const wiced_bt_smart_bond_info_t* bond_info );
 static wiced_result_t notification_handler            ( wiced_bt_smartbridge_socket_t* socket, uint16_t attribute_handle );
-static int            process_smartbridge_report      ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_rescan                  ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_return                  ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_details                 ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_connect                 ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_disconnect              ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_passkey                 ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_clear_bond_info         ( const char* url, wiced_tcp_stream_t* stream, void* arg );
+static int32_t        process_smartbridge_report      ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_rescan                  ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_return                  ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_details                 ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_connect                 ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_disconnect              ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_passkey                 ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
+static int32_t        process_clear_bond_info         ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
 static wiced_result_t display_passkey                 ( wiced_tcp_stream_t* stream );
 static wiced_result_t display_scan_result_list        ( wiced_tcp_stream_t* stream );
 static wiced_result_t display_connection_list         ( wiced_tcp_stream_t* stream );
@@ -198,8 +198,8 @@ static const wiced_bt_smart_security_settings_t security_settings =
 /* UUID constants */
 static const wiced_bt_uuid_t uuid_list[] =
 {
-    [0] = { .size = UUID_16BIT, .value.value_16_bit = 0x2800 }, // Primary Service
-    [1] = { .size = UUID_16BIT, .value.value_16_bit = 0x2803 }, // Characteristic
+    [0] = { .size = UUID_16BIT, .value.value_16_bit = 0x2800 }, /* Primary Service */
+    [1] = { .size = UUID_16BIT, .value.value_16_bit = 0x2803 }, /* Characteristic */
 };
 
 static wiced_http_server_t            http_server;
@@ -213,8 +213,7 @@ static char                           passkey[7] = DEFAULT_PASSKEY;
  *               Function Definitions
  ******************************************************/
 
-/* Application entry point
- */
+/* Application entry point */
 void application_start( )
 {
     uint32_t a;
@@ -389,8 +388,9 @@ static wiced_result_t pairing_handler( wiced_bt_smartbridge_socket_t* socket, co
 /* Update webpage
  * It runs on the webserver thread context.
  */
-static int process_smartbridge_report( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_smartbridge_report( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
+    UNUSED_PARAMETER(http_message_body);
     if ( socket_with_attributes_to_display != NULL )
     {
         /* Display attribute list page */
@@ -410,8 +410,9 @@ static int process_smartbridge_report( const char* url, wiced_tcp_stream_t* stre
 /* Process 'Connect' button click from the webpage
  * It runs on the webserver thread context.
  */
-static int process_connect( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_connect( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
+    UNUSED_PARAMETER(http_message_body);
     if ( wiced_bt_smartbridge_is_ready_to_connect() == WICED_TRUE )
     {
         wiced_bt_smart_scan_result_t* temp;
@@ -419,7 +420,7 @@ static int process_connect( const char* url, wiced_tcp_stream_t* stream, void* a
         uint32_t count;
 
         /* BD_ADDR is passed within the URL. Parse it here */
-        convert_address_string_to_type( url, &address );
+        convert_address_string_to_type( url_parameters, &address );
 
         wiced_bt_smartbridge_get_scan_result_list( &temp, &count );
 
@@ -444,13 +445,14 @@ static int process_connect( const char* url, wiced_tcp_stream_t* stream, void* a
 /* Process 'Disconnect' button click from the webpage
  * It runs on the webserver thread context.
  */
-static int process_disconnect( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_disconnect( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
     wiced_bt_device_address_t address;
     uint32_t i;
+    UNUSED_PARAMETER(http_message_body);
 
     /* BD_ADDR is passed within the URL. Parse it here */
-    convert_address_string_to_type( url, &address );
+    convert_address_string_to_type( url_parameters, &address );
 
     for ( i = 0; i < MAX_CONCURRENT_CONNECTIONS; i++ )
     {
@@ -480,13 +482,14 @@ static int process_disconnect( const char* url, wiced_tcp_stream_t* stream, void
 /* Process 'Details' button click from the webpage
  * It runs on the webserver thread context.
  */
-static int process_details( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_details( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg,  wiced_http_message_body_t* http_message_body )
 {
     wiced_bt_device_address_t address;
     uint32_t i;
+    UNUSED_PARAMETER(http_message_body);
 
     /* BD_ADDR is passed within the URL. Parse it here */
-    convert_address_string_to_type( url, &address );
+    convert_address_string_to_type( url_parameters, &address );
 
     for ( i = 0; i < MAX_CONCURRENT_CONNECTIONS; i++ )
     {
@@ -512,28 +515,33 @@ static int process_details( const char* url, wiced_tcp_stream_t* stream, void* a
 /* Process 'Return' button click from the webpage
  * It runs on the webserver thread context.
  */
-static int process_return( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_return( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
     /* Set socket_with_attributes_to_display to NULL to return to main page */
     socket_with_attributes_to_display = NULL;
+    UNUSED_PARAMETER(http_message_body);
     return 0;
 }
 
 /* Process 'Rescan' button click from the webpage
  * It runs on the webserver thread context.
  */
-static int process_rescan( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_rescan( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
+    UNUSED_PARAMETER(url_parameters);
+    UNUSED_PARAMETER(arg);
+    UNUSED_PARAMETER(http_message_body);
     start_scan();
     return 0;
 }
 
 /* Process 'onblur' event from the passkey textbox
  */
-static int process_passkey( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_passkey( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg,  wiced_http_message_body_t* http_message_body )
 {
     uint8_t length  = 0;
-    char*   url_ptr = (char*)url;
+    char*   url_ptr = (char*)url_parameters;
+    UNUSED_PARAMETER(http_message_body);
 
     memset( passkey, 0, sizeof( passkey ) );
     while ( *url_ptr != '\n' )
@@ -541,16 +549,17 @@ static int process_passkey( const char* url, wiced_tcp_stream_t* stream, void* a
         length++;
         url_ptr++;
     }
-    memcpy( passkey, url, MIN( length, sizeof( passkey ) - 1 ) );
+    memcpy( passkey, url_parameters, MIN( length, sizeof( passkey ) - 1 ) );
     return 0;
 }
 
 /* Process 'Clear Pairing Info' button click from the webpage
  * It runs on the webserver thread context.
  */
-static int process_clear_bond_info( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_clear_bond_info( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
     bt_smartbridge_bond_info_dct_t* bond_info_dct;
+    UNUSED_PARAMETER(http_message_body);
 
     /* DCT API isn't thread-safe. Lock mutex */
     wiced_rtos_lock_mutex( &dct_mutex );

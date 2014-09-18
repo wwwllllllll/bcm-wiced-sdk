@@ -15,10 +15,10 @@
 extern "C" {
 #endif
 
+/******************************************************
+ *                     Macros
+ ******************************************************/
 #ifdef CONSOLE_ENABLE_MALLINFO
-
-
-extern int malloc_info_command( int argc, char* argv[] );
 
 #define MALLINFO_COMMANDS \
     { "malloc_info",         malloc_info_command,       0, DELIMIT, NULL, NULL, "Print memory allocation information"},
@@ -26,6 +26,32 @@ extern int malloc_info_command( int argc, char* argv[] );
 #else /* ifdef CONSOLE_ENABLE_MALLINFO */
 #define MALLINFO_COMMANDS
 #endif /* ifdef CONSOLE_ENABLE_MALLINFO */
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+int malloc_info_command( int argc, char* argv[] );
+
 
 #ifdef __cplusplus
 } /* extern "C" */

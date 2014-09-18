@@ -50,7 +50,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern wiced_result_t bt_hci_transport_driver_bus_read_handler        ( bt_packet_t** packet );
@@ -58,7 +58,7 @@ static wiced_result_t bt_hci_transport_driver_event_handler           ( bt_trans
 static wiced_result_t bt_hci_transport_thread_received_packet_handler ( bt_packet_t* packet );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_bool_t                     hci_initialised        = WICED_FALSE;

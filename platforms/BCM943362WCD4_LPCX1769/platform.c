@@ -42,11 +42,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* GPIO pin table. Used by WICED/platform/MCU/wiced_platform_common.c. Incomplete ... */

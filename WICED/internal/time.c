@@ -59,11 +59,11 @@ static const uint32_t secondsPerMonth[12] =
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_utc_time_ms_t current_utc_time = 0;

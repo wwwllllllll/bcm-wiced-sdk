@@ -75,13 +75,13 @@ wm8533_device_data_t wm8533 =
 };
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern wiced_result_t wiced_wm8533_device_register( wm8533_device_data_t* device_data, const char* name );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const pll_ckout_mapping_t pll_ckout_mapping[] =

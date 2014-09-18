@@ -112,7 +112,7 @@ struct i2s_control
 } i2s_control[WICED_I2S_MAX];
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 //void i2s1_dma_irq( void );
@@ -130,7 +130,7 @@ extern uint16_t       wiced_audio_buffer_platform_get_periods(wiced_audio_sessio
 extern wiced_result_t wiced_audio_buffer_platform_event(wiced_audio_session_ref sh, wiced_audio_platform_event_t event);
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 uint32_t played_periods = 0;

@@ -40,11 +40,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************
@@ -140,6 +140,6 @@ void print_scan_result( wiced_scan_result_t* record )
                                  ( record->security == WICED_SECURITY_WPA2_TKIP_PSK ) ? "WPA2 TKIP" :
                                  ( record->security == WICED_SECURITY_WPA2_MIXED_PSK ) ? "WPA2 Mixed" :
                                  "Unknown" ) );
-    WPRINT_APP_INFO( ( " %-32s ", record->SSID.val ) );
+    WPRINT_APP_INFO( ( " %-32s ", record->SSID.value ) );
     WPRINT_APP_INFO( ( "\n" ) );
 }

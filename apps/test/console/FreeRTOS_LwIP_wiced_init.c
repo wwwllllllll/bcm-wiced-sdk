@@ -28,39 +28,44 @@
 #include "console.h"
 #include "wiced.h"
 
-
 /******************************************************
- *        Settable Constants
+ *                      Macros
  ******************************************************/
 
-#define COUNTRY             WICED_COUNTRY_AUSTRALIA
-
 /******************************************************
- * @cond       Macros
+ *                    Constants
  ******************************************************/
 
-/** @endcond */
-
-
 /******************************************************
- *             Static Variables
+ *                   Enumerations
  ******************************************************/
 
-extern struct netif        wiced_ip_handle[2];
-
 /******************************************************
- *             Prototypes
+ *                 Type Definitions
  ******************************************************/
 
-extern int app_main( void );
+/******************************************************
+ *                    Structures
+ ******************************************************/
 
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 /**
- *  Initial thread function - Starts LwIP and calls app_main
+ *  Initial thread function - Starts LwIP and calls console_app_main
  *
  *  This function starts up LwIP using the tcpip_init function, then waits on a semaphore
  *  until LwIP indicates that it has started by calling the callback @ref tcpip_init_done.
- *  Once that has been done, the @ref app_main function of the app is called.
+ *  Once that has been done, the @ref console_app_main function of the app is called.
  *
  * @param arg : Unused - required for conformance to thread function prototype
  */
@@ -71,7 +76,7 @@ void application_start( void )
     wiced_init( );
 
     /* Run the main application function */
-    app_main( );
+    console_app_main( );
 }
 
 int set_ip( int argc, char* argv[] )
@@ -122,17 +127,6 @@ void network_print_status( char* sta_ssid, char* ap_ssid )
         }
     }
 }
-
-//void network_deinit(uint32_t interface_id)
-//{
-//    uint8_t interface = ( interface_id == WICED_STA_INTERFACE ) ? 0 : 1;
-//    if (wiced_ip_handle[interface].dhcp != NULL)
-//    {
-//        dhcp_stop(&wiced_ip_handle[interface]);
-//    }
-//    netif_remove( &wiced_ip_handle[interface] );
-//    memset( &wiced_ip_handle[interface], 0, sizeof( wiced_ip_handle[interface] ) );
-//}
 
 uint32_t host_get_time( void )
 {

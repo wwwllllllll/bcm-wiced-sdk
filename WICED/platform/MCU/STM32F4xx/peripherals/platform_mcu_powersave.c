@@ -52,7 +52,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 #ifndef WICED_DISABLE_MCU_POWERSAVE
@@ -63,7 +63,7 @@ static unsigned long  idle_power_down_hook( unsigned long sleep_ms );
 #endif
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 #ifndef WICED_DISABLE_MCU_POWERSAVE

@@ -55,23 +55,23 @@
  *                      Macros
  ******************************************************/
 
-#define UDP_MAX_DATA_LENGTH        30
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+#define UDP_MAX_DATA_LENGTH         30
 #define UDP_RX_TIMEOUT              1
 #define UDP_TX_INTERVAL             1
 #define UDP_RX_INTERVAL             1
-#define UDP_TARGET_PORT         50007
+#define UDP_TARGET_PORT             50007
 #define UDP_TARGET_IS_BROADCAST
 #define GET_UDP_RESPONSE
 
 #ifdef UDP_TARGET_IS_BROADCAST
-    #define UDP_TARGET_IP MAKE_IPV4_ADDRESS(192,168,0,255)
+#define UDP_TARGET_IP MAKE_IPV4_ADDRESS(192,168,0,255)
 #else
-    #define UDP_TARGET_IP MAKE_IPV4_ADDRESS(192,168,0,2)
+#define UDP_TARGET_IP MAKE_IPV4_ADDRESS(192,168,0,2)
 #endif
-
-/******************************************************
- *                    Constants
- ******************************************************/
 
 /******************************************************
  *                   Enumerations
@@ -86,14 +86,14 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t tx_udp_packet();
 static wiced_result_t rx_udp_packet();
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const wiced_ip_setting_t device_init_ip_settings =
@@ -105,8 +105,8 @@ static const wiced_ip_setting_t device_init_ip_settings =
 
 static wiced_udp_socket_t  udp_socket;
 static wiced_timed_event_t udp_tx_event;
-static uint32_t tx_count   = 0;
 
+static uint32_t tx_count   = 0;
 
 /******************************************************
  *               Function Definitions
@@ -121,21 +121,21 @@ void application_start(void)
     wiced_network_up( WICED_AP_INTERFACE, WICED_USE_INTERNAL_DHCP_SERVER, &device_init_ip_settings );
 
     /* Create UDP socket */
-    if (wiced_udp_create_socket(&udp_socket, UDP_TARGET_PORT, WICED_AP_INTERFACE) != WICED_SUCCESS)
+    if ( wiced_udp_create_socket( &udp_socket, UDP_TARGET_PORT, WICED_AP_INTERFACE ) != WICED_SUCCESS )
     {
-        WPRINT_APP_INFO(("UDP socket creation failed\n"));
+        WPRINT_APP_INFO( ("UDP socket creation failed\n") );
     }
 
     /* Register a function to send UDP packets */
-    wiced_rtos_register_timed_event( &udp_tx_event, WICED_NETWORKING_WORKER_THREAD, &tx_udp_packet, UDP_TX_INTERVAL*SECONDS, 0 );
+    wiced_rtos_register_timed_event( &udp_tx_event, WICED_NETWORKING_WORKER_THREAD, &tx_udp_packet, UDP_TX_INTERVAL * SECONDS, 0 );
 
-    WPRINT_APP_INFO(("Sending a UDP packet every %d seconds ...\n", UDP_TX_INTERVAL));
+    WPRINT_APP_INFO( ("Sending a UDP packet every %d seconds ...\n", UDP_TX_INTERVAL) );
 
 #ifdef GET_UDP_RESPONSE
-    while (1)
+    while ( 1 )
     {
         /* Try to receive a UDP response */
-        rx_udp_packet(NEVER_TIMEOUT);
+        rx_udp_packet( NEVER_TIMEOUT );
     }
 #endif
 }
@@ -152,23 +152,23 @@ wiced_result_t tx_udp_packet()
     const wiced_ip_address_t INITIALISER_IPV4_ADDRESS( target_ip_addr, UDP_TARGET_IP );
 
     /* Create the UDP packet */
-    if (wiced_packet_create_udp(&udp_socket, UDP_MAX_DATA_LENGTH, &packet, (uint8_t**)&udp_data, &available_data_length) != WICED_SUCCESS)
+    if ( wiced_packet_create_udp( &udp_socket, UDP_MAX_DATA_LENGTH, &packet, (uint8_t**) &udp_data, &available_data_length ) != WICED_SUCCESS )
     {
-        WPRINT_APP_INFO(("UDP tx packet creation failed\n"));
+        WPRINT_APP_INFO( ("UDP tx packet creation failed\n") );
         return WICED_ERROR;
     }
 
     /* Write packet number into the UDP packet data */
-    sprintf(udp_data, "%d", (int)tx_count++);
+    sprintf( udp_data, "%d", (int) tx_count++ );
 
     /* Set the end of the data portion */
-    wiced_packet_set_data_end(packet, (uint8_t*)udp_data + UDP_MAX_DATA_LENGTH);
+    wiced_packet_set_data_end( packet, (uint8_t*) udp_data + UDP_MAX_DATA_LENGTH );
 
     /* Send the UDP packet */
-    if (wiced_udp_send(&udp_socket, &target_ip_addr, UDP_TARGET_PORT, packet) != WICED_SUCCESS)
+    if ( wiced_udp_send( &udp_socket, &target_ip_addr, UDP_TARGET_PORT, packet ) != WICED_SUCCESS )
     {
-        WPRINT_APP_INFO(("UDP packet send failed\n"));
-        wiced_packet_delete(packet);  /* Delete packet, since the send failed */
+        WPRINT_APP_INFO( ("UDP packet send failed\n") );
+        wiced_packet_delete( packet ); /* Delete packet, since the send failed */
         return WICED_ERROR;
     }
 
@@ -177,10 +177,9 @@ wiced_result_t tx_udp_packet()
      *        will be automatically deleted *AFTER* it has been successfully sent
      */
 
-    WPRINT_APP_INFO(("sent: %d\n", (int)tx_count));
+    WPRINT_APP_INFO( ("sent: %d\n", (int)tx_count) );
 
     return WICED_SUCCESS;
-
 }
 
 
@@ -189,23 +188,28 @@ wiced_result_t tx_udp_packet()
  */
 wiced_result_t rx_udp_packet(uint32_t timeout)
 {
-    wiced_packet_t*    packet;
-    char*              udp_data;
-    uint16_t           data_length;
-    uint16_t           available_data_length;
+    wiced_packet_t* packet;
+    char*           udp_data;
+    uint16_t        data_length;
+    uint16_t        available_data_length;
 
     /* Wait for UDP packet */
-    wiced_result_t result = wiced_udp_receive(&udp_socket, &packet, timeout );
-    if ((result == WICED_ERROR) || (result == WICED_TIMEOUT))
+    wiced_result_t result = wiced_udp_receive( &udp_socket, &packet, timeout );
+
+    if ( ( result == WICED_ERROR ) || ( result == WICED_TIMEOUT ) )
     {
-        ; //WPRINT_APP_INFO(("Time out waiting to receive ...\n\n"));
+        return result;
     }
-    else
-    {
-        wiced_packet_get_data(packet, 0, (uint8_t**)&udp_data, &data_length, &available_data_length);
-        udp_data[data_length] = '\x0';    /* Null terminate the received string */
-        WPRINT_APP_INFO(("%s\n\n", udp_data));
-        wiced_packet_delete(packet);   /* Delete packet, it is no longer needed */
-    }
+
+    wiced_packet_get_data( packet, 0, (uint8_t**) &udp_data, &data_length, &available_data_length );
+
+    /* Null terminate the received string */
+    udp_data[ data_length ] = '\x0';
+
+    WPRINT_APP_INFO( ("%s\n\n", udp_data) );
+
+    /* Delete packet as it is no longer needed */
+    wiced_packet_delete( packet );
+
     return WICED_SUCCESS;
 }

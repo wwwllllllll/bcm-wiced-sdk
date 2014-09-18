@@ -1,5 +1,5 @@
 /*
- * $Id: wlu_cmd.c 341344 2012-06-27 10:30:23Z tigran $
+ * $Id: wlu_cmd.c 399026 2013-04-27 00:44:07Z yongfang $
  * $Copyright: (c) 2006, Broadcom Corp.
  * All Rights Reserved.$
  *
@@ -234,6 +234,8 @@ cmd2cat_t cmd2cat[] = {
 	{"quiet", CMD_PHY},
 	{"radar", CMD_PHY},
 	{"radarargs", CMD_PHY},
+	{"radar_status", CMD_PHY},
+	{"clear_radar_status", CMD_PHY},
 	{"radio", CMD_PHY + CMD_DEV},
 	{"radioreg", CMD_PHY + CMD_DEV},
 	{"rand", CMD_ADMIN + CMD_DEV},

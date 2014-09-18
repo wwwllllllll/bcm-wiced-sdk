@@ -59,11 +59,11 @@ static const wiced_wps_device_detail_t wps_details =
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const wiced_ip_setting_t device_init_ip_settings =

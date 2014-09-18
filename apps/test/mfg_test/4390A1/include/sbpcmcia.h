@@ -3,7 +3,7 @@
  *
  * $Copyright Open Broadcom Corporation$
  *
- * $Id: sbpcmcia.h 381091 2013-01-25 04:23:11Z chihsien $
+ * $Id: sbpcmcia.h 403347 2013-05-20 14:05:15Z sudhirbs $
  */
 
 #ifndef	_SBPCMCIA_H
@@ -316,7 +316,8 @@
 #define HNBU_USBSSPHY_SLEEP3	0x73    /* 2 byte USB SSPHY sleep */
 #define HNBU_USBSSPHY_MDIO		0x74	/* USB SSPHY INIT regs setting */
 #define HNBU_USB30PHY_NOSS		0x75	/* USB30 NO Super Speed */
-#define HNBU_USB30PHY_NODIS		0x76	/* USB30 No disconnect */
+#define HNBU_USB30PHY_U1U2		0x76	/* USB30 PHY U1U2 Enable */
+#define HNBU_USB30PHY_REGS		0x77	/* USB30 PHY REGs update */
 
 #define HNBU_SROM3SWRGN		0x80	/* 78 bytes; srom rev 3 s/w region without crc8
 					 * plus extra info appended.
@@ -330,6 +331,8 @@
 #define HNBU_ACPA_40		0x87	/* ACPHY PA trimming parameters: 40 */
 #define HNBU_ACPA_80		0x88	/* ACPHY PA trimming parameters: 80 */
 #define HNBU_ACPA_4080		0x89	/* ACPHY PA trimming parameters: 40/80 */
+#define HNBU_SUBBAND5GVER	0x8a	/* subband5gver */
+#define HNBU_PAPARAMBWVER	0x8b	/* paparambwver */
 
 /* XXX IMPORTANT XXX
  * Please update CisTuples twiki page when you define new tuples

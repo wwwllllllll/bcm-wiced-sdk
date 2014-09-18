@@ -220,14 +220,6 @@ typedef struct
 /******************************************************
  *                Unpacked Structures
  ******************************************************/
-
-typedef struct
-{
-    SHA256_CTX sha256_ctx;
-    uint8_t remaining_data[SHA256_CBLOCK];
-    uint8_t remaining_data_length;
-} progressive_hmac_t;
-
 /*
  * This structure contains data that is unique for both agent but contained by both.
  * Each agent starts with their public_key and nonce and progressively generates the secret nonces and hashes while also
@@ -309,7 +301,7 @@ struct _wps_agent_t
     emsk_t         emsk;
 
     /* Progressive HMAC workspace */
-    progressive_hmac_t hmac;
+    sha2_context hmac;
 
     /* State machine stages */
     wps_main_stage_t current_main_stage;

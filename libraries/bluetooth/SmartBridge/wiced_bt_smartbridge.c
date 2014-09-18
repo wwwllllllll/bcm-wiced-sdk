@@ -55,7 +55,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t smartbridge_app_notification_handler             ( void* arg );
@@ -70,7 +70,7 @@ void                  smartbridge_socket_set_actions                   ( wiced_b
 void                  smartbridge_socket_clear_actions                 ( wiced_bt_smartbridge_socket_t* socket, uint8_t action_bits );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_bt_smartbridge_socket_t* connecting_socket = NULL;

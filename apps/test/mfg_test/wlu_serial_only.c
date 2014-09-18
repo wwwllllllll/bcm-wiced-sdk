@@ -19,30 +19,52 @@
 #include <string.h>
 #include "wlu_remote.h"
 #include "wlu.h"
+#include "mfg_test.h"
 
-#define INTERACTIVE_NUM_ARGS            15
-#define INTERACTIVE_MAX_INPUT_LENGTH    256
-#define RWL_WIFI_JOIN_DELAY                5
 
-/* Function prototypes */
-static cmd_t *wl_find_cmd(char* name);
-static int do_interactive( void* ifr);
-static int wl_do_cmd( void* ifr, char **argv);
-int process_args( void* ifr, char **argv);
+/******************************************************
+ *                      Macros
+ ******************************************************/
 
-/* RemoteWL declarations */
-extern char g_rem_ifname[IFNAMSIZ];
-extern char *g_rwl_buf_mac;
-extern char* g_rwl_device_name_serial;
-unsigned short g_rwl_servport;
-char *g_rwl_servIP = NULL;
-int remote_type = NO_REMOTE;
-unsigned short defined_debug = DEBUG_ERR | DEBUG_INFO;
-static uint interactive_flag = 0;
-/* Main client function */
+/******************************************************
+ *                    Constants
+ ******************************************************/
 
-int
-main(int argc, char **argv)
+#define INTERACTIVE_NUM_ARGS             (15)
+#define INTERACTIVE_MAX_INPUT_LENGTH    (256)
+#define RWL_WIFI_JOIN_DELAY               (5)
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static cmd_t* wl_find_cmd   ( char* name );
+static int    do_interactive( void* ifr );
+static int    wl_do_cmd     ( void* ifr, char **argv );
+static int    process_args  ( void* ifr, char **argv );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+static uint    interactive_flag = 0;
+int            remote_type      = NO_REMOTE;
+unsigned short defined_debug    = DEBUG_ERR | DEBUG_INFO;
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
+int main(int argc, char **argv)
 {
     void*  ifr;
     char *ifname = NULL;
@@ -127,8 +149,7 @@ main(int argc, char **argv)
  * Function called for  'local' execution and for 'remote' non-interactive session
  * (shell cmd, wl cmd)
  */
-int
-process_args( void* ifr, char **argv)
+static int process_args( void* ifr, char **argv)
 {
     char *ifname = NULL;
     int help = 0;

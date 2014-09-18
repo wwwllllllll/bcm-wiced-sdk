@@ -15,6 +15,25 @@
 extern "C" {
 #endif
 
+/******************************************************
+ *                     Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
 struct hostent {
     CHAR  *h_name;      /* Official name of the host. */
     CHAR **h_aliases;   /* A pointer to an array of pointers to alternative host names,
@@ -23,11 +42,21 @@ struct hostent {
     INT    h_length;    /* The length, in bytes, of the address. */
     CHAR **h_addr_list; /* A pointer to an array of pointers to network addresses (in
                            network byte order) for the host, terminated by a null pointer. */
-#define h_addr h_addr_list[0] /* for backward compatibility */
 };
+
+/*define_style_exception_start*/
+#define h_addr h_addr_list[0] /* for backward compatibility */
+/*define_style_exception_end*/
 
 #include "netx_applications/dns/nx_dns.h"
 
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
 struct hostent* netx_gethostbyname(NX_DNS *dns_ptr, const CHAR *name);
 struct hostent* gethostbyname(const CHAR *name);
 

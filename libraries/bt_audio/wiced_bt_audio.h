@@ -12,7 +12,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include "button.h"
 
 /******************************************************
  *                      Macros
@@ -32,7 +32,12 @@ typedef enum
     WICED_BT_AUDIO_EVT_CONFIG, /* Player configuration                 */
     WICED_BT_AUDIO_EVT_GET_BUF, /* Request buffer for audio data        */
     WICED_BT_AUDIO_EVT_GET_PLAYER_STATS, /* Request for player statistics        */
-    WICED_BT_AUDIO_EVT_DATA /* Data to play                         */
+    WICED_BT_AUDIO_EVT_DATA, /* Data to play                         */
+    WICED_BT_AUDIO_AVK_EVT_OPEN,
+    WICED_BT_AUDIO_AVK_EVT_START,
+    WICED_BT_AUDIO_AVK_EVT_STOP,
+    WICED_BT_AUDIO_AVK_EVT_SUSPEND,
+    WICED_BT_AUDIO_AVK_EVT_CLOSE,
 } wiced_bt_audio_event_t;
 
 /******************************************************
@@ -58,6 +63,12 @@ typedef union
     wiced_bt_audio_player_stats_t player_stats;
 } wiced_bt_audio_event_data_t;
 
+typedef struct
+{
+    wiced_button_event_t    evt;
+    wiced_button_t*         button;
+} wiced_bt_button_event_t;
+
 typedef void (*wiced_bt_audio_callback_t)( wiced_bt_audio_event_t event, wiced_bt_audio_event_data_t* event_data );
 
 /******************************************************
@@ -73,6 +84,7 @@ extern uint8_t wiced_log_enabled;
 wiced_result_t wiced_bt_audio_init( void );
 wiced_result_t wiced_bt_audio_register_callback( wiced_bt_audio_callback_t callback );
 wiced_result_t wiced_bt_audio_start_player( void );
+wiced_result_t wiced_bt_audio_button_send_event( wiced_button_t* button, wiced_button_event_t evt );
 
 #ifdef __cplusplus
 } /* extern "C" */

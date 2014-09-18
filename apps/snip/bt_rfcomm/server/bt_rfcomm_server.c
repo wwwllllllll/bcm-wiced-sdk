@@ -65,7 +65,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void socket_event_callback( wiced_bt_rfcomm_socket_t* socket, wiced_bt_rfcomm_event_t event, void* arg );

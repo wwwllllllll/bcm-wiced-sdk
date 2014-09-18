@@ -40,13 +40,13 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern void UnhandledInterrupt( void );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************
@@ -91,11 +91,11 @@ PLATFORM_SET_DEFAULT_ISR( Reserved027_irq     , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( Reserved028_irq     , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( Reserved029_irq     , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( Reserved030_irq     , UnhandledInterrupt )
-PLATFORM_SET_DEFAULT_ISR( PTU_irq             , UnhandledInterrupt )
+PLATFORM_SET_DEFAULT_ISR( PTU1_irq            , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( DmaDoneInt_irq      , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( Reserved033_irq     , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( Reserved034_irq     , UnhandledInterrupt )
-PLATFORM_SET_DEFAULT_ISR( Reserved035_irq     , UnhandledInterrupt )
+PLATFORM_SET_DEFAULT_ISR( WAKEUP_irq          , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( GPIOA_BANK0_irq     , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( Reserved037_irq     , UnhandledInterrupt )
 PLATFORM_SET_DEFAULT_ISR( Reserved038_irq     , UnhandledInterrupt )

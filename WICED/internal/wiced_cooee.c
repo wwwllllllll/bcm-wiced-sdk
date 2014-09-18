@@ -73,7 +73,7 @@ typedef struct
 #pragma pack()
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 #ifdef WICED_COOEE_ENABLE_SCANNING
@@ -85,7 +85,7 @@ static void cooee_process_raw_packet( wiced_buffer_t buffer, wwd_interface_t int
 extern int rijndaelKeySetupEnc(uint32_t rk[], const uint8_t cipherKey[], int keyBits);
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_cooee_workspace_t* workspace;
@@ -265,8 +265,8 @@ try_cooee_again:
     {
         goto return_with_error;
     }
-    ap.SSID.len = tlv->length;
-    memcpy( ap.SSID.val, tlv->data, tlv->length );
+    ap.SSID.length = tlv->length;
+    memcpy( ap.SSID.value, tlv->data, tlv->length );
 
     /* Process the mandatory security key */
     tlv = (tlv8_data_t*) ( &tlv->data[tlv->length] );
@@ -278,28 +278,8 @@ try_cooee_again:
 
     /* Process the mandatory host address */
     workspace->user_processed_data = &tlv->data[tlv->length];
-//    tlv = (tlv8_data_t*) ( &tlv->data[tlv->length] );
-//    if ( tlv->type != WICED_COOEE_IP_ADDRESS )
-//    {
-//        goto return_with_error;
-//    }
-//    if ( tlv->length == 4 )
-//    {
-//        memcpy( &host_ip_address->ip.v4, tlv->data, 4 );
-//        host_ip_address->ip.v4 = htonl(host_ip_address->ip.v4);
-//        host_ip_address->version = WICED_IPV4;
-//    }
-//    else if ( tlv->length == 6 )
-//    {
-//        memcpy( host_ip_address->ip.v6, tlv->data, 16 );
-//        host_ip_address->version = WICED_IPV6;
-//    }
-//    else
-//    {
-//        goto return_with_error;
-//    }
 
-    WPRINT_WICED_INFO( ("SSID: %s\n", ap.SSID.val) );
+    WPRINT_WICED_INFO( ("SSID: %s\n", ap.SSID.value) );
     WPRINT_WICED_INFO( ("PSK : %.64s\n", security_key_tlv->data) );
 
     wiced_wifi_disable_packet_filter( 1 );
@@ -412,6 +392,8 @@ static void process_packet(wiced_buffer_t buffer)
     packet_length = host_buffer_get_current_piece_size( buffer );
     if ( packet_length < MAX_NUMBER_OF_COOEE_BYTES + PACKET_SIZE_INDEX_OFFSET )
     {
+        uint16_t index;
+
         /* Check if this is the first packet we've heard */
         if ( workspace->received_byte_count == 0 )
         {
@@ -420,34 +402,27 @@ static void process_packet(wiced_buffer_t buffer)
             memcpy( workspace->ap_bssid.octet, bssid, sizeof(wiced_mac_t) );
         }
 
-//        if ( memcmp( initiator_mac.octet, initiator, sizeof(wiced_mac_t) ) != 0 )
+        index = (uint16_t) ( ( packet_length - workspace->size_of_zero_data_packet - extra_offset ) );
+        if ( COOEE_GET_BIT(workspace->received_segment_bitmap, index/2) == 0 )
         {
-            uint16_t index = (uint16_t) ( ( packet_length - workspace->size_of_zero_data_packet - extra_offset ) );
-//            if ( !( ( cooee_header->header2 != 0 ) && ( index >= cooee_header->header2 ) ) )
-            {
-//                if ( (workspace->received_segment_bitmap[index/2 / 32] & (uint32_t)(1 << ((index/2)&0x1F))) == 0 )
-                if ( COOEE_GET_BIT(workspace->received_segment_bitmap, index/2) == 0 )
-                {
-                    workspace->received_cooee_data[index] = data[0];
-                    workspace->received_cooee_data[index + 1] = data[1];
-                    COOEE_SET_BIT( workspace->received_segment_bitmap, index/2 );
-                    workspace->received_byte_count = (uint16_t) ( workspace->received_byte_count + 2 );
+            workspace->received_cooee_data[index] = data[0];
+            workspace->received_cooee_data[index + 1] = data[1];
+            COOEE_SET_BIT( workspace->received_segment_bitmap, index/2 );
+            workspace->received_byte_count = (uint16_t) ( workspace->received_byte_count + 2 );
 
-                    /* Check if we have all the data we need */
-                    if ( ( cooee_header->header2 != 0 ) && ( workspace->received_byte_count >= cooee_header->header2 ) )
+            /* Check if we have all the data we need */
+            if ( ( cooee_header->header2 != 0 ) && ( workspace->received_byte_count >= cooee_header->header2 ) )
+            {
+                int a;
+                for (a = 0; a < cooee_header->header2/2; ++a)
+                {
+                    if (COOEE_GET_BIT(workspace->received_segment_bitmap, a) == 0)
                     {
-                        int a;
-                        for (a = 0; a < cooee_header->header2/2; ++a)
-                        {
-                            if (COOEE_GET_BIT(workspace->received_segment_bitmap, a) == 0)
-                            {
-                                return;
-                            }
-                        }
-                        workspace->wiced_cooee_complete = WICED_TRUE;
-                        wiced_rtos_set_semaphore( &workspace->sniff_complete );
+                        return;
                     }
                 }
+                workspace->wiced_cooee_complete = WICED_TRUE;
+                wiced_rtos_set_semaphore( &workspace->sniff_complete );
             }
         }
     }

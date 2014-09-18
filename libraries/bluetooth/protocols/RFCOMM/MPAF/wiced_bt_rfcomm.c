@@ -89,7 +89,7 @@ typedef struct
 } rfcomm_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 static wiced_result_t rfcomm_add_sdp_record       ( wiced_bt_rfcomm_socket_t* socket, const char* service_name, const wiced_bt_uuid_t* uuid );
 //static wiced_result_t rfcomm_delete_sdp_record    ( wiced_bt_rfcomm_socket_t* socket );
@@ -101,7 +101,7 @@ static void           rfcomm_lock_socket          ( wiced_bt_rfcomm_socket_t* so
 static void           rfcomm_unlock_socket        ( wiced_bt_rfcomm_socket_t* socket );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* RFCOMM instance */

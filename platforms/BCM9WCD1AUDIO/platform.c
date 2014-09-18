@@ -43,11 +43,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* GPIO pin table. Used by WICED/platform/MCU/wiced_platform_common.c */
@@ -93,6 +93,7 @@ const platform_gpio_t platform_gpio_pins[] =
     [WICED_GPIO_38] = { GPIOG, 15 }, /* BT_UART_RTS */
     [WICED_GPIO_39] = { GPIOG,  8 }, /* BT_UART_CTS */
     [WICED_GPIO_40] = { GPIOH, 11 },
+    [WICED_GPIO_41] = { GPIOH, 12 },
 };
 
 /* ADC peripherals. Used WICED/platform/MCU/wiced_platform_common.c */
@@ -167,7 +168,7 @@ const platform_uart_t platform_uart_peripherals[] =
             .channel        = DMA_Channel_4,
             .irq_vector     = DMA2_Stream7_IRQn,
             .complete_flags = DMA_HISR_TCIF7,
-            .error_flags    = ( DMA_HISR_TEIF7 | DMA_HISR_FEIF7 | DMA_HISR_DMEIF7 ),
+            .error_flags    = ( DMA_HISR_TEIF7 | DMA_HISR_FEIF7 ),
         },
         .rx_dma_config =
         {
@@ -193,7 +194,7 @@ const platform_uart_t platform_uart_peripherals[] =
             .channel        = DMA_Channel_5,
             .irq_vector     = DMA2_Stream6_IRQn,
             .complete_flags = DMA_HISR_TCIF6,
-            .error_flags    = ( DMA_HISR_TEIF6 | DMA_HISR_FEIF6 | DMA_HISR_DMEIF6 ),
+            .error_flags    = ( DMA_HISR_TEIF6 | DMA_HISR_FEIF6 ),
         },
         .rx_dma_config =
         {

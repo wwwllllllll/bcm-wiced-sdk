@@ -46,6 +46,7 @@
 #include "lwip/mem.h"
 #include "lwip/stats.h"
 #include "wiced_utilities.h"
+#include "wwd_crypto.h"
 
 /* Message queue constants. */
 #define archMESG_QUEUE_LENGTH     ( (unsigned long) 6 )
@@ -510,4 +511,13 @@ void sys_mbox_set_invalid( sys_mbox_t *mbox )
 void sys_sem_set_invalid( sys_sem_t *sem )
 {
     ( *(int*) sem ) = 0;
+}
+
+
+
+uint16_t sys_rand16( void )
+{
+    uint16_t output;
+    wwd_wifi_get_random( &output, 2 );
+    return output;
 }

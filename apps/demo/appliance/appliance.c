@@ -95,23 +95,23 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
-static int            process_button_handler( const char* url, wiced_tcp_stream_t* stream, void* arg );
+static int32_t        process_button_handler( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body );
 static wiced_result_t powersave_toggle( void* arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 START_OF_HTTP_PAGE_DATABASE(appliance_web_pages)
-    { "/",                         "text/html",                WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_apps_DIR_appliance_DIR_top_web_page_top_html, },
-    { "/button_handler",           "text/html",                WICED_DYNAMIC_URL_CONTENT,   .url_content.dynamic_data   = {process_button_handler, 0}, },
-    { "/images/favicon.ico",       "image/vnd.microsoft.icon", WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_images_DIR_favicon_ico, },
-    { "/images/brcmlogo.png",      "image/png",                WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_images_DIR_brcmlogo_png, },
-    { "/images/brcmlogo_line.png", "image/png",                WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_images_DIR_brcmlogo_line_png, },
-    { "/styles/buttons.css",       "text/css",                 WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_styles_DIR_buttons_css, },
+    { "/",                               "text/html",                WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_apps_DIR_appliance_DIR_top_web_page_top_html, },
+    { "/button_handler",                 "text/html",                WICED_DYNAMIC_URL_CONTENT,   .url_content.dynamic_data   = {process_button_handler, 0}, },
+    { "/images/favicon.ico",             "image/vnd.microsoft.icon", WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_images_DIR_favicon_ico, },
+    { "/images/brcmlogo.png",            "image/png",                WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_images_DIR_brcmlogo_png, },
+    { "/images/brcmlogo_line.png",       "image/png",                WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_images_DIR_brcmlogo_line_png, },
+    { "/styles/buttons.css",             "text/css",                 WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_styles_DIR_buttons_css, },
     { "/scripts/general_ajax_script.js", "application/javascript",   WICED_RESOURCE_URL_CONTENT,  .url_content.resource_data  = &resources_scripts_DIR_general_ajax_script_js, },
 END_OF_HTTP_PAGE_DATABASE();
 
@@ -156,11 +156,12 @@ void application_start(void)
 }
 
 
-static int process_button_handler( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_button_handler( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_message_body )
 {
-    int params_len = strlen(url);
+    int params_len = strlen(url_parameters);
     char * found_loc = NULL;
     char  end_found = 0;
+    UNUSED_PARAMETER(http_message_body);
 
     /* Process the GET parameter list to determine if buttons have been pressed */
 
@@ -168,19 +169,19 @@ static int process_button_handler( const char* url, wiced_tcp_stream_t* stream, 
     while ( end_found == 0 )
     {
         /* Check if parameter is "btname" */
-        if ( 0 == strncmp( url, "btname", 6 ) )
+        if ( 0 == strncmp( url_parameters, "btname", 6 ) )
         {
-            found_loc = (char*)&url[7];
+            found_loc = (char*)&url_parameters[7];
         }
 
         /* Scan ahead to the next parameter or the end of the parameter list */
-        while ( ( *url != '&' ) && ( *url != '\n' ) && ( params_len > 0 ) )
+        while ( ( *url_parameters != '&' ) && ( *url_parameters != '\n' ) && ( params_len > 0 ) )
         {
-            url++;
+            url_parameters++;
             params_len--;
         }
 
-        if  ( *url != '&' )
+        if  ( *url_parameters != '&' )
         {
             end_found = 1;
         }
@@ -188,7 +189,7 @@ static int process_button_handler( const char* url, wiced_tcp_stream_t* stream, 
 
         if ( found_loc != NULL )
          {
-             char* tmp = (char*)url;
+             char* tmp = (char*)url_parameters;
              *tmp = '\x00';
              WPRINT_APP_INFO(( "\nDetected button press: %s\n\n", found_loc ));
          }
@@ -197,7 +198,7 @@ static int process_button_handler( const char* url, wiced_tcp_stream_t* stream, 
         if ( end_found == 0 )
         {
             /* Skip over the "&" which joins parameters if found */
-            url++;
+            url_parameters++;
         }
     }
 

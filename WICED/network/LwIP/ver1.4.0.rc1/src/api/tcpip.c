@@ -372,6 +372,7 @@ err_t
 tcpip_apimsg(struct api_msg *apimsg)
 {
   struct tcpip_msg msg;
+  u32_t timeout = 0;
 #ifdef LWIP_DEBUG
   /* catch functions that don't set err */
   apimsg->msg.err = ERR_VAL;
@@ -382,7 +383,11 @@ tcpip_apimsg(struct api_msg *apimsg)
     msg.msg.apimsg = apimsg;
     sys_mbox_post(&mbox, &msg);
     /* WICED_CHANGES - added timeout check */
-    if ( sys_arch_sem_wait(&apimsg->msg.conn->op_completed, apimsg->msg.msg.bc.timeout) == SYS_ARCH_TIMEOUT)
+    if ( apimsg->function == do_connect )
+    {
+        timeout = apimsg->msg.msg.bc.timeout;  /* use the timeout value only for connect() */
+    }
+    if ( sys_arch_sem_wait(&apimsg->msg.conn->op_completed, timeout ) == SYS_ARCH_TIMEOUT )
     {
         apimsg->msg.err = ERR_TIMEOUT;
     }

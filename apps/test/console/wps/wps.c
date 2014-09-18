@@ -20,13 +20,44 @@
 #include "wps_host_interface.h"
 #include "wiced_time.h"
 
+/******************************************************
+ *                      Macros
+ ******************************************************/
+#define IS_DIGIT(c) ((c >= '0') && (c <= '9'))
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define MAX_CREDENTIAL_COUNT   5
 #define MAX_SSID_LEN 32
 #define MAX_PASSPHRASE_LEN 64
-
-#define is_digit(c) ((c >= '0') && (c <= '9'))
 #define JOIN_ATTEMPT_TIMEOUT   60000
 
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static int is_digit_str( const char* str );
+static int validate_checksum( const char* str );
+static int compute_checksum(unsigned long int PIN);
+static void dehyphenate_pin(char* str );
+static int generate_wps_pin( char* pin_string );
+static wiced_result_t internal_start_registrar( wiced_wps_mode_t mode, const wiced_wps_device_detail_t* details, char* password, wiced_wps_credential_t* credentials, uint16_t credential_count );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 static const wiced_wps_device_detail_t enrollee_details =
 {
     .device_name     = PLATFORM,
@@ -39,7 +70,7 @@ static const wiced_wps_device_detail_t enrollee_details =
     .config_methods  = WPS_CONFIG_LABEL | WPS_CONFIG_VIRTUAL_PUSH_BUTTON | WPS_CONFIG_VIRTUAL_DISPLAY_PIN
 };
 
-const wiced_wps_device_detail_t device_details =
+static const wiced_wps_device_detail_t device_details =
 {
     .device_name     = "Wiced",
     .manufacturer    = "Broadcom",
@@ -51,14 +82,12 @@ const wiced_wps_device_detail_t device_details =
     .config_methods  = WPS_CONFIG_LABEL | WPS_CONFIG_PUSH_BUTTON | WPS_CONFIG_VIRTUAL_PUSH_BUTTON | WPS_CONFIG_VIRTUAL_DISPLAY_PIN,
 };
 
-wps_agent_t* workspace = NULL;
+static wps_agent_t* workspace = NULL;
 
-static int is_digit_str( const char* str );
-static int validate_checksum( const char* str );
-static int compute_checksum(unsigned long int PIN);
-static void dehyphenate_pin(char* str );
-static int generate_wps_pin( char* pin_string );
-static wiced_result_t internal_start_registrar( wiced_wps_mode_t mode, const wiced_wps_device_detail_t* details, char* password, wiced_wps_credential_t* credentials, uint16_t credential_count );
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 int join_wps( int argc, char* argv[] )
 {
@@ -80,13 +109,13 @@ int join_wps( int argc, char* argv[] )
     if ( strcmp( argv[1], "pin" ) == 0 )
     {
         /* PIN mode*/
-        if ( argc == 6 ) // PIN is supplied
+        if ( argc == 6 ) /* PIN is supplied */
         {
             ip      = argv[3];
             netmask = argv[4];
             gateway = argv[5];
         }
-        else if ( argc == 5 ) // PIN is auto-generated
+        else if ( argc == 5 ) /* PIN is auto-generated */
         {
             ip      = argv[2];
             netmask = argv[3];
@@ -157,7 +186,7 @@ int join_wps( int argc, char* argv[] )
                     break;
 
                 default:
-                    // WPS failed. Abort
+                    /* WPS failed. Abort */
                    WPRINT_APP_INFO(("WPS failed\r\n"));
                    break;
             }
@@ -173,11 +202,11 @@ int join_wps( int argc, char* argv[] )
     }
 
     /* Check if WPS was successful */
-    if ( credential[0].ssid.len != 0 )
+    if ( credential[0].ssid.length != 0 )
     {
-        for (a=0; credential[a].ssid.len != 0; ++a)
+        for (a=0; credential[a].ssid.length != 0; ++a)
         {
-            WPRINT_APP_INFO(("SSID: %s\r\n",credential[a].ssid.val));
+            WPRINT_APP_INFO(("SSID: %s\r\n",credential[a].ssid.value));
             WPRINT_APP_INFO(("Security: "));
             switch ( credential[a].security )
             {
@@ -226,20 +255,20 @@ int join_wps( int argc, char* argv[] )
                 return ERR_UNKNOWN;
             }
             cred = &credential[a];
-            WPRINT_APP_INFO(("Joining : %s\r\n", cred->ssid.val));
-            ret = wifi_join( (char*)cred->ssid.val, cred->security, (uint8_t*) cred->passphrase, cred->passphrase_length, ip, netmask, gateway );
+            WPRINT_APP_INFO(("Joining : %s\r\n", cred->ssid.value));
+            ret = wifi_join( (char*)cred->ssid.value, cred->security, (uint8_t*) cred->passphrase, cred->passphrase_length, ip, netmask, gateway );
             if (ret != ERR_CMD_OK)
             {
-                WPRINT_APP_INFO(("Failed to join  : %s   .. retrying\r\n", cred->ssid.val));
+                WPRINT_APP_INFO(("Failed to join  : %s   .. retrying\r\n", cred->ssid.value));
                 ++a;
-                if (credential[a].ssid.len == 0)
+                if (credential[a].ssid.length == 0)
                 {
                     a = 0;
                 }
             }
         }
         while (ret != ERR_CMD_OK);
-        WPRINT_APP_INFO(("Successfully joined : %s\r\n", cred->ssid.val));
+        WPRINT_APP_INFO(("Successfully joined : %s\r\n", cred->ssid.value));
     }
 
     return ERR_CMD_OK;
@@ -267,24 +296,24 @@ int start_registrar( int argc, char* argv[] )
         return ERR_CMD_OK;
     }
 
-    // Read config to get internal AP settings
+    /* Read config to get internal AP settings */
     wiced_dct_read_lock( (void**) &dct_wifi_config, WICED_FALSE, DCT_WIFI_CONFIG_SECTION, 0, sizeof(platform_dct_wifi_config_t) );
 
-    // Copy config into the credential to be used by WPS
-    strncpy((char*)&credential.ssid.val, (char*)dct_wifi_config->soft_ap_settings.SSID.val, MAX_SSID_LEN);
-    credential.ssid.len = strlen((char*)&credential.ssid.val);
+    /* Copy config into the credential to be used by WPS */
+    strncpy((char*)&credential.ssid.value, (char*)dct_wifi_config->soft_ap_settings.SSID.value, MAX_SSID_LEN);
+    credential.ssid.length = strlen((char*)&credential.ssid.value);
     credential.security = dct_wifi_config->soft_ap_settings.security;
     memcpy((char*)&credential.passphrase, (char*)&dct_wifi_config->soft_ap_settings.security_key, MAX_PASSPHRASE_LEN);
     credential.passphrase_length = dct_wifi_config->soft_ap_settings.security_key_length;
 
     wiced_dct_read_unlock( (void*) dct_wifi_config, WICED_FALSE );
 
-    // PIN mode
+    /* PIN mode */
     if ( ( strcmp( argv[1], "pin" ) == 0 ) && argc >= 3 )
     {
         memset(pin, 0, sizeof(pin));
         strncpy( pin, argv[2], ( sizeof(pin) - 1 ));
-        if ( argc == 4 ) // Then PIN may be in the form nnnn nnnn
+        if ( argc == 4 ) /* Then PIN may be in the form nnnn nnnn */
         {
             if ( ( strlen( argv[2] ) == 4 ) && ( strlen( argv[3] ) == 4 ) )
             {
@@ -299,11 +328,11 @@ int start_registrar( int argc, char* argv[] )
         }
         if ( argc == 3 )
         {
-            if ( strlen( pin ) == 9 ) // Then PIN may be in the form nnnn-nnnn
+            if ( strlen( pin ) == 9 ) /* Then PIN may be in the form nnnn-nnnn */
             {
                 dehyphenate_pin( pin );
             }
-            //WPRINT_APP_INFO(("pin %s\r\n", pin));
+            /* WPRINT_APP_INFO(("pin %s\r\n", pin)); */
             if ( is_digit_str(pin) && ( ( strlen( pin ) == 4 ) || ( strlen( pin ) == 8 ) ) )
             {
                 if ( strlen( pin ) == 8 )
@@ -339,7 +368,7 @@ int start_registrar( int argc, char* argv[] )
             switch(result)
             {
                 case WWD_SUCCESS:
-                    //WPRINT_APP_INFO(("Registrar starting\r\n"));
+                    /* WPRINT_APP_INFO(("Registrar starting\r\n")); */
                     break;
 
                 case WWD_WPS_PBC_OVERLAP:
@@ -347,7 +376,7 @@ int start_registrar( int argc, char* argv[] )
                     break;
 
                 default:
-                    // WPS failed. Abort
+                    /* WPS failed. Abort */
                    WPRINT_APP_INFO(("WPS failed\r\n"));
                    break;
             }
@@ -454,7 +483,7 @@ static int is_digit_str( const char* str )
         res = 1;
         while ( i > 0 )
         {
-            if ( !is_digit(*str) )
+            if ( !IS_DIGIT(*str) )
             {
                 res = 0;
                 break;
@@ -470,21 +499,20 @@ static int is_digit_str( const char* str )
 
 static int generate_wps_pin( char* pin_string )
 {
-    uint16_t r1, r2;
+    uint16_t r[2];
     uint32_t random = 0;
     int i, checksum;
 
     memset( pin_string, '0', 9 );
 
-    // Generate a random number between 1 and 9999999
+    /* Generate a random number between 1 and 9999999 */
     while ( random == 0 )
     {
-        wwd_wifi_get_random( &r1 );
-        wwd_wifi_get_random( &r2 );
-        random = (uint32_t)(r1 * r2) % 9999999;
+        wwd_wifi_get_random( r, 4 );
+        random = (uint32_t)(r[0] * r[1]) % 9999999;
     }
 
-    checksum = compute_checksum( random ); // Compute checksum which will become the eighth digit
+    checksum = compute_checksum( random ); /* Compute checksum which will become the eighth digit */
 
     i = 8;
     pin_string[i] = '\0';
@@ -559,3 +587,43 @@ int force_alignment( int argc, char* argv[] )
     return ERR_CMD_OK;
 }
 
+wiced_result_t enable_ap_registrar_events( void )
+{
+    wiced_result_t result;
+
+    if ( workspace == NULL )
+    {
+        workspace = calloc_named("wps", 1, sizeof(wps_agent_t));
+        if ( workspace == NULL )
+        {
+            WPRINT_APP_INFO(("Error calloc wps\r\n"));
+            stop_ap(0, NULL);
+            return WICED_OUT_OF_HEAP_SPACE;
+        }
+    }
+
+    if ( ( result = besl_wps_init( workspace, (besl_wps_device_detail_t*) &device_details, WPS_REGISTRAR_AGENT, WWD_AP_INTERFACE ) ) != WICED_SUCCESS )
+    {
+        WPRINT_APP_INFO(("Error besl init %u\r\n", (unsigned int)result));
+        stop_ap(0, NULL);
+        return result;
+    }
+    if ( ( result = besl_wps_management_set_event_handler( workspace, WICED_TRUE ) ) != WICED_SUCCESS )
+    {
+        WPRINT_APP_INFO(("Error besl setting event handler %u\r\n", (unsigned int)result));
+        stop_ap(0, NULL);
+        return result;
+    }
+    return WICED_SUCCESS;
+}
+
+void disable_ap_registrar_events( void )
+{
+    if (workspace != NULL)
+    {
+        besl_wps_management_set_event_handler( workspace, WICED_FALSE );
+        besl_wps_deinit( workspace );
+        free( workspace );
+        workspace = NULL;
+    }
+}

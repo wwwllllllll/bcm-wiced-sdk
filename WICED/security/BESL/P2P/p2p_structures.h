@@ -293,11 +293,10 @@ typedef struct
 
 typedef struct
 {
-    besl_mac_t  bssid;
-    uint32_t    group_id;
-    uint8_t     channel;
-    uint8_t     ssid_length;
-    char        ssid[32];
+    besl_mac_t   bssid;
+    uint32_t     group_id;
+    uint8_t      channel;
+    wiced_ssid_t ssid;
 } p2p_group_details_t;
 
 typedef struct

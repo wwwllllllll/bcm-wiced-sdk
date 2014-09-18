@@ -10,7 +10,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wlm.h 377264 2013-01-05 04:05:33Z jwang $
+ * $Id: wlm.h 417926 2013-08-13 05:02:42Z jwang $
  */
 
 #ifndef _wlm_h
@@ -54,7 +54,7 @@ in addition, any differences there may be between drivers.
 #define WLM_FUNCTION
 #endif /* WIN32 */
 
-#define WLM_VERSION_STR "wlm version: 10.07.0 (support 4330, 4334, 43236, 4360, 432x and more)"
+#define WLM_VERSION_STR "wlm version: 10.18.0.0 (support 4330, 4334, 43236, 4360, 43xx and more)"
 
 /* Supported DUT interfaces. */
 /* Values are used to select the interface used to talk to the DUT. */
@@ -922,6 +922,17 @@ int wlmFullCal(void);
 WLM_FUNCTION
 int wlmRxIQEstGet(float *val, int sampleCount, int ant);
 
+/* Get Receiver IQ Estimation (extended method)
+ * param[out] estimated rxiq power in dBm at 0.25dBm resolution
+ * param[in] sampel count, 0 to 15
+ * param[in] antenna, 0 to 3
+ * param[in] elna on/off 0 = off; 1 = on
+ * param[in] gain index, 0 to 75
+ * return - True for success, false for failure.
+*/
+WLM_FUNCTION
+int wlmRxIQEstExtGet(float *val, int sampleCount, int ant, int elna, int gainindex);
+
 /* Get PHY txpwrindex
  * param[out] txpwrindex
  * param[in] chip id: 4325, 4329, 43291, 4330, 4336 and 43236
@@ -1151,11 +1162,18 @@ WLM_FUNCTION
 int wlmTemperatureSensorEnable(void);
 
 /* Set transmit core
- * param[in]
+ * param[in] active core (bitmask) to be used when transmitting frames
+ *           0x1 = core 1
+ *           0x2 = core 2
+ *           0x4 = core 3
+ *           0x8 = core 4
+ *           0x3 = core 1 and core 2
+ *           0x7 = core 1, core 2 and core 3 ...
+ * param[in] number of spacial streams
  * return - True for success, false for failure.
  */
 WLM_FUNCTION
-int wlmTransmitCoreSet(int val);
+int wlmTransmitCoreSet(int core, int streams);
 
 /* Get temperation sensor read
  * param[out] chip core temperature in F
@@ -1237,6 +1255,99 @@ WLM_FUNCTION
 int wlmGpioOut(unsigned int mask, unsigned int value);
 
 WLM_FUNCTION
+int wlmPhyRssiGainDelta2gGet(char *varname, int *deltaValues, int core);
+
+/* Set rssi gain delta value for 2g band.
+ * param[in] iovar name for 2g band rssi gain delta values, they are,
+ *           "phy_rssi_gain_delta_2g"
+ * param[in] delta values buffer.
+ * param[in] core ID
+ * return - True for success, false for failure.
+ */
+WLM_FUNCTION
+int wlmPhyRssiGainDelta2gSet(char *varname, int *deltaValues, int core);
+
+/* Get rssi gain delta value for 5g band.
+ * param[in] iovar name for 5g band rssi gain delta values, they are,
+ *           "phy_rssi_gain_delta_5gl"
+ *           "phy_rssi_gain_delta_5gml"
+ *           "phy_rssi_gain_delta_5gmu"
+ *           "phy_rssi_gain_delta_5gh"
+ * param[in] delta values buffer.
+ * param[in] core ID
+ * return - True for success, false for failure.
+ */
+WLM_FUNCTION
+int wlmPhyRssiGainDelta5gGet(char *varname, int *deltaValues, int core);
+
+/* Set rssi gain delta value for 5g band.
+ * param[in] iovar name for 5g band rssi gain delta values, they are,
+ *           "phy_rssi_gain_delta_5gl"
+ *           "phy_rssi_gain_delta_5gml"
+ *           "phy_rssi_gain_delta_5gmu"
+ *           "phy_rssi_gain_delta_5gh"
+ * param[in] delta values buffer.
+ * param[in] core ID
+ * return - True for success, false for failure.
+ */
+WLM_FUNCTION
+int wlmPhyRssiGainDelta5gSet(char *varname, int *deltaValues, int core);
+
+/* Set VHT Features
+ * param[in] VHT featurs rates bitmap
+ *           Bit 0:5G MCS 0-9 BW 160MHz
+ *           Bit 1:5G MCS 0-9 support BW 80MHz
+ *           Bit 2:5G MCS 0-9 support BW 20MHz
+ *           Bit 3:2.4G MCS 0-9 support BW 20MHz
+ *           Bits 4:7Reserved for future use
+ *           Bit 8:VHT 5G support
+ *           Bit 9:VHT 2.4G support
+ *           Bit 10:11Allowed MCS map
+ *           0 is MCS 0-7
+ *           1 is MCS 0-8
+ *           2 is MCS 0-9
+ *           3 is Disabled
+ */
+WLM_FUNCTION
+int wlmVHTFeaturesSet(int val);
+
+/* Enable Tx Beamforming
+ * return - True for success, false for failure.
+ */
+WLM_FUNCTION
+int  wlmTxBFEnable(void);
+
+/* Disable Tx Beamforming
+ * return - True for success, false for failure.
+ */
+WLM_FUNCTION
+int wlmTxBFDisable(void);
+
+/* Set 802.11h Spectrum Management mode
+ * param[in] spect mode
+ *           0 - Off\n"
+ *           1 - Loose interpretation of 11h spec - may join non-11h APs
+ *           2 - Strict interpretation of 11h spec - may not join non-11h APs
+ *           3 - Disable 11h and enable 11d
+ *           4 - Loose interpretation of 11h+d spec - may join non-11h APs
+ * return - True for success, false for failure.
+ */
+WLM_FUNCTION
+int wlmSpectModeSet(int val);
+
+/* Enable IBSS Gmode
+ * return - True for success, false for failure.
+ */
+WLM_FUNCTION
+int wlmIBSSGmodeEnable(void);
+
+/* Disable IBSS Gmode
+ * return - True for success, false for failure.
+ */
+WLM_FUNCTION
+int wlmIBSSGmodeDisable(void);
+
+
 const char* wlmGetLastError(void);
 
 #ifdef __cplusplus

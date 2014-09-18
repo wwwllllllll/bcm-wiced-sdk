@@ -21,6 +21,8 @@ rem set target=43341B0
 ..\wl%target% --serial %comport% nrate -r 11
 ..\wl%target% --serial %comport% phy_watchdog 0
 ..\wl%target% --serial %comport% disassoc
+..\wl%target% --serial %comport% phy_forcecal 1
+..\wl%target% --serial %comport% phy_activecal
 ..\wl%target% --serial %comport% txpwr1 -1
 @echo sleep 3 seconds
 @ping -n 3 127.0.0.1 > nul

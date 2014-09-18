@@ -27,6 +27,12 @@ extern "C" {
 /*  WICED Resources uses a filesystem */
 #define USES_RESOURCE_FILESYSTEM
 
+/* Location on SPI Flash where filesystem starts */
+#define FILESYSTEM_BASE_ADDR (0x00020000)
+
+/* The main app is stored in external serial flash */
+#define BOOTLOADER_LOAD_MAIN_APP_FROM_FILESYSTEM
+
 /*  DCT is stored in external flash */
 #define EXTERNAL_DCT
 
@@ -34,9 +40,9 @@ extern "C" {
 #define PLATFORM_HAS_OTP
 
 /*  WARNING: MCU powersave isn't working yet for BCM439x */
-#ifndef WICED_DISABLE_MCU_POWERSAVE
-#define WICED_DISABLE_MCU_POWERSAVE
-#endif
+//#ifndef WICED_DISABLE_MCU_POWERSAVE
+//#define WICED_DISABLE_MCU_POWERSAVE
+//#endif
 
 #ifdef __cplusplus
 } /*extern "C" */

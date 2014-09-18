@@ -37,8 +37,12 @@
         <topic label="wiced_network_up" href="group__netmgmt.html#ga28338e9fcdecb5787a014b990efb2a77"/>
       </topic>
       <topic label="System Monitor" href="group__sysmon.html">
+        <topic label="wiced_core_deinit" href="group__sysmon.html#gaf6e09916e2bed788ffa2f03405df8a8d"/>
+        <topic label="wiced_core_init" href="group__sysmon.html#ga7c502ac66f7cb06ac5b1b0adca7918b5"/>
         <topic label="wiced_register_system_monitor" href="group__sysmon.html#ga1d6e19375f4e9da2b4e75e3e3da74086"/>
         <topic label="wiced_update_system_monitor" href="group__sysmon.html#ga0f547b69a5fbfc1e4fcc4f77159f3689"/>
+        <topic label="wiced_wlan_connectivity_deinit" href="group__sysmon.html#gadfbdb5739e5429cd0f57ca16ebd0f0e9"/>
+        <topic label="wiced_wlan_connectivity_init" href="group__sysmon.html#gaae32ca07e0d56854d5af1b237e327f43"/>
       </topic>
     </topic>
     <topic label="Platform functions" href="group__platform.html">
@@ -51,6 +55,12 @@
       <topic label="SPI" href="group__spi.html">
         <topic label="wiced_spi_deinit" href="group__spi.html#gaf7917bb47d3702b60af17512b02f9e27"/>
         <topic label="wiced_spi_init" href="group__spi.html#gaac38d8f5e97c6505a72b3e6ae1a7dd83"/>
+        <topic label="wiced_spi_slave_deinit" href="group__spi.html#gaf56514aef2976e6f374c19c5c8b0867a"/>
+        <topic label="wiced_spi_slave_generate_interrupt" href="group__spi.html#ga3ee9efc49d468431fc6ba06ec34ae937"/>
+        <topic label="wiced_spi_slave_init" href="group__spi.html#gae5336959b654c023e4b13e8379f17f36"/>
+        <topic label="wiced_spi_slave_receive_command" href="group__spi.html#gaafd1c0838c54a4e616a22d44946b66bd"/>
+        <topic label="wiced_spi_slave_send_error_status" href="group__spi.html#gac370c4eb9eb7b775d31aa3affd9cb961"/>
+        <topic label="wiced_spi_slave_transfer_data" href="group__spi.html#ga7f91105c8a20b848ab91c1b1c1d4d7ab"/>
         <topic label="wiced_spi_transfer" href="group__spi.html#ga61b905d6302aa06a2636a107784b6fa2"/>
       </topic>
       <topic label="I2C" href="group__i2c.html">
@@ -58,7 +68,7 @@
         <topic label="wiced_i2c_init" href="group__i2c.html#ga81f30c8754d026da497c52ef01a638d5"/>
         <topic label="wiced_i2c_init_combined_message" href="group__i2c.html#gae888303b8c4d4c6f3f0bb2c740cec958"/>
         <topic label="wiced_i2c_init_rx_message" href="group__i2c.html#ga2bd4747bc05e6ac9f4cf44ec062155cd"/>
-        <topic label="wiced_i2c_init_tx_message" href="group__i2c.html#gab449ad3b839f0ef38cac18c2ca8ea879"/>
+        <topic label="wiced_i2c_init_tx_message" href="group__i2c.html#ga9f676926390ac2dd6d6b4cb354ba9e86"/>
         <topic label="wiced_i2c_probe_device" href="group__i2c.html#ga41be352ac0d458f8f72a571b82bb82d5"/>
         <topic label="wiced_i2c_transfer" href="group__i2c.html#gac669227ba6e1bf7f12382ddee783baff"/>
       </topic>
@@ -154,53 +164,85 @@
         <topic label="aes_setkey_enc" href="group__aes.html#gade240191b11235921d79d15e497e3083"/>
       </topic>
       <topic label="DES" href="group__des.html">
-        <topic label="des3_crypt_cbc" href="group__des.html#gae0045110b27d760e1c4838253123cf56"/>
-        <topic label="des3_crypt_ecb" href="group__des.html#gaeb066824399aee5a8fbe3bedfec99db5"/>
-        <topic label="des3_set2key_dec" href="group__des.html#ga1217f25a61f16c29200eb3f8454eabc7"/>
-        <topic label="des3_set2key_enc" href="group__des.html#gacae3216a8542b424c16f6dd1009fc635"/>
-        <topic label="des3_set3key_dec" href="group__des.html#ga9e6d1092e714f2f332d0ae9582b5f033"/>
-        <topic label="des3_set3key_enc" href="group__des.html#gad1a5893314b2ebff4f04ef6566162c99"/>
-        <topic label="des_crypt_cbc" href="group__des.html#gaef38f85ab8e2b2cefcc498883ba91cde"/>
-        <topic label="des_crypt_ecb" href="group__des.html#ga9aea0589a86a26f01fdf5ceeffcd671a"/>
-        <topic label="des_setkey_dec" href="group__des.html#ga83ac4de32678c6317b92779b4c5adcd9"/>
-        <topic label="des_setkey_enc" href="group__des.html#ga84fd4afbb929bdcb21170006072e195c"/>
+        <topic label="des3_crypt_cbc" href="group__des.html#ga02934e46d5c559e81151f6fb996dd1f7"/>
+        <topic label="des3_crypt_ecb" href="group__des.html#gaeb90ce5f4ba334de266464b3acd541b4"/>
+        <topic label="des3_set2key_dec" href="group__des.html#ga29a04fcca2236e62a119381645b65782"/>
+        <topic label="des3_set2key_enc" href="group__des.html#ga8cf7aa7333feb45e083f3f4ffe32ab74"/>
+        <topic label="des3_set3key_dec" href="group__des.html#gada6d7a926e262017c012a5e160b6f26e"/>
+        <topic label="des3_set3key_enc" href="group__des.html#ga6aba8975626002db39adaa92a1d1ed90"/>
+        <topic label="des_crypt_cbc" href="group__des.html#ga9a8d02b113764c584b620af03975ee7b"/>
+        <topic label="des_crypt_ecb" href="group__des.html#gabb21c4e55b6253d292869c4278974bd9"/>
+        <topic label="des_setkey_dec" href="group__des.html#ga7dffe952ce9419e747d0a4633946eabd"/>
+        <topic label="des_setkey_enc" href="group__des.html#gaee64993375c58c97b3fc965f76645232"/>
       </topic>
       <topic label="SHA1" href="group__sha1.html">
-        <topic label="sha1" href="group__sha1.html#gaa6fcd8a2e04c77a5c22559b22b0f8f64"/>
-        <topic label="sha1_file" href="group__sha1.html#gae9a2a277f2db4dcdbe8fa5a9c97d14ce"/>
+        <topic label="sha1" href="group__sha1.html#ga53d1319a9d2be682cf319b4efb2f5b49"/>
         <topic label="sha1_finish" href="group__sha1.html#ga83ee41b9375fb1cfaa52a98b86b92c58"/>
-        <topic label="sha1_hmac" href="group__sha1.html#ga022fd616b59896e8a1eec880d04bf67f"/>
+        <topic label="sha1_hmac" href="group__sha1.html#gaeb721dfb4a025a5f4fb24b32563b619e"/>
         <topic label="sha1_hmac_finish" href="group__sha1.html#ga38679c6fef6af534896808974a98c884"/>
-        <topic label="sha1_hmac_starts" href="group__sha1.html#gaf72aa892b562a65316f34ae02e8f8b7c"/>
-        <topic label="sha1_hmac_update" href="group__sha1.html#ga0f9332bae9f7c3b9b3831ade00c54136"/>
+        <topic label="sha1_hmac_starts" href="group__sha1.html#ga8c5c513695c0a429c8241843905b5344"/>
+        <topic label="sha1_hmac_update" href="group__sha1.html#ga9edddbd1b28d97e5e09664b6e51f3bf2"/>
         <topic label="sha1_starts" href="group__sha1.html#ga1055bb44108c1e8d9692f3e3b8acd568"/>
-        <topic label="sha1_update" href="group__sha1.html#gab9e70c341eb101fea46bb780992d2d5d"/>
+        <topic label="sha1_update" href="group__sha1.html#ga8bc9828a88e67af680e53dd261d3f956"/>
       </topic>
-      <topic label="SHA256" href="group__sha256.html">
-        <topic label="sha2" href="group__sha256.html#ga3e7c9a1ec705843474d14f074ecb1f9c"/>
-        <topic label="sha2_file" href="group__sha256.html#ga63a542f9194127e8fb2299b0871a4915"/>
+      <topic label="SHA224 / SHA256" href="group__sha256.html">
+        <topic label="sha2" href="group__sha256.html#ga512a0d281bb959197abf434e8210bfc0"/>
         <topic label="sha2_finish" href="group__sha256.html#ga2762ab9bf6601a7ab2f2bee3eb72b22a"/>
-        <topic label="sha2_hmac" href="group__sha256.html#ga939c822f28355991165467e6d7971fc1"/>
+        <topic label="sha2_hmac" href="group__sha256.html#gafaa89ae2cef8a87b84f7c9d58d99711c"/>
         <topic label="sha2_hmac_finish" href="group__sha256.html#gafad853fc439a23fe3595d3486649d3cf"/>
-        <topic label="sha2_hmac_starts" href="group__sha256.html#gae792371be270c91c84b9434c4143e221"/>
-        <topic label="sha2_hmac_update" href="group__sha256.html#gac7d283603c73da6e73e24f6ee798c67c"/>
+        <topic label="sha2_hmac_starts" href="group__sha256.html#ga7d8395396340769dc9bb428972b30da0"/>
+        <topic label="sha2_hmac_update" href="group__sha256.html#gace3befd10e03dfd1737f6d5bb330e706"/>
         <topic label="sha2_starts" href="group__sha256.html#ga7f11153888fb24425b72f221ad4d971a"/>
-        <topic label="sha2_update" href="group__sha256.html#ga69687959f83a182b5ffbe4f167d8c933"/>
+        <topic label="sha2_update" href="group__sha256.html#ga596db520f82f7f0876a9dbd6ce91005a"/>
       </topic>
-      <topic label="MD5" href="group__md5.html">
-        <topic label="md5" href="group__md5.html#ga867b311a6210ab84406080c68342caa7"/>
-        <topic label="md5_file" href="group__md5.html#ga119bf25b936c0fc34c29733f53462f7d"/>
+      <topic label="SHA384 / SHA512" href="group__sha512.html">
+        <topic label="sha4" href="group__sha512.html#gae088715ecd0c108a940a383f4ded9df3"/>
+        <topic label="sha4_finish" href="group__sha512.html#gab94699019fc93637e91cf88403f80360"/>
+        <topic label="sha4_hmac" href="group__sha512.html#ga2dcee9ca44dc6a764e14f1db114aaae8"/>
+        <topic label="sha4_hmac_finish" href="group__sha512.html#ga77d7aa2fdbde82954ad31ba2d912e368"/>
+        <topic label="sha4_hmac_starts" href="group__sha512.html#ga25f24beba6d42f07cee79eb5783eafba"/>
+        <topic label="sha4_hmac_update" href="group__sha512.html#ga71a54c32b3ecdca9e4d8dd2584998a0b"/>
+        <topic label="sha4_starts" href="group__sha512.html#ga3c22a90c634a6027c723e7805a670cef"/>
+        <topic label="sha4_update" href="group__sha512.html#ga172c45abc76b3a4a16978060dfff5b1d"/>
+      </topic>
+      <topic label="Poly1305" href="group__md5.html">
+        <topic label="md5" href="group__md5.html#gabd54148cb2a6530d72adf33a05daf45a"/>
         <topic label="md5_finish" href="group__md5.html#ga9f91661d81cffc55facccc8e0fbf50a0"/>
-        <topic label="md5_hmac" href="group__md5.html#gaf6a943835f3c4dbf993190cc1d673c14"/>
+        <topic label="md5_hmac" href="group__md5.html#gad3f4c47545d8cc205d4bc3a966486707"/>
         <topic label="md5_hmac_finish" href="group__md5.html#ga0d6858d863b6e4409000b08bceafbd98"/>
-        <topic label="md5_hmac_starts" href="group__md5.html#ga6ea0fa1e35463f2891b8bcbe034df361"/>
-        <topic label="md5_hmac_update" href="group__md5.html#gaa9498653d161d04ed64de9e70cd5875e"/>
+        <topic label="md5_hmac_starts" href="group__md5.html#ga8daaf0556288630055a66ee07a37b3da"/>
+        <topic label="md5_hmac_update" href="group__md5.html#ga8dcc7990090403a195ce8fff836fe920"/>
         <topic label="md5_starts" href="group__md5.html#gac6e9fda1d8fda7d51fd1c0c036f87cfe"/>
-        <topic label="md5_update" href="group__md5.html#ga95bdd25cfc0627809aca6f492840e9aa"/>
+        <topic label="md5_update" href="group__md5.html#gaba2f69cf403347df173738555dd47b2e"/>
+        <topic label="poly1305_auth" href="group__md5.html#gadb175a5eb51aa977a29b2a785a94133b"/>
+        <topic label="poly1305_finish" href="group__md5.html#gacab4e95c76ace4fcbb069768b55ebd75"/>
+        <topic label="poly1305_init" href="group__md5.html#ga6ca964edd174ee2aa325da83ad77de31"/>
+        <topic label="poly1305_update" href="group__md5.html#ga5c8f63b69d2a631c172fef4dbb4222cd"/>
+        <topic label="poly1305_verify" href="group__md5.html#ga38347d3af3913463cfe5403488f6b654"/>
+      </topic>
+      <topic label="ChaCha" href="group__chacha.html">
+        <topic label="chacha20_block_function" href="group__chacha.html#gab65837a622aa9577f75b92a32d8a69ff"/>
+        <topic label="chacha20_block_ivsetup" href="group__chacha.html#gacc1bc28632765576792c2702d1a0cf2b"/>
+        <topic label="chacha20_poly1305_aead_irtf_cfrg" href="group__chacha.html#gae1f6f8bd756540a20335943366297e13"/>
+        <topic label="chacha20_poly1305_aead_tls_encrypt" href="group__chacha.html#ga73899974775ccfdb991e34037ebfb128"/>
+        <topic label="chacha20_tls_ivsetup" href="group__chacha.html#ga6b09c2446c07d512e9223015225009e3"/>
+        <topic label="chacha_decrypt_bytes" href="group__chacha.html#gae2ceb5704ed157c4d1a9a644c7d4ed5f"/>
+        <topic label="chacha_encrypt_bytes" href="group__chacha.html#gaffb0154164c47042b10862f0ade0e8bd"/>
+        <topic label="chacha_ivsetup" href="group__chacha.html#gaf1c956a011ee43b6a5ab27ef4f3105d8"/>
+        <topic label="chacha_keysetup" href="group__chacha.html#gac0f29c9047262b232a78c3d3b0805f5a"/>
+        <topic label="chacha_keystream_bytes" href="group__chacha.html#ga4e894fd52f93b1cabfd63045edef5b40"/>
+      </topic>
+      <topic label="Curve25519" href="group__curve25519.html">
+        <topic label="curve25519" href="group__curve25519.html#ga0854945002ad786a5fac1de6a815ca32"/>
+      </topic>
+      <topic label="Ed25519" href="group__ed25519.html">
+        <topic label="ed25519_publickey" href="group__ed25519.html#ga8c3d21080d78c79c43ad547b8675ee85"/>
+        <topic label="ed25519_sign" href="group__ed25519.html#ga8bd81c03a1802a5815ef3619010f8b2d"/>
+        <topic label="ed25519_sign_open" href="group__ed25519.html#ga820cb791f7dc64a91d7b6f2cb8f21b3f"/>
       </topic>
       <topic label="ARC4" href="group__arc4.html">
         <topic label="arc4_crypt" href="group__arc4.html#ga327d970599a3d2f21b4fd7d3b7fac8b6"/>
-        <topic label="arc4_setup" href="group__arc4.html#ga045e1a327296adbd8fdae41de48804c8"/>
+        <topic label="arc4_setup" href="group__arc4.html#gab8e8617b289d74c9b48da17dcc421d47"/>
       </topic>
       <topic label="RSA" href="group__rsa.html">
         <topic label="rsa_check_privkey" href="group__rsa.html#ga4b55fc908c514de84df8ad55d547dadb"/>
@@ -208,12 +250,24 @@
         <topic label="rsa_free" href="group__rsa.html#gabb5d26b09e183c8a885eaee270c38fc7"/>
         <topic label="rsa_gen_key" href="group__rsa.html#ga348b12b1c907541ab170a149f56e52a4"/>
         <topic label="rsa_init" href="group__rsa.html#ga0be690d6dc93b240dcf85b55c7bda571"/>
-        <topic label="rsa_pkcs1_decrypt" href="group__rsa.html#ga52edf417adca2632d0cd52726a9490e0"/>
-        <topic label="rsa_pkcs1_encrypt" href="group__rsa.html#ga83660114e357a3ecb8b0759f9da882e5"/>
-        <topic label="rsa_pkcs1_sign" href="group__rsa.html#ga8d2ad430d921610985314fb75fff7e9a"/>
-        <topic label="rsa_pkcs1_verify" href="group__rsa.html#ga305e8d1f7a13cde232c7330009182a79"/>
-        <topic label="rsa_private" href="group__rsa.html#ga91e903d2b7d1fdb8a9eb76a487c15005"/>
-        <topic label="rsa_public" href="group__rsa.html#gab3e07cec489e90688307f058d15441d3"/>
+        <topic label="rsa_pkcs1_decrypt" href="group__rsa.html#ga351768edafba33a5a1cdb3e419b39f2d"/>
+        <topic label="rsa_pkcs1_encrypt" href="group__rsa.html#ga26e98584635674d29f3d71c2f96d45a5"/>
+        <topic label="rsa_pkcs1_sign" href="group__rsa.html#ga6a50c341bbec36bdbf57a9d57ccd9f56"/>
+        <topic label="rsa_pkcs1_verify" href="group__rsa.html#gae357e4a1028ff5fe1fac2236cf39d105"/>
+        <topic label="rsa_private" href="group__rsa.html#ga42f9ac8ede1571dd76aa3b4159b51ad5"/>
+        <topic label="rsa_public" href="group__rsa.html#gad0ca8a6ae5505a97c09355ca33554dd0"/>
+      </topic>
+      <topic label="Camellia" href="group___camellia.html">
+        <topic label="camellia_crypt_cbc" href="group___camellia.html#ga313f6d7ddeadeb5766d61096f53fd799"/>
+        <topic label="camellia_crypt_cfb128" href="group___camellia.html#gad7fe86e6c243fc22fc73044c58abb404"/>
+        <topic label="camellia_crypt_ecb" href="group___camellia.html#ga26593bb4eea4ba22303a16f6f42e7a2f"/>
+        <topic label="camellia_setkey_dec" href="group___camellia.html#gac77a1628bc5c607edac9b25d3bab0633"/>
+        <topic label="camellia_setkey_enc" href="group___camellia.html#ga192688db34ab7bd994e24b8f28df0d48"/>
+      </topic>
+      <topic label="SEED" href="group___s_e_e_d.html">
+        <topic label="seed_cbc_decrypt" href="group___s_e_e_d.html#ga93fe6e54733a54ed2e9cfa747c9c909a"/>
+        <topic label="seed_cbc_encrypt" href="group___s_e_e_d.html#gadeb0bb1450549fe9e6b2d627f6a37672"/>
+        <topic label="seed_set_key" href="group___s_e_e_d.html#ga15b8e3246e19373fc9095cd29afcf249"/>
       </topic>
     </topic>
     <topic label="IP Communication" href="group__ipcoms.html">
@@ -241,6 +295,51 @@
           <topic label="wiced_tcp_stream_write" href="group__tcpstream.html#gafbeb9596e08351b93a806a7666ac7920"/>
           <topic label="wiced_tcp_stream_write_resource" href="group__tcpstream.html#ga9976a9f3b92b36b76f86e1bd2611c8e7"/>
         </topic>
+        <topic label="TCP server comms" href="group__tcpserver.html">
+          <topic label="wiced_tcp_server_accept" href="group__tcpserver.html#ga5bf07938926f80ddbb81651d0a022cc8"/>
+          <topic label="wiced_tcp_server_add_tls" href="group__tcpserver.html#ga0b12c0e98de1335a3a7e57843a822538"/>
+          <topic label="wiced_tcp_server_disconnect_socket" href="group__tcpserver.html#ga56ed625caf314c000bc5ad327fc906e4"/>
+          <topic label="wiced_tcp_server_start" href="group__tcpserver.html#gaa8861ce7c813a2f3b0b512ee152007c9"/>
+          <topic label="wiced_tcp_server_stop" href="group__tcpserver.html#gaf7c249ae3118f43841cd3858142212f1"/>
+        </topic>
+        <topic label="UDP" href="group__udp.html">
+          <topic label="wiced_udp_create_socket" href="group__udp.html#ga91f141d16dd4371c738ec6d4e056b90e"/>
+          <topic label="wiced_udp_delete_socket" href="group__udp.html#gac8925684b2552bab1094b8a4e2fb9529"/>
+          <topic label="wiced_udp_packet_get_info" href="group__udp.html#ga6995d9295319bd3d437c94ab542bb3db"/>
+          <topic label="wiced_udp_receive" href="group__udp.html#gac29e6ccc1296ead553d2b86f1cb10991"/>
+          <topic label="wiced_udp_register_callbacks" href="group__udp.html#gaa6c42cd0081710602aecfcbc6aadba57"/>
+          <topic label="wiced_udp_reply" href="group__udp.html#ga59bb6811d33e724c3803720907eb61eb"/>
+          <topic label="wiced_udp_send" href="group__udp.html#gaee1f49b3a33811a21c74a2b2897ef2aa"/>
+          <topic label="wiced_udp_unregister_callbacks" href="group__udp.html#gafa88e1a07129c9a687bfb33c5f042de0"/>
+        </topic>
+        <topic label="ICMP ping" href="group__icmp.html">
+          <topic label="wiced_ping" href="group__icmp.html#gaac1e5d1d0c6b64efedafbddd032693d3"/>
+        </topic>
+        <topic label="DNS lookup" href="group__dns.html">
+          <topic label="wiced_hostname_lookup" href="group__dns.html#ga4b259b36f1960e6f6821a72e6ca34e8b"/>
+        </topic>
+        <topic label="IGMP multicast" href="group__igmp.html">
+          <topic label="wiced_multicast_join" href="group__igmp.html#ga1b48c587304201165b0a12204f3ce733"/>
+          <topic label="wiced_multicast_leave" href="group__igmp.html#gadf6b2e1e7f68da5a29cbe7628e995141"/>
+        </topic>
+        <topic label="Packet management" href="group__pktmgmt.html">
+          <topic label="wiced_packet_create" href="group__pktmgmt.html#gac0d6189d631dacbf84e81f5087e58a83"/>
+          <topic label="wiced_packet_create_tcp" href="group__pktmgmt.html#gac9246577619e490acc21e31d4fae00db"/>
+          <topic label="wiced_packet_create_udp" href="group__pktmgmt.html#ga29aab3857f1332ba62442028f17853f5"/>
+          <topic label="wiced_packet_delete" href="group__pktmgmt.html#ga222f3c583dd6df5cc017d27c6de2b2df"/>
+          <topic label="wiced_packet_get_data" href="group__pktmgmt.html#gad10f67f5acdd3dadfbc7bdffdf1eecb7"/>
+          <topic label="wiced_packet_get_next_fragment" href="group__pktmgmt.html#ga778a1c9f2c0715fb6ac4486ecead404b"/>
+          <topic label="wiced_packet_set_data_end" href="group__pktmgmt.html#gae38feb55ef8dc5fd171ae7ae3d87a549"/>
+          <topic label="wiced_packet_set_data_start" href="group__pktmgmt.html#gaf11d7ed01c8e2f6da748eddf7bd3c267"/>
+        </topic>
+        <topic label="Raw IP" href="group__rawip.html">
+          <topic label="wiced_ip_deregister_address_change_callback" href="group__rawip.html#ga5bd7e82bc238a3a9048d7b5314015c55"/>
+          <topic label="wiced_ip_get_gateway_address" href="group__rawip.html#gae40843c1dbb897d35facbb26b862abbe"/>
+          <topic label="wiced_ip_get_ipv4_address" href="group__rawip.html#gaa366a2944c92c44bbec110415619ab66"/>
+          <topic label="wiced_ip_get_ipv6_address" href="group__rawip.html#gafa8986c1596f2b9842d606afa2af3c6d"/>
+          <topic label="wiced_ip_get_netmask" href="group__rawip.html#ga58707d9da9e84d14ae405c52288bb934"/>
+          <topic label="wiced_ip_register_address_change_callback" href="group__rawip.html#gabb2bcdbf780f039b0207429c1afb808f"/>
+        </topic>
         <topic label="wiced_tcp_accept" href="group__tcp.html#gaf0328a5cb53fde8d32ec0341271b3ef6"/>
         <topic label="wiced_tcp_bind" href="group__tcp.html#gaca7d00f4aad7cf2c47cf32996803def1"/>
         <topic label="wiced_tcp_connect" href="group__tcp.html#ga51aa9df02b62a94edad1643e635e42a3"/>
@@ -252,6 +351,8 @@
         <topic label="wiced_tcp_register_callbacks" href="group__tcp.html#gad59ccebd26e3ff2e7deb656a1710a821"/>
         <topic label="wiced_tcp_server_peer" href="group__tcp.html#ga77cc2a7ed9597cba008cdf178b9703df"/>
         <topic label="wiced_tcp_start_tls" href="group__tcp.html#gae25065d3b56d32fef81c175babc2274a"/>
+        <topic label="wiced_tcp_start_tls_with_ciphers" href="group__tcp.html#ga3700fd5881cf08ac8f750bc349862864"/>
+        <topic label="wiced_tcp_unregister_callbacks" href="group__tcp.html#ga08122f98b9c9d2d9ccb0e41d6f067e05"/>
       </topic>
       <topic label="UDP" href="group__udp.html">
         <topic label="wiced_udp_create_socket" href="group__udp.html#ga91f141d16dd4371c738ec6d4e056b90e"/>
@@ -261,6 +362,7 @@
         <topic label="wiced_udp_register_callbacks" href="group__udp.html#gaa6c42cd0081710602aecfcbc6aadba57"/>
         <topic label="wiced_udp_reply" href="group__udp.html#ga59bb6811d33e724c3803720907eb61eb"/>
         <topic label="wiced_udp_send" href="group__udp.html#gaee1f49b3a33811a21c74a2b2897ef2aa"/>
+        <topic label="wiced_udp_unregister_callbacks" href="group__udp.html#gafa88e1a07129c9a687bfb33c5f042de0"/>
       </topic>
       <topic label="ICMP ping" href="group__icmp.html">
         <topic label="wiced_ping" href="group__icmp.html#gaac1e5d1d0c6b64efedafbddd032693d3"/>
@@ -445,8 +547,10 @@
       <topic label="b" href="globals_0x62.html"/>
       <topic label="c" href="globals_0x63.html"/>
       <topic label="d" href="globals_0x64.html"/>
+      <topic label="e" href="globals_0x65.html"/>
       <topic label="f" href="globals_0x66.html"/>
       <topic label="m" href="globals_0x6d.html"/>
+      <topic label="p" href="globals_0x70.html"/>
       <topic label="r" href="globals_0x72.html"/>
       <topic label="s" href="globals_0x73.html"/>
       <topic label="t" href="globals_0x74.html"/>
@@ -456,8 +560,11 @@
     </topic>
     <topic label="Functions" href="globals_func.html">
       <topic label="a" href="globals_func.html"/>
+      <topic label="c" href="globals_func_0x63.html"/>
       <topic label="d" href="globals_func_0x64.html"/>
+      <topic label="e" href="globals_func_0x65.html"/>
       <topic label="m" href="globals_func_0x6d.html"/>
+      <topic label="p" href="globals_func_0x70.html"/>
       <topic label="r" href="globals_func_0x72.html"/>
       <topic label="s" href="globals_func_0x73.html"/>
       <topic label="w" href="globals_func_0x77.html"/>

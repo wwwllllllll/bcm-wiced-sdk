@@ -21,14 +21,16 @@
 #include "wicedfs.h"
 
 /******************************************************
- *            Compatibility Macros
+ *                      Macros
  ******************************************************/
 #ifndef _WIN32
+/*define_style_exception_start*/
 #define off64_t __off64_t
 #define _stati64 stat64
 #define compat_mkdir( name )  mkdir( (name), S_IRWXU )
 #else
 #define compat_mkdir( name )  mkdir( (name) )
+/*define_style_exception_end*/
 #endif /* ifndef _WIN32 */
 
 
@@ -41,12 +43,27 @@
 #define ROOT_DIRECTORY          "/"
 
 /******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
  *               Static Function Declarations
  ******************************************************/
 
 static wicedfs_usize_t hostfile_wicedfs_read( void* user_param, void* buf, wicedfs_usize_t size, wicedfs_usize_t pos );
 static int extract_directory( const char* dir_name, const char* root_output_directory_name, const wiced_filesystem_t* fs_handle );
 
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 
 /******************************************************
  *               Function Definitions

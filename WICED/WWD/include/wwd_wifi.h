@@ -93,6 +93,7 @@ extern "C"
  *             Structures
  ******************************************************/
 
+typedef void (*wwd_wifi_raw_packet_processor_t)( wiced_buffer_t buffer, wwd_interface_t interface );
 
 /******************************************************
  *             Function declarations
@@ -105,7 +106,7 @@ extern "C"
  * @param result_ptr  : A pointer to the pointer that indicates where to put the next scan result
  * @param user_data   : User provided data
  */
-typedef void (*wiced_scan_result_callback_t)( wiced_scan_result_t** result_ptr, void* user_data );
+typedef void (*wiced_scan_result_callback_t)( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status );
 
 /** Initiates a scan to search for 802.11 networks.
  *
@@ -144,8 +145,15 @@ extern wwd_result_t wwd_wifi_scan( wiced_scan_type_t                            
                                    /*@null@*/ const wiced_scan_extended_params_t* optional_extended_params,
                                    wiced_scan_result_callback_t                   callback,
                                    wiced_scan_result_t**                          result_ptr,
-                                   /*@null@*/ void*                               user_data );
+                                   /*@null@*/ void*                               user_data,
+                                   wwd_interface_t                                interface );
 
+
+/** Abort a previously issued scan
+ *
+ * @return    WICED_SUCCESS or WICED_ERROR
+ */
+extern wwd_result_t wwd_wifi_abort_scan( void );
 
 /** Joins a Wi-Fi network
  *
@@ -170,7 +178,7 @@ extern wwd_result_t wwd_wifi_scan( wiced_scan_type_t                            
  * @return    WWD_SUCCESS : when the system is joined and ready to send data packets
  *            Error code   : if an error occurred
  */
-extern wwd_result_t wwd_wifi_join( const char* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, host_semaphore_type_t* semaphore );
+extern wwd_result_t wwd_wifi_join( const wiced_ssid_t* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, host_semaphore_type_t* semaphore );
 
 
 /** Joins a specific Wi-Fi network
@@ -188,14 +196,14 @@ extern wwd_result_t wwd_wifi_join( const char* ssid, wiced_security_t auth_type,
  * @return    WWD_SUCCESS : when the system is joined and ready to send data packets
  *            Error code   : if an error occurred
  */
-extern wwd_result_t wwd_wifi_join_specific( const wiced_scan_result_t* ap, const uint8_t* security_key, uint8_t key_length, host_semaphore_type_t* semaphore );
+extern wwd_result_t wwd_wifi_join_specific( const wiced_scan_result_t* ap, const uint8_t* security_key, uint8_t key_length, host_semaphore_type_t* semaphore, wwd_interface_t interface );
 
 /** Disassociates from a Wi-Fi network.
  *
  * @return    WWD_SUCCESS : On successful disassociation from the AP
  *            Error code   : If an error occurred
  */
-extern wwd_result_t wwd_wifi_leave( void );
+extern wwd_result_t wwd_wifi_leave( wwd_interface_t interface );
 
 /** Deauthenticates a STA which may or may not be associated to SoftAP.
  *
@@ -213,7 +221,7 @@ extern wwd_result_t wwd_wifi_deauth_sta( const wiced_mac_t* mac, wwd_dot11_reaso
  * @param mac Pointer to a variable that the current MAC address will be written to
  * @return    WWD_SUCCESS or Error code
  */
-extern wwd_result_t wwd_wifi_get_mac_address( wiced_mac_t* mac );
+extern wwd_result_t wwd_wifi_get_mac_address( wiced_mac_t* mac, wwd_interface_t interface );
 
 /** ----------------------------------------------------------------------
  *  WARNING : This function is for internal use only!
@@ -254,7 +262,7 @@ extern wwd_result_t wwd_wifi_set_mac_address( wiced_mac_t mac );
  * @return    WWD_SUCCESS : if successfully creates an AP
  *            Error code   : if an error occurred
  */
-extern wwd_result_t wwd_wifi_start_ap( const char* ssid, wiced_security_t auth_type, /*@unique@*/ const uint8_t* security_key, uint8_t key_length, uint8_t channel );
+extern wwd_result_t wwd_wifi_start_ap( wiced_ssid_t* ssid, wiced_security_t auth_type, /*@unique@*/ const uint8_t* security_key, uint8_t key_length, uint8_t channel );
 
 /** Stops an existing infrastructure WiFi network
  *
@@ -300,8 +308,7 @@ extern wwd_result_t wwd_wifi_enable_powersave( void );
  *
  * @param[in] return_to_sleep_delay : The variable to set return to sleep delay.*
  *
- * return to sleep delay must be set to a multiple of 10. When it is zero, the return to sleep
- * delay will be equal to 2 beacon intervals( approx 204ms ).
+ * return to sleep delay must be set to a multiple of 10 and not equal to zero.
  */
 extern wwd_result_t wwd_wifi_enable_powersave_with_throughput( uint8_t return_to_sleep_delay );
 
@@ -552,8 +559,6 @@ extern wwd_result_t wwd_wifi_get_channel( wwd_interface_t interface, uint32_t* c
  */
 extern wwd_result_t wwd_wifi_set_channel( wwd_interface_t interface, uint32_t channel );
 
-
-
 /** Get the counters for the provided interface
  *
  * @param interface  : The interface from which the counters are requested
@@ -564,6 +569,27 @@ extern wwd_result_t wwd_wifi_set_channel( wwd_interface_t interface, uint32_t ch
  */
 extern wwd_result_t wwd_wifi_get_counters( wwd_interface_t interface, wiced_counters_t* counters );
 
+/** Set the AMPDU parameters for both Soft AP and STA
+ *
+ * Sets various AMPDU parameters for Soft AP and STA to ensure that the number of buffers dedicated to AMPDUs does
+ * not exceed the resources of the chip. Both Soft AP and STA interfaces must be down.
+ *
+ * @return  WICED_SUCCESS : if the AMPDU parameters were successfully set
+ *          WICED_ERROR   : if the AMPDU parameters were not successfully set
+ */
+extern wwd_result_t wwd_wifi_set_ampdu_parameters( void );
+
+/** Set the AMPDU Block Ack window size for both Soft AP and STA
+ *
+ * Sets the AMPDU Block Ack window size for Soft AP and STA. Soft AP and STA interfaces may be up.
+ *
+ * @param interface  : STA or Soft AP interface.
+ *
+ * @return  WICED_SUCCESS : if the Block Ack window size was successfully set
+ *          WICED_ERROR   : if the Block Ack window size was not successfully set
+ */
+extern wwd_result_t wwd_wifi_set_block_ack_window_size( wwd_interface_t interface );
+
 /*@+exportlocal@*/
 /** @} */
 
@@ -572,39 +598,38 @@ extern wwd_result_t wwd_wifi_get_associated_client_list( void* client_list_buffe
 extern wwd_result_t wwd_wifi_get_ap_info( wiced_bss_info_t* ap_info, wiced_security_t* security );
 
 /* Monitor Mode API */
-extern wwd_result_t wwd_wifi_enable_monitor_mode( void );
-extern wwd_result_t wwd_wifi_disable_monitor_mode( void );
-extern wiced_bool_t   wwd_wifi_monitor_mode_is_enabled( void );
-typedef void (*wwd_wifi_raw_packet_processor_t)( wiced_buffer_t buffer, wwd_interface_t interface );
-extern wwd_result_t wwd_wifi_set_raw_packet_processor( wwd_wifi_raw_packet_processor_t func );
+extern wwd_result_t wwd_wifi_enable_monitor_mode     ( void );
+extern wwd_result_t wwd_wifi_disable_monitor_mode    ( void );
+extern wiced_bool_t wwd_wifi_monitor_mode_is_enabled ( void );
+extern wwd_result_t wwd_wifi_set_raw_packet_processor( wwd_wifi_raw_packet_processor_t function );
 
 /* Duty cycle control API */
-extern wwd_result_t wwd_wifi_set_ofdm_dutycycle( uint8_t duty_cycle_val );
-extern wwd_result_t wwd_wifi_set_cck_dutycycle( uint8_t duty_cycle_val );
+extern wwd_result_t wwd_wifi_set_ofdm_dutycycle( uint8_t  duty_cycle_val );
+extern wwd_result_t wwd_wifi_set_cck_dutycycle ( uint8_t  duty_cycle_val );
 extern wwd_result_t wwd_wifi_get_ofdm_dutycycle( uint8_t* duty_cycle_val );
-extern wwd_result_t wwd_wifi_get_cck_dutycycle( uint8_t* duty_cycle_val );
+extern wwd_result_t wwd_wifi_get_cck_dutycycle ( uint8_t* duty_cycle_val );
 
 /* PMK retrieval API */
 extern wwd_result_t wwd_wifi_get_pmk( const char* psk, uint8_t psk_length, char* pmk );
 
 /* Packet filter API */
-extern wwd_result_t wwd_wifi_add_packet_filter( const wiced_packet_filter_t* filter_settings );
-extern wwd_result_t wwd_wifi_set_packet_filter_mode( wiced_packet_filter_mode_t mode );
-extern wwd_result_t wwd_wifi_remove_packet_filter( uint8_t filter_id );
-extern wwd_result_t wwd_wifi_enable_packet_filter( uint8_t filter_id );
-extern wwd_result_t wwd_wifi_disable_packet_filter( uint8_t filter_id );
-extern wwd_result_t wwd_wifi_get_packet_filter_stats( uint8_t filter_id, wiced_packet_filter_stats_t* stats );
-extern wwd_result_t wwd_wifi_clear_packet_filter_stats( uint32_t filter_id );
-extern wwd_result_t wwd_wifi_get_packet_filters( uint32_t max_count, uint32_t offset, wiced_packet_filter_t* list,  uint32_t* count_out );
+extern wwd_result_t wwd_wifi_add_packet_filter                 ( const wiced_packet_filter_t* filter_settings );
+extern wwd_result_t wwd_wifi_set_packet_filter_mode            ( wiced_packet_filter_mode_t mode );
+extern wwd_result_t wwd_wifi_remove_packet_filter              ( uint8_t filter_id );
+extern wwd_result_t wwd_wifi_enable_packet_filter              ( uint8_t filter_id );
+extern wwd_result_t wwd_wifi_disable_packet_filter             ( uint8_t filter_id );
+extern wwd_result_t wwd_wifi_get_packet_filter_stats           ( uint8_t filter_id, wiced_packet_filter_stats_t* stats );
+extern wwd_result_t wwd_wifi_clear_packet_filter_stats         ( uint32_t filter_id );
+extern wwd_result_t wwd_wifi_get_packet_filters                ( uint32_t max_count, uint32_t offset, wiced_packet_filter_t* list,  uint32_t* count_out );
 extern wwd_result_t wwd_wifi_get_packet_filter_mask_and_pattern( uint32_t filter_id, uint32_t max_size, uint8_t* mask, uint8_t* pattern, uint32_t* size_out );
 
 
 /* These functions are not exposed to the external WICED API */
-extern wwd_result_t wwd_wifi_toggle_packet_filter   ( uint8_t filter_id, wiced_bool_t enable );
+extern wwd_result_t wwd_wifi_toggle_packet_filter( uint8_t filter_id, wiced_bool_t enable );
 
 /* Network Keep Alive API */
-extern wwd_result_t wwd_wifi_add_keep_alive( const wiced_keep_alive_packet_t* keep_alive_packet_info );
-extern wwd_result_t wwd_wifi_get_keep_alive( wiced_keep_alive_packet_t* keep_alive_packet_info );
+extern wwd_result_t wwd_wifi_add_keep_alive    ( const wiced_keep_alive_packet_t* keep_alive_packet_info );
+extern wwd_result_t wwd_wifi_get_keep_alive    ( wiced_keep_alive_packet_t* keep_alive_packet_info );
 extern wwd_result_t wwd_wifi_disable_keep_alive( uint8_t id );
 /** @endcond */
 
@@ -616,7 +641,7 @@ extern wwd_result_t wwd_wifi_disable_keep_alive( uint8_t id );
  */
 extern wwd_result_t wwd_wifi_get_wifi_version( char* version, uint8_t length );
 
-
+extern wwd_result_t wwd_wifi_enable_minimum_power_consumption( void );
 
 extern wwd_result_t wwd_wifi_test_credentials( wiced_scan_result_t* ap, const uint8_t* security_key, uint8_t key_length );
 

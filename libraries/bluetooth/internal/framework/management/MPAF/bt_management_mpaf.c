@@ -42,14 +42,14 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void mpaf_system_event_handler( mpaf_event_opcode_t event, bt_packet_t* packet, mpaf_event_params_t* params );
 static void mpaf_sdp_event_handler   ( mpaf_event_opcode_t event, bt_packet_t* packet, mpaf_event_params_t* params );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_queue_t mpaf_event_mailbox;

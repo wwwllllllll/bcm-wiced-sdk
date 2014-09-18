@@ -30,7 +30,8 @@ typedef enum wl_tx_bw {
 	WL_TX_BW_80,
 	WL_TX_BW_20IN40,
 	WL_TX_BW_20IN80,
-	WL_TX_BW_40IN80
+	WL_TX_BW_40IN80,
+	WL_TX_BW_ALL
 } wl_tx_bw_t;
 
 

@@ -41,7 +41,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 void SPI_Init(LPC_SPI_T *pSPI, platform_spi_peripheral_config_t* spi_config);

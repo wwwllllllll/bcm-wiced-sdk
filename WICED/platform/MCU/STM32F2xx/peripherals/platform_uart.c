@@ -42,7 +42,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static platform_result_t receive_bytes       ( platform_uart_driver_t* driver, void* data, uint32_t size, uint32_t timeout );
@@ -50,7 +50,7 @@ static uint32_t          get_dma_irq_status  ( DMA_Stream_TypeDef* stream );
 static void              clear_dma_interrupts( DMA_Stream_TypeDef* stream, uint32_t flags );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* UART alternate functions */
@@ -255,9 +255,6 @@ platform_result_t platform_uart_init( platform_uart_driver_t* driver, const plat
     clear_dma_interrupts( peripheral->tx_dma_config.stream, peripheral->tx_dma_config.complete_flags | peripheral->tx_dma_config.error_flags );
     DMA_ITConfig( peripheral->tx_dma_config.stream, DMA_INTERRUPT_FLAGS, ENABLE );
 
-    /* Enable USART's TX and RX DMA peripherals */
-    USART_DMACmd( peripheral->port, USART_DMAReq_Rx | USART_DMAReq_Tx, ENABLE );
-
     /* Enable USART interrupt vector in Cortex-M3 */
     NVIC_EnableIRQ( uart_irq_vectors[uart_number] );
 
@@ -348,37 +345,31 @@ platform_result_t platform_uart_deinit( platform_uart_driver_t* driver )
 
 platform_result_t platform_uart_transmit_bytes( platform_uart_driver_t* driver, const uint8_t* data_out, uint32_t size )
 {
-    uint32_t tmpvar; /* needed to ensure ordering of volatile accesses */
-
     wiced_assert( "bad argument", ( driver != NULL ) && ( data_out != NULL ) && ( size != 0 ) );
 
     platform_mcu_powersave_disable();
 
-    /* Atomic operation */
-    WICED_DISABLE_INTERRUPTS();
-    driver->last_transmit_result = PLATFORM_SUCCESS;
-    driver->tx_size              = size;
-    WICED_ENABLE_INTERRUPTS();
+    /* Clear interrupt status before enabling DMA otherwise error occurs immediately */
+    clear_dma_interrupts( driver->peripheral->tx_dma_config.stream, driver->peripheral->tx_dma_config.complete_flags | driver->peripheral->tx_dma_config.error_flags );
 
-    tmpvar = driver->peripheral->tx_dma_config.controller->LISR;
-    driver->peripheral->tx_dma_config.controller->LIFCR |= tmpvar;
-    tmpvar = driver->peripheral->tx_dma_config.controller->HISR;
-    driver->peripheral->tx_dma_config.controller->HIFCR |= tmpvar;
-
+    /* Init DMA parameters and variables */
+    driver->last_transmit_result                    = PLATFORM_SUCCESS;
+    driver->tx_size                                 = size;
     driver->peripheral->tx_dma_config.stream->CR   &= ~(uint32_t) DMA_SxCR_CIRC;
     driver->peripheral->tx_dma_config.stream->NDTR  = size;
     driver->peripheral->tx_dma_config.stream->M0AR  = (uint32_t)data_out;
     driver->peripheral->tx_dma_config.stream->CR   |= DMA_SxCR_EN;
+    USART_DMACmd( driver->peripheral->port, USART_DMAReq_Tx, ENABLE );
 
+    /* Wait for transmission complete */
     host_rtos_get_semaphore( &driver->tx_complete, NEVER_TIMEOUT, WICED_TRUE );
     while ( ( driver->peripheral->port->SR & USART_SR_TC ) == 0 )
     {
     }
 
-    /* Atomic operation */
-    WICED_DISABLE_INTERRUPTS();
-    driver->tx_size = WICED_FALSE;
-    WICED_ENABLE_INTERRUPTS();
+    /* Disable DMA and clean up */
+    USART_DMACmd( driver->peripheral->port, USART_DMAReq_Tx, DISABLE );
+    driver->tx_size = 0;
 
     platform_mcu_powersave_enable();
 
@@ -405,17 +396,13 @@ platform_result_t platform_uart_receive_bytes( platform_uart_driver_t* driver, u
                 wwd_result_t wwd_result;
 
                 /* Set rx_size and wait in rx_complete semaphore until data reaches rx_size or timeout occurs */
-                WICED_DISABLE_INTERRUPTS();
                 driver->last_receive_result = PLATFORM_SUCCESS;
                 driver->rx_size             = transfer_size;
-                WICED_ENABLE_INTERRUPTS();
 
                 wwd_result = host_rtos_get_semaphore( &driver->rx_complete, timeout_ms, WICED_TRUE );
 
                 /* Reset rx_size to prevent semaphore being set while nothing waits for the data */
-                WICED_DISABLE_INTERRUPTS();
                 driver->rx_size = 0;
-                WICED_ENABLE_INTERRUPTS();
 
                 if ( wwd_result == WWD_TIMEOUT )
                 {
@@ -496,7 +483,6 @@ uint8_t platform_uart_get_port_number( USART_TypeDef* uart )
 static platform_result_t receive_bytes( platform_uart_driver_t* driver, void* data, uint32_t size, uint32_t timeout )
 {
     platform_result_t result = PLATFORM_SUCCESS;
-    uint32_t          tmpvar; /* needed to ensure ordering of volatile accesses */
 
     if ( driver->rx_buffer != NULL )
     {
@@ -512,14 +498,12 @@ static platform_result_t receive_bytes( platform_uart_driver_t* driver, void* da
         driver->peripheral->rx_dma_config.stream->CR &= ~(uint32_t) DMA_SxCR_CIRC;
     }
 
-    tmpvar = driver->peripheral->rx_dma_config.controller->LISR;
-    driver->peripheral->rx_dma_config.controller->LIFCR |= tmpvar;
-    tmpvar = driver->peripheral->rx_dma_config.controller->HISR;
-    driver->peripheral->rx_dma_config.controller->HIFCR |= tmpvar;
+    clear_dma_interrupts( driver->peripheral->rx_dma_config.stream, driver->peripheral->rx_dma_config.complete_flags | driver->peripheral->rx_dma_config.error_flags );
 
     driver->peripheral->rx_dma_config.stream->NDTR  = size;
     driver->peripheral->rx_dma_config.stream->M0AR  = (uint32_t)data;
     driver->peripheral->rx_dma_config.stream->CR   |= DMA_SxCR_EN;
+    USART_DMACmd( driver->peripheral->port, USART_DMAReq_Rx, ENABLE );
 
     if ( timeout > 0 )
     {
@@ -602,7 +586,7 @@ void platform_uart_tx_dma_irq( platform_uart_driver_t* driver )
     if ( ( get_dma_irq_status( driver->peripheral->tx_dma_config.stream ) & driver->peripheral->tx_dma_config.error_flags ) != 0 )
     {
         clear_dma_interrupts( driver->peripheral->tx_dma_config.stream, driver->peripheral->tx_dma_config.error_flags );
-        driver->last_transmit_result = PLATFORM_SUCCESS;
+        driver->last_transmit_result = PLATFORM_ERROR;
     }
 
     if ( driver->tx_size > 0 )
@@ -623,7 +607,7 @@ void platform_uart_rx_dma_irq( platform_uart_driver_t* driver )
     if ( ( get_dma_irq_status( driver->peripheral->rx_dma_config.stream ) & driver->peripheral->rx_dma_config.error_flags ) != 0 )
     {
         clear_dma_interrupts( driver->peripheral->rx_dma_config.stream, driver->peripheral->rx_dma_config.error_flags );
-        driver->last_receive_result = PLATFORM_SUCCESS;
+        driver->last_receive_result = PLATFORM_ERROR;
     }
 
     if ( driver->rx_size > 0 )

@@ -141,7 +141,7 @@ typedef struct
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t take_temperature_reading       ( void* arg );
@@ -151,9 +151,9 @@ static void           increase_setpoint              ( void );
 static void           decrease_setpoint              ( void );
 static void           adjust_setpoint_led_brightness ( void );
 static void           setpoint_control_keypad_handler( gpio_key_code_t code, gpio_key_event_t event );
-static int            process_temperature_update     ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_temperature_up         ( const char* url, wiced_tcp_stream_t* stream, void* arg );
-static int            process_temperature_down       ( const char* url, wiced_tcp_stream_t* stream, void* arg );
+static int32_t        process_temperature_update     ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_data );
+static int32_t        process_temperature_up         ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_data );
+static int32_t        process_temperature_down       ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_data );
 
 /******************************************************
  *               Variable Definitions
@@ -171,7 +171,7 @@ static const configuration_entry_t const app_config[] =
     {"Xively feed ID",    DCT_OFFSET(user_dct_data_t, xively_feed_id),    11, CONFIG_STRING_DATA },
     {"Xively API key",    DCT_OFFSET(user_dct_data_t, xively_api_key),    49, CONFIG_STRING_DATA },
     {"Xively Channel ID", DCT_OFFSET(user_dct_data_t, xively_channel_id), 51, CONFIG_STRING_DATA },
-    {"Sample interval",   DCT_OFFSET(user_dct_data_t, sample_interval),   4 , CONFIG_UINT32_DATA },
+    {"Sample interval (ms)",   DCT_OFFSET(user_dct_data_t, sample_interval),   4 , CONFIG_UINT32_DATA },
     {0,0,0,0}
 };
 
@@ -208,6 +208,9 @@ static const gpio_key_t setpoint_control_key_list[] =
 
 void application_start( void )
 {
+    user_dct_data_t* dct;
+    uint32_t sample_interval;
+
     wiced_init( );
 
     /* Configure device */
@@ -239,9 +242,13 @@ void application_start( void )
      */
     sntp_start_auto_time_sync( 1 * DAYS );
 
+    wiced_dct_read_lock( (void**) &dct, WICED_FALSE, DCT_APP_SECTION, 0, sizeof(user_dct_data_t) );
+    sample_interval = dct->sample_interval;
+    wiced_dct_read_unlock( dct, WICED_FALSE );
+
     /* Setup timed events that will take a measurement & activate Xively thread to send measurements to Xively */
     wiced_rtos_register_timed_event( &xively_timed_event,      WICED_NETWORKING_WORKER_THREAD,  send_data_to_xively,     10 * SECONDS, 0 );
-    wiced_rtos_register_timed_event( &temperature_timed_event, WICED_HARDWARE_IO_WORKER_THREAD, take_temperature_reading, 1 * SECONDS, 0 );
+    wiced_rtos_register_timed_event( &temperature_timed_event, WICED_HARDWARE_IO_WORKER_THREAD, take_temperature_reading, sample_interval, 0 );
 
     /* Start web server to display current temperature & setpoint */
     wiced_http_server_start( &http_server, 80, web_pages, WICED_STA_INTERFACE );
@@ -293,6 +300,7 @@ static wiced_result_t send_data_to_xively( void* arg )
     xively_feed_t       sensor_feed;
     xively_datastream_t stream;
     uint16_t            data_points;
+    wiced_result_t      result;
 
     /* Setup sensor feed info */
     memset( &sensor_feed, 0, sizeof( sensor_feed ) );
@@ -300,14 +308,25 @@ static wiced_result_t send_data_to_xively( void* arg )
 
     wiced_dct_read_lock( (void**) &dct, WICED_FALSE, DCT_APP_SECTION, 0, sizeof(user_dct_data_t) );
 
+    if ( ( dct->xively_feed_id[0]    == '\x00' ) ||
+         ( dct->xively_channel_id[0] == '\x00' ) ||
+         ( dct->xively_api_key[0]    == '\x00' ) )
+    {
+        WPRINT_APP_INFO(("Xively feed details not in DCT\n"));
+        wiced_dct_read_unlock( dct, WICED_FALSE );
+        return WICED_ERROR;
+    }
+
     sensor_feed.id       = dct->xively_feed_id;
     sensor_feed.api_key  = dct->xively_api_key;
 
     /* Open Xively feed */
-    if ( xively_open_feed( &sensor_feed ) != WICED_SUCCESS )
+    result = xively_open_feed( &sensor_feed );
+    if ( result != WICED_SUCCESS )
     {
         WPRINT_APP_INFO(("Failed to open Xively feed\n"));
-        return WICED_ERROR;
+        wiced_dct_read_unlock( dct, WICED_FALSE );
+        return result;
     }
 
     /* Get the amount of temperature readings to send (required for creating Xively datastream). Mutex protection required. */
@@ -316,12 +335,15 @@ static wiced_result_t send_data_to_xively( void* arg )
     wiced_rtos_unlock_mutex( &xively_data.mutex );
 
     /* Create Xively datastream */
-    if ( xively_create_datastream( &sensor_feed, &stream, dct->xively_channel_id, 4, data_points ) != WICED_SUCCESS )
+    result = xively_create_datastream( &sensor_feed, &stream, dct->xively_channel_id, 4, data_points );
+    wiced_dct_read_unlock( dct, WICED_FALSE );
+    if ( result != WICED_SUCCESS )
     {
         xively_close_feed( &sensor_feed );
         WPRINT_APP_INFO( ("Failed to init Xively datastream\n") );
-        return WICED_ERROR;
+        return result;
     }
+
 
     /* Write data to TCP stream (compensating for looping around the end of the buffer). Mutex protection required */
     wiced_rtos_lock_mutex( &xively_data.mutex );
@@ -347,9 +369,6 @@ static wiced_result_t send_data_to_xively( void* arg )
 
     /* Close Xively */
     return xively_close_feed( &sensor_feed );
-
-    wiced_dct_read_unlock( dct, WICED_FALSE );
-
 }
 
 /*
@@ -443,7 +462,7 @@ static void setpoint_control_keypad_handler( gpio_key_code_t code, gpio_key_even
 /*
  * Updates temperature information in the web page
  */
-static int process_temperature_update( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_temperature_update( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_data )
 {
     wiced_iso8601_time_t* curr_time;
     float temp_celcius;
@@ -453,6 +472,7 @@ static int process_temperature_update( const char* url, wiced_tcp_stream_t* stre
     char  temp_char_buffer[6];
     int   temp_char_buffer_length;
 
+    UNUSED_PARAMETER(http_data);
 
     wiced_rtos_lock_mutex( &xively_data.mutex );
 
@@ -472,17 +492,23 @@ static int process_temperature_update( const char* url, wiced_tcp_stream_t* stre
 
     wiced_rtos_unlock_mutex( &xively_data.mutex );
 
-    #define WEB_PAGE_TIME_LENGTH   8
-    #define WEB_PAGE_DATE_LENGTH   10
-
     /* Write the time */
     wiced_tcp_stream_write_resource( stream, &resources_apps_DIR_temp_control_DIR_data_html_time_start );
-    wiced_tcp_stream_write(stream, curr_time->hour, WEB_PAGE_TIME_LENGTH );
+    wiced_tcp_stream_write( stream, curr_time->hour, sizeof(curr_time->hour)   +
+                                                     sizeof(curr_time->colon1) +
+                                                     sizeof(curr_time->minute) +
+                                                     sizeof(curr_time->colon2) +
+                                                     sizeof(curr_time->second) );
     wiced_tcp_stream_write_resource( stream, &resources_apps_DIR_temp_control_DIR_data_html_time_end );
 
     /* Write the date */
     wiced_tcp_stream_write_resource( stream, &resources_apps_DIR_temp_control_DIR_data_html_date_start );
-    wiced_tcp_stream_write(stream, curr_time->year, WEB_PAGE_DATE_LENGTH );
+    wiced_tcp_stream_write(stream, curr_time->year, sizeof(curr_time->year)  +
+                                                    sizeof(curr_time->dash1) +
+                                                    sizeof(curr_time->month) +
+                                                    sizeof(curr_time->dash2) +
+                                                    sizeof(curr_time->day) );
+
     wiced_tcp_stream_write_resource( stream, &resources_apps_DIR_temp_control_DIR_data_html_date_end );
 
     wiced_tcp_stream_write_resource( stream, &resources_apps_DIR_temp_control_DIR_data_html_temp_start );
@@ -509,8 +535,11 @@ static int process_temperature_update( const char* url, wiced_tcp_stream_t* stre
 /*
  * Handles increase temperature set point button from web page
  */
-static int process_temperature_up( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_temperature_up( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_data )
 {
+    UNUSED_PARAMETER( url_parameters );
+    UNUSED_PARAMETER( arg );
+    UNUSED_PARAMETER( http_data );
     increase_setpoint( );
     return 0;
 }
@@ -518,8 +547,11 @@ static int process_temperature_up( const char* url, wiced_tcp_stream_t* stream, 
 /*
  * Handles decrease temperature set point button from web page
  */
-static int process_temperature_down( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_temperature_down( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_data )
 {
+    UNUSED_PARAMETER( url_parameters );
+    UNUSED_PARAMETER( arg );
+    UNUSED_PARAMETER( http_data );
     decrease_setpoint( );
     return 0;
 }

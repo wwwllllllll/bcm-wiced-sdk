@@ -30,6 +30,10 @@
 #include "wicedfs_internal.h"
 
 /******************************************************
+ *                      Macros
+ ******************************************************/
+
+/******************************************************
  *                    Constants
  ******************************************************/
 #define COMPARE_BUFFER_SIZE     (1024*1024)
@@ -40,25 +44,31 @@
 #define DIRECTORY_SEPARATOR_CHR '/'
 
 /******************************************************
- *                    Global Variables
+ *                   Enumerations
  ******************************************************/
 
 /******************************************************
- *                    Static Variables
+ *                 Type Definitions
  ******************************************************/
-static char buffer1[COMPARE_BUFFER_SIZE];
-static char buffer2[COMPARE_BUFFER_SIZE];
 
+/******************************************************
+ *                    Structures
+ ******************************************************/
 
 /******************************************************
  *               Static Function Declarations
  ******************************************************/
-
 static int             cmp_fn                ( const void * a, const void * b );
 static int             get_sorted            ( const char* dir_name, char *** ptr_list, unsigned long* count );
 static void            free_list             ( char*** ptr_list, unsigned long count );
 static int             test_compare_dir      ( wiced_filesystem_t* fs_handle, const char* wdir_name, const char* dir_name );
 static wicedfs_usize_t hostfile_wicedfs_read ( void* user_param, void* buf, wicedfs_usize_t size, wicedfs_usize_t pos );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+static char buffer1[COMPARE_BUFFER_SIZE];
+static char buffer2[COMPARE_BUFFER_SIZE];
 
 /******************************************************
  *               Function Definitions

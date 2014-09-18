@@ -46,11 +46,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 extern const void * const dct_full_size_loc; /* Defined by linker script */
@@ -103,7 +103,7 @@ static const platform_dct_data_t initial_dct =
     .dct_header.mfg_info_programmed  = 0,
     .dct_header.magic_number         = BOOTLOADER_MAGIC_NUMBER,
 
-#ifdef USES_RESOURCE_FILESYSTEM
+#ifdef BOOTLOADER_LOAD_MAIN_APP_FROM_FILESYSTEM
     .dct_header.boot_detail.entry_point = 0,
     .dct_header.boot_detail.load_details.load_once = 0,
     .dct_header.boot_detail.load_details.valid = 1,

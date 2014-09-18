@@ -101,7 +101,7 @@ bootloader:
 
 download_bootloader: bootloader display_map_summary download_filesystem download_dct
 	$(QUIET)$(ECHO) Downloading Bootloader ...
-	$(QUIET)$(call CONV_SLASHES,$(OPENOCD_FULL_NAME)) -f $(OPENOCD_PATH)$(JTAG).cfg -f $(OPENOCD_PATH)$(HOST_OPENOCD).cfg -f apps/waf/sflash_write/sflash_write.tcl -c "sflash_write_file $(BOOTLOADER_EPM_FILE) $(SFLASH_BOOTLOADER_LOC) $(subst /,_,$(PLATFORM_FULL)-$(BUS)) 1" -c shutdown $(DOWNLOAD_LOG) 2>&1
+	$(QUIET)$(call CONV_SLASHES,$(OPENOCD_FULL_NAME)) -f $(OPENOCD_PATH)$(JTAG).cfg -f $(OPENOCD_PATH)$(HOST_OPENOCD).cfg -f apps/waf/sflash_write/sflash_write.tcl -c "sflash_write_file $(BOOTLOADER_EPM_FILE) $(SFLASH_BOOTLOADER_LOC) $(subst /,_,$(PLATFORM_FULL)-$(BUS)) 1 1" -c shutdown $(DOWNLOAD_LOG) 2>&1
 
 copy_bootloader_output_for_eclipse: build_done
 	$(QUIET)$(call MKDIR, $(BUILD_DIR)/eclipse_debug/)
@@ -116,7 +116,7 @@ endif
 ifneq (no_dct,$(findstring no_dct,$(MAKECMDGOALS)))
 download_dct: $(FINAL_DCT_FILE) display_map_summary
 	$(QUIET)$(ECHO) Downloading DCT ...
-	$(QUIET)$(call CONV_SLASHES,$(OPENOCD_FULL_NAME)) -f $(OPENOCD_PATH)$(JTAG).cfg -f $(OPENOCD_PATH)$(HOST_OPENOCD).cfg -f apps/waf/sflash_write/sflash_write.tcl -c "sflash_write_file $(FINAL_DCT_FILE) $(SFLASH_DCT_LOC) $(subst /,_,$(PLATFORM_FULL)-$(BUS)) 0" -c shutdown $(DOWNLOAD_LOG) 2>&1
+	$(QUIET)$(call CONV_SLASHES,$(OPENOCD_FULL_NAME)) -f $(OPENOCD_PATH)$(JTAG).cfg -f $(OPENOCD_PATH)$(HOST_OPENOCD).cfg -f apps/waf/sflash_write/sflash_write.tcl -c "sflash_write_file $(FINAL_DCT_FILE) $(SFLASH_DCT_LOC) $(subst /,_,$(PLATFORM_FULL)-$(BUS)) 0 1" -c shutdown $(DOWNLOAD_LOG) 2>&1
 
 else
 download_dct:
@@ -170,11 +170,11 @@ endif
 
 download_filesystem: $(FS_IMAGE) display_map_summary  $(FS_DEP)
 	$(QUIET)$(ECHO) Downloading filesystem ...
-	$(QUIET)$(call CONV_SLASHES,$(OPENOCD_FULL_NAME)) -f $(OPENOCD_PATH)$(JTAG).cfg -f $(OPENOCD_PATH)$(HOST_OPENOCD).cfg -f apps/waf/sflash_write/sflash_write.tcl -c "sflash_write_file $(FS_IMAGE) $(SFLASH_FS_LOC) $(subst /,_,$(PLATFORM_FULL)-$(BUS)) 0" -c shutdown $(DOWNLOAD_LOG) 2>&1
+	$(QUIET)$(call CONV_SLASHES,$(OPENOCD_FULL_NAME)) -f $(OPENOCD_PATH)$(JTAG).cfg -f $(OPENOCD_PATH)$(HOST_OPENOCD).cfg -f apps/waf/sflash_write/sflash_write.tcl -c "sflash_write_file $(FS_IMAGE) $(SFLASH_FS_LOC) $(subst /,_,$(PLATFORM_FULL)-$(BUS)) 0 1" -c shutdown $(DOWNLOAD_LOG) 2>&1
 
 
 
 
 #download_sflash:
-#	$(QUIET)$(call CONV_SLASHES,$(OPENOCD_FULL_NAME)) -f $(OPENOCD_PATH)$(JTAG).cfg -f $(OPENOCD_PATH)$(HOST_OPENOCD).cfg -f apps/waf/sflash_write/sflash_write.tcl -c "$(SFLASH_FS_IMAGE).bin $(SFLASH_FS_LOC) BCM4390 1" -c shutdown
+#	$(QUIET)$(call CONV_SLASHES,$(OPENOCD_FULL_NAME)) -f $(OPENOCD_PATH)$(JTAG).cfg -f $(OPENOCD_PATH)$(HOST_OPENOCD).cfg -f apps/waf/sflash_write/sflash_write.tcl -c "$(SFLASH_FS_IMAGE).bin $(SFLASH_FS_LOC) BCM4390 1 1" -c shutdown
 

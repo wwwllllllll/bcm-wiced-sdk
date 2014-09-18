@@ -11,7 +11,3 @@
 NAME := App_Link_status
 
 $(NAME)_SOURCES := link_status.c
-
-GLOBAL_DEFINES :=
-
-WIFI_CONFIG_DCT_H := wifi_config_dct.h

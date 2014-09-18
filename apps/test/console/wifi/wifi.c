@@ -28,10 +28,16 @@
 #include "wiced_security.h"
 #include "internal/wiced_internal_api.h"
 #ifdef CONSOLE_ENABLE_WPS
-#include "wiced_wps.h"
-#include "wwd_events.h"
-#include "wps_common.h"
+#include "../wps/wps.h"
 #endif
+
+/******************************************************
+ *                      Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
 
 #define MAX_SSID_LEN 32
 #define MAX_PASSPHRASE_LEN 64
@@ -45,32 +51,49 @@
                         ((a[4])==0)&& \
                         ((a[5])==0))
 
-//static wiced_result_t print_wifi_config_dct( void );
-wiced_result_t scan_result_handler( wiced_scan_handler_result_t* malloced_scan_result );
-void F( const char *password, const unsigned char *ssid, int ssidlength, int iterations, int count, unsigned char *output);
-int PasswordHash ( const char *password, const unsigned char *ssid, int ssidlength, unsigned char *output );
-void dump_bytes(const uint8_t* bptr, uint32_t len);
-void hex_bytes_to_chars( char* cptr, const uint8_t* bptr, uint32_t blen );
-static wiced_result_t deauth_all_associated_stas(wwd_dot11_reason_code_t inReason);
-int wifi_join_specific(char* ssid, wiced_security_t auth_type, uint8_t* security_key, uint16_t key_length, char* bssid, char* channel, char* ip, char* netmask, char* gateway);
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+static wiced_result_t scan_result_handler( wiced_scan_handler_result_t* malloced_scan_result );
+static void pmk_internal_hash( const char *password, const unsigned char *ssid, int ssidlength, int iterations, int count, unsigned char *output);
+static int generate_pmk ( const char *password, const unsigned char *ssid, int ssidlength, unsigned char *output );
+static void hex_bytes_to_chars( char* cptr, const uint8_t* bptr, uint32_t blen );
+static wiced_result_t deauth_all_associated_stas(wwd_dot11_reason_code_t inReason);
+static int wifi_join_specific(char* ssid, wiced_security_t auth_type, uint8_t* security_key, uint16_t key_length, char* bssid, char* channel, char* ip, char* netmask, char* gateway);
+
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 static char last_joined_ssid[32] = "";
 static char last_started_ssid[32] = "";
 static char last_soft_ap_passphrase[MAX_PASSPHRASE_LEN+1] = "";
 static int record_count;
 static wiced_semaphore_t scan_semaphore;
-
-#ifdef CONSOLE_ENABLE_WPS
-extern wps_agent_t* workspace;
-extern wiced_wps_device_detail_t device_details;
-#endif
-
 static const wiced_ip_setting_t ap_ip_settings =
 {
     INITIALISER_IPV4_ADDRESS( .ip_address, MAKE_IPV4_ADDRESS( 192,168,  0,  1 ) ),
     INITIALISER_IPV4_ADDRESS( .netmask,    MAKE_IPV4_ADDRESS( 255,255,255,  0 ) ),
     INITIALISER_IPV4_ADDRESS( .gateway,    MAKE_IPV4_ADDRESS( 192,168,  0,  1 ) ),
 };
+
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 /*!
  ******************************************************************************
@@ -164,19 +187,18 @@ int wifi_join(char* ssid, wiced_security_t auth_type, uint8_t* key, uint16_t key
         return ERR_CMD_OK;
     }
 
-    // Read config
+    /* Read config */
     wiced_dct_read_lock( (void**) &dct_wifi_config, WICED_TRUE, DCT_WIFI_CONFIG_SECTION, 0, sizeof(platform_dct_wifi_config_t) );
-//    print_wifi_config_dct();
 
-    // Modify config
-    strncpy((char*)dct_wifi_config->stored_ap_list[0].details.SSID.val, ssid, MAX_SSID_LEN);
+    /* Modify config */
+    dct_wifi_config->stored_ap_list[0].details.SSID.length = strlen( ssid );
+    strncpy((char*)dct_wifi_config->stored_ap_list[0].details.SSID.value, ssid, MAX_SSID_LEN);
     dct_wifi_config->stored_ap_list[0].details.security = auth_type;
     memcpy((char*)dct_wifi_config->stored_ap_list[0].security_key, (char*)key, MAX_PASSPHRASE_LEN);
     dct_wifi_config->stored_ap_list[0].security_key_length = key_length;
 
-    // Write config
+    /* Write config */
     wiced_dct_write( (const void*) dct_wifi_config, DCT_WIFI_CONFIG_SECTION, 0, sizeof(platform_dct_wifi_config_t) );
-//    print_wifi_config_dct();
 
     /* Tell the network stack to setup it's interface */
     if (ip == NULL )
@@ -194,13 +216,13 @@ int wifi_join(char* ssid, wiced_security_t auth_type, uint8_t* key, uint16_t key
 
     if ( wiced_network_up( WICED_STA_INTERFACE, network_config, ip_settings ) != WICED_SUCCESS )
     {
-        if ( auth_type == WICED_SECURITY_WEP_PSK ) // Now try shared instead of open authentication
+        if ( auth_type == WICED_SECURITY_WEP_PSK ) /* Now try shared instead of open authentication */
         {
             dct_wifi_config->stored_ap_list[0].details.security = WICED_SECURITY_WEP_SHARED;
             wiced_dct_write( (const void*) dct_wifi_config, DCT_WIFI_CONFIG_SECTION, 0, sizeof(platform_dct_wifi_config_t) );
             printf("WEP with open authentication failed, trying WEP with shared authentication...\r\n");
 
-            if ( wiced_network_up( WICED_STA_INTERFACE, network_config, ip_settings ) != WICED_SUCCESS ) // Restore old value
+            if ( wiced_network_up( WICED_STA_INTERFACE, network_config, ip_settings ) != WICED_SUCCESS ) /* Restore old value */
             {
                 printf("trying shared wep\r\n");
                 dct_wifi_config->stored_ap_list[0].details.security = WICED_SECURITY_WEP_PSK;
@@ -303,7 +325,7 @@ int join_specific( int argc, char* argv[] )
     }
 }
 
-int wifi_join_specific(char* ssid, wiced_security_t auth_type, uint8_t* security_key, uint16_t key_length, char* bssid, char* channel, char* ip, char* netmask, char* gateway)
+static int wifi_join_specific(char* ssid, wiced_security_t auth_type, uint8_t* security_key, uint16_t key_length, char* bssid, char* channel, char* ip, char* netmask, char* gateway)
 {
     wiced_network_config_t network_config;
     wiced_ip_setting_t static_ip_settings;
@@ -315,15 +337,15 @@ int wifi_join_specific(char* ssid, wiced_security_t auth_type, uint8_t* security
     }
 
     memset( &ap, 0, sizeof( ap ) );
-    ap.SSID.len = strlen( ssid );
-    memcpy( ap.SSID.val, ssid, ap.SSID.len );
+    ap.SSID.length = strlen( ssid );
+    memcpy( ap.SSID.value, ssid, ap.SSID.length );
     str_to_mac( bssid, &ap.BSSID );
     ap.channel = atoi( channel );
     ap.security = auth_type;
     ap.band = WICED_802_11_BAND_2_4GHZ;
     ap.bss_type = WICED_BSS_TYPE_INFRASTRUCTURE;
 
-    if ( !( NULL_MAC(ap.BSSID.octet) ) && wwd_wifi_join_specific( &ap, security_key, key_length, NULL ) == WWD_SUCCESS )
+    if ( !( NULL_MAC(ap.BSSID.octet) ) && wwd_wifi_join_specific( &ap, security_key, key_length, NULL, WWD_STA_INTERFACE ) == WWD_SUCCESS )
     {
 
         /* Tell the network stack to setup it's interface */
@@ -357,17 +379,17 @@ int wifi_join_specific(char* ssid, wiced_security_t auth_type, uint8_t* security
  *                      can be updated to cause the next result to be put in a new location.
  *  @param user_data : unused
  */
-wiced_result_t scan_result_handler( wiced_scan_handler_result_t* malloced_scan_result )
+static wiced_result_t scan_result_handler( wiced_scan_handler_result_t* malloced_scan_result )
 {
     malloc_transfer_to_curr_thread( malloced_scan_result );
 
-    if (malloced_scan_result->scan_complete != WICED_TRUE)
+    if ( malloced_scan_result->status == WICED_SCAN_INCOMPLETE )
     {
         wiced_scan_result_t* record = &malloced_scan_result->ap_details;
 
         wiced_assert( "error", ( record->bss_type == WICED_BSS_TYPE_INFRASTRUCTURE ) || ( record->bss_type == WICED_BSS_TYPE_ADHOC ) );
 
-        record->SSID.val[record->SSID.len] = 0; /* Ensure it's null terminated */
+        record->SSID.value[record->SSID.length] = 0; /* Ensure it's null terminated */
 
         WPRINT_APP_INFO( ( "%3d ", record_count ) );
         print_scan_result( record );
@@ -422,15 +444,10 @@ int scan( int argc, char* argv[] )
  * U2 = PRF(P, U1)
  * Uc = PRF(P, Uc-1)
 */
-void F( const char *password, const unsigned char *ssid, int ssidlength, int iterations, int count, unsigned char *output)
+static void pmk_internal_hash( const char *password, const unsigned char *ssid, int ssidlength, int iterations, int count, unsigned char *output)
 {
     unsigned char digest[36], digest1[A_SHA_DIGEST_LEN];
     int i, j;
-
-//    for (i = 0; i < strlen(password); i++)
-//    {
-//        assert((password[i] >= 32) && (password[i] <= 126));
-//    }
 
     /* U1 = PRF(P, S || int(i)) */
     memcpy(digest, ssid, ssidlength);
@@ -439,7 +456,6 @@ void F( const char *password, const unsigned char *ssid, int ssidlength, int ite
     digest[ssidlength+2] = (unsigned char)((count>>8) & 0xff);
     digest[ssidlength+3] = (unsigned char)(count & 0xff);
 
-    //hmac_sha1(digest, ssidlength+4, (unsigned char*) password, (int) strlen(password), digest, digest1);
     sha1_hmac( (unsigned char*) password, (int) strlen(password), digest, ssidlength + 4, digest1 );
 
     /* output = U1 */
@@ -447,7 +463,6 @@ void F( const char *password, const unsigned char *ssid, int ssidlength, int ite
     for (i = 1; i < iterations; i++)
     {
         /* Un = PRF(P, Un-1) */
-        //hmac_sha1(digest1, A_SHA_DIGEST_LEN, (unsigned char*) password, (int) strlen(password), digest);
         sha1_hmac( (unsigned char*) password, (int) strlen(password), digest1, A_SHA_DIGEST_LEN, digest );
         memcpy(digest1, digest, A_SHA_DIGEST_LEN);
 
@@ -466,19 +481,19 @@ void F( const char *password, const unsigned char *ssid, int ssidlength, int ite
  * ssidlength - length of ssid in octets
  * output must be 40 octets in length and outputs 256 bits of key
 */
-int PasswordHash ( const char *password, const unsigned char *ssid, int ssidlength, unsigned char *output )
+static int generate_pmk ( const char *password, const unsigned char *ssid, int ssidlength, unsigned char *output )
 {
     if ((strlen(password) > 63) || (ssidlength > 32))
     {
         return 0;
     }
-    F(password, ssid, ssidlength, 4096, 1, output);
-    F(password, ssid, ssidlength, 4096, 2, &output[A_SHA_DIGEST_LEN]);
+    pmk_internal_hash(password, ssid, ssidlength, 4096, 1, output);
+    pmk_internal_hash(password, ssid, ssidlength, 4096, 2, &output[A_SHA_DIGEST_LEN]);
 
     return 1;
 }
 
-void hex_bytes_to_chars( char* cptr, const uint8_t* bptr, uint32_t blen )
+static void hex_bytes_to_chars( char* cptr, const uint8_t* bptr, uint32_t blen )
 {
     int i,j;
     uint8_t temp;
@@ -487,7 +502,7 @@ void hex_bytes_to_chars( char* cptr, const uint8_t* bptr, uint32_t blen )
     j = 0;
     while( i < blen )
     {
-        // Convert first nibble of byte to a hex character
+        /* Convert first nibble of byte to a hex character */
         temp = bptr[i] / 16;
         if ( temp < 10 )
         {
@@ -497,7 +512,7 @@ void hex_bytes_to_chars( char* cptr, const uint8_t* bptr, uint32_t blen )
         {
             cptr[j] = (temp - 10) + 'A';
         }
-        // Convert second nibble of byte to a hex character
+        /* Convert second nibble of byte to a hex character */
         temp = bptr[i] % 16;
         if ( temp < 10 )
         {
@@ -526,7 +541,7 @@ int start_ap( int argc, char* argv[] )
     char* security_key = argv[3];
     uint8_t channel = atoi(argv[4]);
     wiced_result_t result;
-    uint8_t pmk[DOT11_PMK_LEN + 8]; // PMK storage must be 40 octets in length for use in various functions
+    uint8_t pmk[DOT11_PMK_LEN + 8]; /* PMK storage must be 40 octets in length for use in various functions */
     platform_dct_wifi_config_t* dct_wifi_config;
 
     if ( wwd_wifi_is_ready_to_transceive( WICED_AP_INTERFACE ) == WWD_SUCCESS )
@@ -569,20 +584,17 @@ int start_ap( int argc, char* argv[] )
         }
     }
 
-    // Read config
+    /* Read config */
     wiced_dct_read_lock( (void**) &dct_wifi_config, WICED_TRUE, DCT_WIFI_CONFIG_SECTION, 0, sizeof(platform_dct_wifi_config_t) );
-    //print_wifi_config_dct();
 
     strncpy(last_soft_ap_passphrase, security_key, MAX_PASSPHRASE_LEN+1);
 
-    // Modify config
+    /* Modify config */
     if (strlen(security_key) < MAX_PASSPHRASE_LEN)
     {
         memset(pmk, 0, DOT11_PMK_LEN);
-        if (PasswordHash ( security_key, (unsigned char *)ssid, strlen(ssid), (unsigned char*)pmk ))
+        if (generate_pmk ( security_key, (unsigned char *)ssid, strlen(ssid), (unsigned char*)pmk ))
         {
-            //WPRINT_APP_INFO(( "PMK: "));
-            //dump_bytes(pmk, DOT11_PMK_LEN);
             dct_wifi_config->soft_ap_settings.security_key_length = MAX_PASSPHRASE_LEN;
             hex_bytes_to_chars( (char*)dct_wifi_config->soft_ap_settings.security_key, pmk, DOT11_PMK_LEN );
         }
@@ -592,15 +604,13 @@ int start_ap( int argc, char* argv[] )
         dct_wifi_config->soft_ap_settings.security_key_length = strlen(security_key);
         strncpy((char*)dct_wifi_config->soft_ap_settings.security_key, security_key, MAX_PASSPHRASE_LEN);
     }
-    strncpy((char*)dct_wifi_config->soft_ap_settings.SSID.val, ssid, MAX_SSID_LEN);
+    strncpy((char*)dct_wifi_config->soft_ap_settings.SSID.value, ssid, MAX_SSID_LEN);
     dct_wifi_config->soft_ap_settings.security = auth_type;
     dct_wifi_config->soft_ap_settings.channel = channel;
 
-    // Write config
+    /* Write config */
     wiced_dct_write( (const void*)dct_wifi_config, DCT_WIFI_CONFIG_SECTION, 0, sizeof( platform_dct_wifi_config_t));
     wiced_dct_read_unlock( (void*) dct_wifi_config, WICED_TRUE );
-//    print_wifi_config_dct();
-
 
     if ( ( result = wiced_network_up( WICED_AP_INTERFACE, WICED_USE_INTERNAL_DHCP_SERVER, &ap_ip_settings ) ) != WICED_SUCCESS )
     {
@@ -608,33 +618,12 @@ int start_ap( int argc, char* argv[] )
         return result;
     }
 #ifdef CONSOLE_ENABLE_WPS
-    if ( argc == 6 )
+    if ( ( argc == 6 ) && ( memcmp( argv[5], "wps", sizeof("wps") ) == 0 ) )
     {
-        if ( memcmp( argv[5], "wps", sizeof("wps") ) == 0 )
+        result = enable_ap_registrar_events();
+        if ( result != WICED_SUCCESS )
         {
-            if ( workspace == NULL )
-            {
-                workspace = calloc_named("wps", 1, sizeof(wps_agent_t));
-                if ( workspace == NULL )
-                {
-                    WPRINT_APP_INFO(("Error calloc wps\r\n"));
-                    stop_ap(0, NULL);
-                    return WICED_OUT_OF_HEAP_SPACE;
-                }
-            }
-
-            if ( ( result = besl_wps_init( workspace, (besl_wps_device_detail_t*) &device_details, WPS_REGISTRAR_AGENT, WWD_AP_INTERFACE ) ) != WICED_SUCCESS )
-            {
-                WPRINT_APP_INFO(("Error besl init %u\r\n", (unsigned int)result));
-                stop_ap(0, NULL);
-                return result;
-            }
-            if ( ( result = besl_wps_management_set_event_handler( workspace, WICED_TRUE ) ) != WICED_SUCCESS )
-            {
-                WPRINT_APP_INFO(("Error besl setting event handler %u\r\n", (unsigned int)result));
-                stop_ap(0, NULL);
-                return result;
-            }
+            return result;
         }
     }
 #endif
@@ -657,13 +646,7 @@ int stop_ap( int argc, char* argv[] )
     }
 
 #ifdef CONSOLE_ENABLE_WPS
-    if (workspace != NULL)
-    {
-        besl_wps_management_set_event_handler( workspace, WICED_FALSE );
-        besl_wps_deinit( workspace );
-        free( workspace );
-        workspace = NULL;
-    }
+    disable_ap_registrar_events();
 #endif
 
     deauth_all_associated_stas(WWD_DOT11_RC_UNSPECIFIED);
@@ -675,135 +658,11 @@ static wiced_result_t deauth_all_associated_stas(wwd_dot11_reason_code_t reason)
 {
     UNUSED_PARAMETER( reason );
 
-//    uint8_t* buffer = NULL;
-//    wiced_maclist_t * clients = NULL;
-//    const wiced_mac_t * current;
-//    wiced_result_t      result;
-//    wl_bss_info_t ap_info;
-//    wiced_security_t sec;
-//    uint32_t max_clients = 0;
-//    size_t size = 0;
-//
-//    if ((result = wiced_wifi_get_max_associations( &max_clients )) != WWD_SUCCESS )
-//    {
-//        WPRINT_APP_INFO(("Failed to get max number of associated clients\r\n"));
-//        max_clients = 5;
-//    }
-//
-//    size = (sizeof(uint32_t) + (max_clients * sizeof(wiced_mac_t)));
-//    buffer = calloc(1, size);
-//
-//    if (buffer == NULL)
-//    {
-//        WPRINT_APP_INFO(("Unable to allocate memory for associated clients list\r\n"));
-//        return WICED_ERROR;
-//    }
-//    clients = (wiced_maclist_t*)buffer;
-//    clients->count = max_clients;
-//    memset(&ap_info, 0, sizeof(wl_bss_info_t));
-//
-//    if ((result = wwd_wifi_get_associated_client_list(clients, size)) != WWD_SUCCESS)
-//    {
-//        WPRINT_APP_INFO(("Failed to get client list\r\n"));
-//        return result;
-//    }
-//
-//    current = &clients->mac_list[0];
-//    wwd_wifi_get_ap_info( &ap_info, &sec );
-//
-//    while ((clients->count > 0) && (!(NULL_MAC(current->octet))))
-//    {
-//        if (memcmp(current->octet, &(ap_info.BSSID), sizeof(wiced_mac_t) ) != 0)
-//        {
-//            WPRINT_APP_INFO(("Deauthenticating STA MAC: %x:%x:%x:%x:%x:%x\r\n", current->octet[0], current->octet[1], current->octet[2], current->octet[3], current->octet[4], current->octet[5]));
-//            if ((result = wwd_wifi_deauth_sta(current, reason)) != WWD_SUCCESS)
-//            {
-//                WPRINT_APP_INFO(("Failed to deauth client\r\n"));
-//            }
-//        }
-//
-//        --clients->count;
-//        ++current;
-//    }
-
     return WWD_SUCCESS;
 }
 
 int get_associated_client_list( int argc, char* argv[] )
 {
-//    uint8_t* buffer = NULL;
-//    wiced_maclist_t * clients = NULL;
-//    const wiced_mac_t * current;
-//    wiced_result_t      result;
-//    wl_bss_info_t ap_info;
-//    wiced_security_t sec;
-//    uint32_t max_clients = 0;
-//    size_t size = 0;
-//    int32_t rssi = 0;
-//
-//    if ((result = wwd_wifi_get_max_associations( &max_clients )) != WWD_SUCCESS )
-//    {
-//        WPRINT_APP_INFO(("Failed to get max number of associated clients\r\n"));
-//        max_clients = 5;
-//    }
-//
-//    size = (sizeof(uint32_t) + (max_clients * sizeof(wiced_mac_t)));
-//    buffer = calloc(1, size);
-//
-//    if (buffer == NULL)
-//    {
-//        WPRINT_APP_INFO(("Unable to allocate memory for associated clients list\r\n"));
-//        return WICED_ERROR;
-//    }
-//    clients = (wiced_maclist_t*)buffer;
-//    clients->count = max_clients;
-//    memset(&ap_info, 0, sizeof(wl_bss_info_t));
-//
-//    if ((result = wwd_wifi_get_associated_client_list(clients, size)) != WWD_SUCCESS)
-//    {
-//        WPRINT_APP_INFO(("Failed to get client list\r\n"));
-//        return result;
-//    }
-//
-//    if (wwd_wifi_is_ready_to_transceive(WWD_STA_INTERFACE) == WWD_SUCCESS)
-//    {
-//        WPRINT_APP_INFO(("Current number of associated clients: %u\r\n", (unsigned int)clients->count - 1));
-//    }
-//    else
-//    {
-//        WPRINT_APP_INFO(("Current number of associated clients: %u\r\n", (unsigned int)clients->count));
-//    }
-//
-//    current = &clients->mac_list[0];
-//    wwd_wifi_get_ap_info( &ap_info, &sec );
-//
-//    WPRINT_APP_INFO(("\r\n"));
-//    while ((clients->count > 0) && (!(NULL_MAC(current->octet))))
-//    {
-//        if (memcmp(current->octet, &(ap_info.BSSID), sizeof(wiced_mac_t) ) != 0)
-//        {
-//            result = wwd_wifi_get_ap_client_rssi(&rssi, (wiced_mac_t*)&current->octet[0]);
-//            if( result != WWD_SUCCESS )
-//            {
-//                WPRINT_APP_INFO(("Error. Can't get rssi of the client\r\n"));
-//            }
-//            else
-//            {
-//                WPRINT_APP_INFO(("%02x:%02x:%02x:%02x:%02x:%02x %3lddBm\r\n",
-//                                    current->octet[0],
-//                                    current->octet[1],
-//                                    current->octet[2],
-//                                    current->octet[3],
-//                                    current->octet[4],
-//                                    current->octet[5],
-//                                    rssi
-//                            ));
-//            }
-//        }
-//        --clients->count;
-//        ++current;
-//    }
-//    WPRINT_APP_INFO(("\r\n"));
     return ERR_CMD_OK;
 }
 
@@ -825,7 +684,7 @@ int test_ap( int argc, char* argv[] )
         stop_ap( 0, NULL );
     }
     wiced_mac_t mac;
-    if ( wwd_wifi_get_mac_address( &mac ) == WWD_SUCCESS )
+    if ( wwd_wifi_get_mac_address( &mac, WWD_STA_INTERFACE ) == WWD_SUCCESS )
     {
         WPRINT_APP_INFO(("Test Pass (MAC address is: %02X:%02X:%02X:%02X:%02X:%02X)\r\n", mac.octet[0], mac.octet[1], mac.octet[2], mac.octet[3], mac.octet[4], mac.octet[5]));
     }
@@ -905,8 +764,8 @@ int test_credentials( int argc, char* argv[] )
 
     memset(&ap, 0, sizeof(ap));
 
-    ap.SSID.len = strlen(argv[1]);
-    memcpy(ap.SSID.val, argv[1], ap.SSID.len);
+    ap.SSID.length = strlen(argv[1]);
+    memcpy(ap.SSID.value, argv[1], ap.SSID.length);
     str_to_mac(argv[2], &ap.BSSID);
     ap.channel = atoi(argv[3]);
     ap.security = str_to_authtype(argv[4]);
@@ -935,9 +794,9 @@ int get_soft_ap_credentials( int argc, char* argv[] )
         return ERR_CMD_OK;
     }
 
-    // Read config to get internal AP settings
+    /* Read config to get internal AP settings */
     wiced_dct_read_lock( (void**) &dct_wifi_config, WICED_FALSE, DCT_WIFI_CONFIG_SECTION, 0, sizeof(platform_dct_wifi_config_t) );
-    WPRINT_APP_INFO(("SSID : %s\r\n", (char*)dct_wifi_config->soft_ap_settings.SSID.val));
+    WPRINT_APP_INFO(("SSID : %s\r\n", (char*)dct_wifi_config->soft_ap_settings.SSID.value));
     sec = dct_wifi_config->soft_ap_settings.security;
     WPRINT_APP_INFO( ( "Security : %s\r\n", ( sec == WICED_SECURITY_OPEN )           ? "Open" :
                                             ( sec == WICED_SECURITY_WEP_PSK )        ? "WEP" :
@@ -948,13 +807,6 @@ int get_soft_ap_credentials( int argc, char* argv[] )
                                             ( sec == WICED_SECURITY_WPA2_MIXED_PSK ) ? "WPA2 Mixed" :
                                             "Unknown" ) );
     WPRINT_APP_INFO(("Passphrase : %s\r\n", last_soft_ap_passphrase));
-
-    // Copy config into the credential to be used by WPS
-//    strncpy((char*)&credential.ssid.val, (char*)&wifi_config_dct_local.soft_ap_settings.SSID.val, MAX_SSID_LEN);
-//    credential.ssid.len = strlen((char*)&credential.ssid.val);
-//    credential.security = wifi_config_dct_local.soft_ap_settings.security;
-//    memcpy((char*)&credential.passphrase, (char*)&wifi_config_dct_local.soft_ap_settings.security_key, MAX_PASSPHRASE_LEN);
-//    credential.passphrase_length = wifi_config_dct_local.soft_ap_settings.security_key_length;
 
     wiced_dct_read_unlock( (void*) dct_wifi_config, WICED_FALSE );
 
@@ -981,22 +833,6 @@ int get_counters( int argc, char* argv[] )
     UNUSED_PARAMETER( argc );
     UNUSED_PARAMETER( argv );
 
-//    wiced_buffer_t buffer;
-//    wiced_buffer_t response;
-//
-//    wwd_sdpcm_get_iovar_buffer(&buffer, sizeof(wl_cnt_t), "counters");
-//
-//    if ( wwd_sdpcm_send_iovar( SDPCM_GET, buffer, &response, WWD_STA_INTERFACE ) == WWD_SUCCESS )
-//    {
-//        wl_cnt_t* data = (wl_cnt_t*) host_buffer_get_current_piece_data_pointer( response );
-//        WPRINT_APP_INFO( ("rx1mbps=%u\r\n",(unsigned int)data->rx1mbps) );
-//
-//        host_buffer_release( response, WWD_NETWORK_RX );
-//    }
-//    else
-//    {
-//        return ERR_UNKNOWN;
-//    }
     return ERR_CMD_OK;
 
 }
@@ -1186,7 +1022,7 @@ int get_rssi( int argc, char* argv[] )
 int status( int argc, char* argv[] )
 {
     wiced_mac_t mac;
-    wwd_wifi_get_mac_address( &mac );
+    wwd_wifi_get_mac_address( &mac, WWD_STA_INTERFACE );
     WPRINT_APP_INFO(("WICED Version : " WICED_VERSION "\r\n"));
     WPRINT_APP_INFO(("Platform      : " PLATFORM "\r\n"));
     WPRINT_APP_INFO(("MAC Address   : %02X:%02X:%02X:%02X:%02X:%02X\r\n", mac.octet[0],mac.octet[1],mac.octet[2],mac.octet[3],mac.octet[4],mac.octet[5]));
@@ -1271,7 +1107,7 @@ int ucantdiv( int argc, char* argv[] )
 
 int get_country( int argc, char* argv[] )
 {
-    // Get country information and print the abbreviation
+    /* Get country information and print the abbreviation */
     wl_country_t cspec;
     wiced_buffer_t buffer;
     wiced_buffer_t response;
@@ -1370,44 +1206,24 @@ int get_data_rate( int argc, char* argv[] )
  */
 int get_random( int argc, char* argv[] )
 {
-    uint16_t random;
-    if ( wwd_wifi_get_random( &random ) == WWD_SUCCESS )
+    uint8_t random[64];
+    if ( wwd_wifi_get_random( random, 64 ) == WWD_SUCCESS )
     {
-        WPRINT_APP_INFO(("Random number is %d\r\n", (int)random));
+        int a;
+        WPRINT_APP_INFO(("Random data is 0x"));
+        for (a=0; a<64; ++a)
+        {
+            WPRINT_APP_INFO(("%.2x", random[a]));
+        }
+        WPRINT_APP_INFO(("\n"));
         return ERR_CMD_OK;
     }
 
     return ERR_UNKNOWN;
 }
 
-//static wiced_result_t print_wifi_config_dct( void )
-//{
-//    platform_dct_wifi_config_t const* dct_wifi_config = wiced_dct_get_wifi_config_section( );
-//
-//    WPRINT_APP_INFO( ( "\r\n----------------------------------------------------------------\r\n\r\n") );
-//
-//    /* Wi-Fi Config Section */
-//    WPRINT_APP_INFO( ( "Wi-Fi Config Section \r\n") );
-//    WPRINT_APP_INFO( ( "    device_configured               : %d \r\n", dct_wifi_config->device_configured ) );
-//    WPRINT_APP_INFO( ( "    stored_ap_list[0]  (SSID)       : %s \r\n", dct_wifi_config->stored_ap_list[0].details.SSID.val ) );
-//    WPRINT_APP_INFO( ( "    stored_ap_list[0]  (Passphrase) : %s \r\n", dct_wifi_config->stored_ap_list[0].security_key ) );
-//    WPRINT_APP_INFO( ( "    stored_ap_list[0]  (BSSID)      : " ) );
-//    dump_bytes( (uint8_t*)&dct_wifi_config->stored_ap_list[0].details.BSSID, 6 );
-//    WPRINT_APP_INFO (("\r\n"));
-//    WPRINT_APP_INFO( ( "    stored_ap_list[0]  (Channel)    : %u \r\n", dct_wifi_config->stored_ap_list[0].details.channel ) );
-//    WPRINT_APP_INFO( ( "    soft_ap_settings   (SSID)       : %s \r\n", dct_wifi_config->soft_ap_settings.SSID.val ) );
-//    WPRINT_APP_INFO( ( "    soft_ap_settings   (Passphrase) : %s \r\n", dct_wifi_config->soft_ap_settings.security_key ) );
-//    WPRINT_APP_INFO( ( "    config_ap_settings (SSID)       : %s \r\n", dct_wifi_config->config_ap_settings.SSID.val ) );
-//    WPRINT_APP_INFO( ( "    config_ap_settings (Passphrase) : %s \r\n", dct_wifi_config->config_ap_settings.security_key ) );
-//    WPRINT_APP_INFO( ( "    country_code                    : %c%c%d \r\n", ((dct_wifi_config->country_code) >>  0) & 0xff,
-//                                                                            ((dct_wifi_config->country_code) >>  8) & 0xff,
-//                                                                            ((dct_wifi_config->country_code) >> 16) & 0xff));
-//    //print_mac_address( "    DCT mac_address                 :", (wiced_mac_t*)&dct_wifi_config->mac_address );
-//
-//    return WWD_SUCCESS;
-//}
-
-void dump_bytes(const uint8_t* bptr, uint32_t len)
+#if 0
+static void dump_bytes(const uint8_t* bptr, uint32_t len)
 {
     int i = 0;
 
@@ -1425,3 +1241,4 @@ void dump_bytes(const uint8_t* bptr, uint32_t len)
     }
     WPRINT_APP_INFO( ( "\r\n" ) );
 }
+#endif

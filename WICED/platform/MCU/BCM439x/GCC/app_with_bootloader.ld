@@ -22,8 +22,6 @@ MEMORY
     SRAM_160K   (rwx) : ORIGIN = 0x00200000, LENGTH = 160K
 }
 
-
-
 SECTIONS
 {
     .vectors :
@@ -52,22 +50,21 @@ SECTIONS
         link_code_end = .;
 
         . = ALIGN(16);
-    } >SRAM_32K AT>SRAM_32K  OVERFLOW_INTO>.text_128k_area2
-
-
-    .text_128k_area2 :
-    {
-    } >SRAM_128k_2 AT>SRAM_128k_2 OVERFLOW_INTO> .text_128k_area1
-
+    } >SRAM_32K AT>SRAM_32K  OVERFLOW_INTO> .text_128k_area1
 
     .text_128k_area1 :
     {
+    } >SRAM_128k_1 AT>SRAM_128k_1  OVERFLOW_INTO> .text_128k_area2
 
-    } >SRAM_128k_1 AT>SRAM_128k_1 OVERFLOW_INTO>.text_160k_area
-
+    .text_128k_area2 :
+    {
+    } >SRAM_128k_2 AT>SRAM_128k_2  OVERFLOW_INTO> .text_160k_area
 
     .text_160k_area :
     {
+        KEEP(*pmu_wiced.o(.text*))
+        KEEP(*pds_wiced.o(.text*))
+        KEEP(*platform_mcu_powersave_internal.o(.text*))
     } >SRAM_160K AT>SRAM_160K
 
     .rodata :
@@ -184,10 +181,6 @@ SECTIONS
         . = ALIGN(., 4);
     }> SRAM_160K AT>SRAM_160K
 
-
-
-
-
 /*
     .wlanheap :
     {
@@ -196,10 +189,6 @@ SECTIONS
         endwlanheap = .;
     }> WALNHEAP AT>WALNHEAP
 */
-
-
-
-
 
     /DISCARD/ :
     {

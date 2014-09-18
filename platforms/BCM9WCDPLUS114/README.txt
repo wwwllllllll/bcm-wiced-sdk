@@ -2,6 +2,8 @@ Provider    : Broadcom / USI
 Website     : http://www.broadcom.com/support/wiced
 Description : WICED+ Wi-Fi and Bluetooth SmartBridge evaluation board (BCM9WCDMFI2_1) manufactured by USI 
 
+Schematic & Photo : /platforms/BCM9WCDPLUS114/schematics/
+
 Wi-Fi Module 
   Mfr     : USI
   P/N     : WM-N-BM-14

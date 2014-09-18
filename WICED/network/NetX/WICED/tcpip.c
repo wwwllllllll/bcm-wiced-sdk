@@ -40,6 +40,14 @@
  *                    Constants
  ******************************************************/
 
+#ifndef WICED_TCP_TX_RETRIES
+#define WICED_TCP_TX_RETRIES       WICED_DEFAULT_TCP_TX_RETRIES
+#endif
+
+#ifndef WICED_TCP_TX_DEPTH_QUEUE
+#define WICED_TCP_TX_DEPTH_QUEUE    WICED_DEFAULT_TCP_TX_DEPTH_QUEUE
+#endif
+
 /******************************************************
  *                   Enumerations
  ******************************************************/
@@ -47,22 +55,31 @@
 /******************************************************
  *                 Type Definitions
  ******************************************************/
+typedef VOID (*tcp_listen_callback_t)(NX_TCP_SOCKET *socket_ptr, UINT port);
 
 /******************************************************
  *                    Structures
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /* TLS helper function to do TCP without involving TLS context */
-wiced_result_t network_tcp_receive    ( wiced_tcp_socket_t* socket, wiced_packet_t** packet, uint32_t timeout );
-wiced_result_t network_tcp_send_packet( wiced_tcp_socket_t* socket, wiced_packet_t*  packet );
+wiced_result_t network_tcp_receive                    ( wiced_tcp_socket_t* socket, wiced_packet_t** packet, uint32_t timeout );
+wiced_result_t network_tcp_send_packet                ( wiced_tcp_socket_t* socket, wiced_packet_t*  packet );
+
+static VOID           internal_tcp_listen_callback           ( NX_TCP_SOCKET *socket_ptr, UINT port );
+static void           internal_common_tcp_callback           ( struct NX_TCP_SOCKET_STRUCT *socket_ptr, wiced_tcp_callback_index_t callback );
+static void           internal_tcp_socket_disconnect_callback( struct NX_TCP_SOCKET_STRUCT *socket_ptr );
+static void           internal_tcp_socket_receive_callback   ( struct NX_TCP_SOCKET_STRUCT *socket_ptr );
+static wiced_result_t internal_wiced_tcp_server_listen       ( wiced_tcp_server_t* tcp_server );
+static uint32_t       str_to_ipv4                            ( const char* arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
+static wiced_tcp_socket_t* tcp_sockets_with_callbacks[WICED_MAXIMUM_NUMBER_OF_SOCKETS_WITH_CALLBACKS];
 
 static const wiced_result_t netx_returns[] =
 {
@@ -134,6 +151,67 @@ static const wiced_result_t netx_returns[] =
  *               Function Definitions
  ******************************************************/
 
+wiced_result_t wiced_tcp_server_start( wiced_tcp_server_t* tcp_server, wiced_interface_t interface, uint16_t port, wiced_socket_callback_t connect_callback, wiced_socket_callback_t receive_callback, wiced_socket_callback_t disconnect_callback)
+{
+    int socket_index;
+    wiced_result_t status;
+
+    tcp_server->interface = interface;
+    tcp_server->port      = port;
+
+    for (socket_index=0; socket_index < WICED_MAXIMUM_NUMBER_OF_SERVER_SOCKETS; socket_index++ )
+    {
+        WICED_VERIFY ( wiced_tcp_create_socket ( &tcp_server->socket[socket_index], interface ) );
+
+        WICED_VERIFY ( wiced_tcp_register_callbacks( &tcp_server->socket[socket_index], connect_callback, receive_callback, disconnect_callback ) );
+
+    }
+
+    /* start server listen */
+    status = nx_tcp_server_socket_listen( tcp_server->socket[0].socket.nx_tcp_socket_ip_ptr, tcp_server->port, &tcp_server->socket[0].socket, WICED_DEFAULT_TCP_LISTEN_QUEUE_SIZE, internal_tcp_listen_callback );
+
+    return status;
+}
+
+wiced_result_t wiced_tcp_server_accept( wiced_tcp_server_t* tcp_server, wiced_tcp_socket_t* socket )
+{
+    wiced_result_t result;
+
+    result = wiced_tcp_accept( socket );
+
+    internal_wiced_tcp_server_listen( tcp_server );
+
+    return result;
+}
+
+wiced_result_t wiced_tcp_server_disconnect_socket( wiced_tcp_server_t* tcp_server, wiced_tcp_socket_t* socket)
+{
+    UINT result;
+
+    if ( socket->socket.nx_tcp_socket_state <= NX_TCP_CLOSE_WAIT )
+    {
+       nx_tcp_socket_disconnect( &socket->socket, NX_NO_WAIT);
+    }
+
+    nx_tcp_server_socket_unaccept( &socket->socket );
+
+    result = internal_wiced_tcp_server_listen( tcp_server );
+
+    return result;
+}
+
+wiced_result_t wiced_tcp_server_stop( wiced_tcp_server_t* tcp_server )
+{
+    int i;
+
+    for ( i = 0; i < WICED_MAXIMUM_NUMBER_OF_SERVER_SOCKETS; i++ )
+    {
+        wiced_tcp_delete_socket( &tcp_server->socket[ i ] );
+        tcp_sockets_with_callbacks[ i ] = NULL;
+    }
+    return WICED_SUCCESS;
+}
+
 wiced_result_t wiced_tcp_create_socket( wiced_tcp_socket_t* socket, wiced_interface_t interface )
 {
     UINT result;
@@ -141,6 +219,7 @@ wiced_result_t wiced_tcp_create_socket( wiced_tcp_socket_t* socket, wiced_interf
     memset( socket, 0, sizeof(wiced_tcp_socket_t) );
     result = nx_tcp_socket_create( &IP_HANDLE(interface), &socket->socket, (CHAR*)"", NX_IP_NORMAL, NX_FRAGMENT_OKAY, NX_IP_TIME_TO_LIVE, WICED_TCP_WINDOW_SIZE, NX_NULL, NX_NULL );
     wiced_assert("Error creating socket", result == NX_SUCCESS);
+    nx_tcp_socket_transmit_configure(&socket->socket, WICED_TCP_TX_DEPTH_QUEUE, WICED_TCP_SEND_TIMEOUT/WICED_TCP_TX_RETRIES, WICED_TCP_TX_RETRIES, 0);
     return netx_returns[result];
 }
 
@@ -150,43 +229,58 @@ wiced_result_t wiced_tcp_accept( wiced_tcp_socket_t* socket )
 
     WICED_LINK_CHECK( socket->socket.nx_tcp_socket_ip_ptr );
 
-    if ( socket->socket.nx_tcp_socket_state != NX_TCP_LISTEN_STATE )
+    if ( socket->callbacks[WICED_TCP_CONNECT_CALLBACK_INDEX] == NULL )
     {
-        nx_tcp_socket_disconnect( &socket->socket, NX_TIMEOUT(WICED_TCP_DISCONNECT_TIMEOUT) );
-    }
-
-    nx_tcp_server_socket_unaccept( &socket->socket );
-    nx_tcp_server_socket_relisten( socket->socket.nx_tcp_socket_ip_ptr, socket->socket.nx_tcp_socket_port, &socket->socket );
-
-#ifndef WICED_DISABLE_TLS
-    if ( socket->tls_context != NULL )
-    {
-        wiced_tls_reset_context( socket->tls_context);
-    }
-#endif /* ifndef WICED_DISABLE_TLS */
-
-    result = nx_tcp_server_socket_accept( &socket->socket, NX_TIMEOUT(WICED_TCP_ACCEPT_TIMEOUT) );
-    if ( ( result == NX_NOT_CONNECTED ) || ( result == NX_WAIT_ABORTED ) )
-    {
-        return netx_returns[result];
-    }
-    else if ( result != NX_SUCCESS )
-    {
-        WPRINT_LIB_INFO( ( "Error accepting connection\n" ) );
-        return netx_returns[result];
-    }
-
-#ifndef WICED_DISABLE_TLS
-    if ( socket->tls_context != NULL )
-    {
-        result = wiced_tcp_start_tls( socket, WICED_TLS_AS_SERVER, WICED_TLS_DEFAULT_VERIFICATION );
-        if ( result != WICED_SUCCESS )
+        if ( socket->socket.nx_tcp_socket_state != NX_TCP_LISTEN_STATE )
         {
-            WPRINT_LIB_INFO( ( "Error starting TLS connection\n" ) );
-            return result;
+            nx_tcp_socket_disconnect( &socket->socket, NX_TIMEOUT(WICED_TCP_DISCONNECT_TIMEOUT) );
         }
-    }
+
+        nx_tcp_server_socket_unaccept( &socket->socket );
+        nx_tcp_server_socket_relisten( socket->socket.nx_tcp_socket_ip_ptr, socket->socket.nx_tcp_socket_port, &socket->socket );
+
+#ifndef WICED_DISABLE_TLS
+        if ( socket->tls_context != NULL )
+        {
+            wiced_tls_reset_context( socket->tls_context );
+        }
 #endif /* ifndef WICED_DISABLE_TLS */
+
+        result = nx_tcp_server_socket_accept( &socket->socket, NX_TIMEOUT(WICED_TCP_ACCEPT_TIMEOUT) );
+        if ( ( result == NX_NOT_CONNECTED ) || ( result == NX_WAIT_ABORTED ) )
+        {
+            return netx_returns[result];
+        }
+        else if ( result != NX_SUCCESS )
+        {
+            WPRINT_LIB_INFO( ( "Error accepting connection\n" ) );
+            return netx_returns[result];
+        }
+
+#ifndef WICED_DISABLE_TLS
+        if ( socket->tls_context != NULL )
+        {
+            result = wiced_tcp_start_tls( socket, WICED_TLS_AS_SERVER, WICED_TLS_DEFAULT_VERIFICATION );
+            if ( result != WICED_SUCCESS )
+            {
+                WPRINT_LIB_INFO( ( "Error starting TLS connection\n" ) );
+                return netx_returns[result];
+            }
+        }
+#endif /* ifndef WICED_DISABLE_TLS */
+    }
+    else
+    {
+        if ( ( socket->socket.nx_tcp_socket_state == NX_TCP_LISTEN_STATE ) ||( socket->socket.nx_tcp_socket_state == NX_TCP_SYN_RECEIVED ) )
+        {
+        result = nx_tcp_server_socket_accept( &socket->socket, NX_NO_WAIT );
+        }
+        else
+        {
+            return WICED_ERROR;
+        }
+        return netx_returns[result];
+    }
 
     return WICED_TCPIP_SUCCESS;
 }
@@ -229,6 +323,46 @@ wiced_result_t wiced_tcp_connect( wiced_tcp_socket_t* socket, const wiced_ip_add
     return WICED_TCPIP_SUCCESS;
 }
 
+wiced_result_t wiced_tcp_register_callbacks( wiced_tcp_socket_t* socket, wiced_socket_callback_t connect_callback, wiced_socket_callback_t receive_callback, wiced_socket_callback_t disconnect_callback )
+{
+    int a;
+
+    /* Add the socket to the list of sockets with callbacks */
+    for ( a = 0; a < WICED_MAXIMUM_NUMBER_OF_SOCKETS_WITH_CALLBACKS; ++a )
+    {
+        if ( tcp_sockets_with_callbacks[a] == socket || tcp_sockets_with_callbacks[a] == NULL )
+        {
+            tcp_sockets_with_callbacks[a] = socket;
+            break;
+        }
+    }
+
+    if ( a == WICED_MAXIMUM_NUMBER_OF_SOCKETS_WITH_CALLBACKS )
+    {
+        return WICED_ERROR;
+    }
+
+    if ( disconnect_callback != NULL )
+    {
+        socket->callbacks[WICED_TCP_DISCONNECT_CALLBACK_INDEX] = disconnect_callback;
+        socket->socket.nx_tcp_disconnect_callback =  internal_tcp_socket_disconnect_callback;
+    }
+
+    if ( receive_callback != NULL )
+    {
+        socket->callbacks[WICED_TCP_RECEIVE_CALLBACK_INDEX] = receive_callback;
+        nx_tcp_socket_receive_notify( &socket->socket, internal_tcp_socket_receive_callback );
+    }
+
+    if ( connect_callback != NULL )
+    {
+        socket->callbacks[WICED_TCP_CONNECT_CALLBACK_INDEX] = connect_callback;
+        /* Note: Link to NetX_Duo callback mechanism is configured in wiced_tcp_listen() */
+    }
+
+    return WICED_SUCCESS;
+}
+
 wiced_result_t wiced_tcp_bind( wiced_tcp_socket_t* socket, uint16_t port )
 {
     UINT result;
@@ -238,12 +372,13 @@ wiced_result_t wiced_tcp_bind( wiced_tcp_socket_t* socket, uint16_t port )
     return netx_returns[result];
 }
 
-
 wiced_result_t wiced_tcp_delete_socket( wiced_tcp_socket_t* socket )
 {
 #ifndef WICED_DISABLE_TLS
     if ( socket->tls_context != NULL )
     {
+        wiced_tls_close_notify( socket );
+
         wiced_tls_deinit_context( socket->tls_context );
 
         if ( socket->context_malloced == WICED_TRUE )
@@ -266,9 +401,46 @@ wiced_result_t wiced_tcp_delete_socket( wiced_tcp_socket_t* socket )
 wiced_result_t wiced_tcp_listen( wiced_tcp_socket_t* socket, uint16_t port )
 {
     UINT result;
+
+    tcp_listen_callback_t listen_callback = NULL;
+    struct NX_TCP_LISTEN_STRUCT* listen_ptr;
     WICED_LINK_CHECK( socket->socket.nx_tcp_socket_ip_ptr );
 
-    result = nx_tcp_server_socket_listen( socket->socket.nx_tcp_socket_ip_ptr, port, &socket->socket, 5, NULL );
+    UNUSED_PARAMETER( result );
+
+    /* Check if there is already another socket listening on the port */
+    listen_ptr = socket->socket.nx_tcp_socket_ip_ptr->nx_ip_tcp_active_listen_requests;
+    if ( listen_ptr != NULL )
+    {
+        /* Search the active listen requests for this port. */
+        do
+        {
+            /* Determine if there is another listen request for the same port. */
+            if ( listen_ptr->nx_tcp_listen_port == port )
+            {
+                /* Do a re-listen instead of a listen */
+                result = nx_tcp_server_socket_relisten( socket->socket.nx_tcp_socket_ip_ptr, port, &socket->socket );
+                return netx_returns[result];
+            }
+            listen_ptr = listen_ptr->nx_tcp_listen_next;
+        } while ( listen_ptr != socket->socket.nx_tcp_socket_ip_ptr->nx_ip_tcp_active_listen_requests);
+    }
+
+    /* Check if this socket has an asynchronous connect callback */
+    if (socket->callbacks[WICED_TCP_CONNECT_CALLBACK_INDEX] != NULL)
+    {
+        listen_callback = internal_tcp_listen_callback;
+    }
+
+    if (socket->socket.nx_tcp_socket_state != NX_TCP_CLOSED)
+    {
+        nx_tcp_server_socket_unaccept( &socket->socket );
+        result = nx_tcp_server_socket_relisten( socket->socket.nx_tcp_socket_ip_ptr, socket->socket.nx_tcp_socket_port, &socket->socket );
+    }
+    else
+    {
+        result = nx_tcp_server_socket_listen( socket->socket.nx_tcp_socket_ip_ptr, port, &socket->socket, WICED_DEFAULT_TCP_LISTEN_QUEUE_SIZE, listen_callback );
+    }
     return netx_returns[result];
 }
 
@@ -366,10 +538,22 @@ wiced_result_t wiced_tcp_disconnect( wiced_tcp_socket_t* socket )
     UINT result;
     WICED_LINK_CHECK( socket->socket.nx_tcp_socket_ip_ptr );
 
-    result = nx_tcp_socket_disconnect( &socket->socket, NX_TIMEOUT(WICED_TCP_DISCONNECT_TIMEOUT) );
+    if ( socket->tls_context != NULL )
+    {
+        wiced_tls_close_notify( socket );
+    }
+
+    nx_tcp_socket_disconnect( &socket->socket, NX_TIMEOUT(WICED_TCP_DISCONNECT_TIMEOUT ) );
+    if ( socket->socket.nx_tcp_socket_client_type == NX_TRUE)
+    {
     /* Un-bind the socket, so the TCP port becomes available for other sockets which are suspended on bind requests. This will also flush the receive queue of the socket */
     /* We ignore the return of the unbind as there isn't much we can do */
-    nx_tcp_client_socket_unbind( &socket->socket );
+        result = nx_tcp_client_socket_unbind( &socket->socket );
+    }
+    else
+    {
+        result = nx_tcp_server_socket_unaccept( &socket->socket );
+    }
 
     return netx_returns[result];
 }
@@ -391,22 +575,16 @@ wiced_result_t wiced_packet_create_tcp( wiced_tcp_socket_t* socket, uint16_t con
     }
 
 #ifndef WICED_DISABLE_TLS
-    if ( socket->tls_context != NULL && socket->tls_context->context.state == SSL_HANDSHAKE_OVER )
+    if ( socket->tls_context != NULL )
     {
-        uint32_t tls_available_space;
+        uint16_t header_space;
+        uint16_t footer_pad_space;
 
-        /* Reserve space for the TLS record header */
-        ( *packet )->nx_packet_prepend_ptr += sizeof(tls_record_header_t);
+        wiced_tls_calculate_overhead( &socket->tls_context->context, content_length, &header_space, &footer_pad_space );
 
-        /* Reserve space at the end for the TLS MAC */
-        tls_available_space  = (uint32_t)MIN((*packet)->nx_packet_data_end - (*packet)->nx_packet_prepend_ptr, maximum_segment_size);
-        tls_available_space -= sizeof(tls_record_header_t);
-        if ( socket->tls_context->context.ivlen != 0 )
-        {
-            tls_available_space -= tls_available_space % (uint32_t) socket->tls_context->context.ivlen;
-        }
-        tls_available_space -= (uint32_t) socket->tls_context->context.maclen + 40;
-        *available_space     = (uint16_t) tls_available_space;
+        ( *packet )->nx_packet_prepend_ptr += header_space;
+
+        *available_space  = (uint16_t)( MIN((*packet)->nx_packet_data_end - (*packet)->nx_packet_prepend_ptr, maximum_segment_size) - footer_pad_space );
     }
     else
 #endif /* ifndef WICED_DISABLE_TLS */
@@ -424,6 +602,8 @@ wiced_result_t wiced_tcp_stream_init( wiced_tcp_stream_t* tcp_stream, wiced_tcp_
     tcp_stream->tx_packet = NULL;
     tcp_stream->rx_packet = NULL;
     tcp_stream->socket    = socket;
+    tcp_stream->use_custom_tcp_stream     = WICED_FALSE;
+    tcp_stream->tcp_stream_write_callback = NULL;
     return WICED_TCPIP_SUCCESS;
 }
 
@@ -440,6 +620,9 @@ wiced_result_t wiced_tcp_stream_deinit( wiced_tcp_stream_t* tcp_stream )
     tcp_stream->tx_packet = NULL;
     tcp_stream->rx_packet = NULL;
     tcp_stream->socket    = NULL;
+    tcp_stream->use_custom_tcp_stream     = WICED_FALSE;
+    tcp_stream->tcp_stream_write_callback = NULL;
+
     return WICED_TCPIP_SUCCESS;
 }
 
@@ -450,6 +633,12 @@ wiced_result_t wiced_tcp_stream_write( wiced_tcp_stream_t* tcp_stream, const voi
 
     WICED_LINK_CHECK( tcp_stream->socket->socket.nx_tcp_socket_ip_ptr );
 
+    if( tcp_stream->use_custom_tcp_stream )
+    {
+        tcp_stream->tcp_stream_write_callback( tcp_stream, data, data_length );
+    }
+    else
+    {
     while ( data_length != 0 )
     {
         uint16_t amount_to_write;
@@ -458,7 +647,7 @@ wiced_result_t wiced_tcp_stream_write( wiced_tcp_stream_t* tcp_stream, const voi
         if ( tcp_stream->tx_packet == NULL )
         {
             result = wiced_packet_create_tcp( tcp_stream->socket, (uint16_t) MIN( data_length, 0xffff ), &tcp_stream->tx_packet, &tcp_stream->tx_packet_data , &tcp_stream->tx_packet_space_available );
-            if ( result != WICED_SUCCESS )
+                if ( result != WICED_TCPIP_SUCCESS )
             {
                 return result;
             }
@@ -483,7 +672,7 @@ wiced_result_t wiced_tcp_stream_write( wiced_tcp_stream_t* tcp_stream, const voi
             tcp_stream->tx_packet_data            = NULL;
             tcp_stream->tx_packet_space_available = 0;
 
-            if ( result != WICED_SUCCESS )
+                if ( result != WICED_TCPIP_SUCCESS )
             {
                 wiced_packet_delete( tcp_stream->tx_packet );
                 tcp_stream->tx_packet = NULL;
@@ -491,6 +680,7 @@ wiced_result_t wiced_tcp_stream_write( wiced_tcp_stream_t* tcp_stream, const voi
             }
 
             tcp_stream->tx_packet = NULL;
+            }
         }
     }
     return WICED_TCPIP_SUCCESS;
@@ -512,7 +702,7 @@ wiced_result_t wiced_tcp_stream_read( wiced_tcp_stream_t* tcp_stream, void* buff
         {
             wiced_result_t result;
             result = wiced_tcp_receive(tcp_stream->socket, &tcp_stream->rx_packet, timeout );
-            if ( result != WICED_SUCCESS)
+            if ( result != WICED_TCPIP_SUCCESS)
             {
                 return result;
             }
@@ -558,7 +748,7 @@ wiced_result_t wiced_tcp_stream_flush( wiced_tcp_stream_t* tcp_stream )
 
         tcp_stream->tx_packet_data            = NULL;
         tcp_stream->tx_packet_space_available = 0;
-        if ( result != WICED_SUCCESS )
+        if ( result != WICED_TCPIP_SUCCESS )
         {
             wiced_packet_delete( tcp_stream->tx_packet );
         }
@@ -789,38 +979,6 @@ wiced_result_t wiced_multicast_leave( wiced_interface_t interface, const wiced_i
     return WICED_TCPIP_SUCCESS;
 }
 
-/*
- ******************************************************************************
- * Convert an ipv4 string to a uint32_t.
- *
- * @param     arg  The string containing the value.
- *
- * @return    The value represented by the string.
- */
-static uint32_t str_to_ipv4( const char* arg )
-{
-    uint32_t addr = 0;
-    uint8_t num = 0;
-
-    arg--;
-
-    do
-    {
-        addr = addr << 8;
-        addr += (uint32_t) atoi( ++arg );
-        while ( ( *arg != '\x00' ) && ( *arg != '.' ) )
-        {
-            arg++;
-        }
-        num++;
-    } while ( ( num < 4 ) && ( *arg != '\x00' ) );
-    if ( num < 4 )
-    {
-        return 0;
-    }
-    return addr;
-}
-
 wiced_result_t wiced_hostname_lookup( const char* hostname, wiced_ip_address_t* address, uint32_t timeout_ms )
 {
     WICED_LINK_CHECK( &IP_HANDLE( WICED_STA_INTERFACE ) );
@@ -866,7 +1024,6 @@ wiced_result_t wiced_ping( wiced_interface_t interface, const wiced_ip_address_t
     }
 }
 
-
 wiced_result_t wiced_ip_get_gateway_address( wiced_interface_t interface, wiced_ip_address_t* ipv4_address )
 {
     SET_IPV4_ADDRESS( *ipv4_address, IP_HANDLE(interface).nx_ip_gateway_address );
@@ -894,4 +1051,121 @@ wiced_result_t wiced_tcp_server_peer( wiced_tcp_socket_t* socket, wiced_ip_addre
     }
 
     return netx_returns[result];
+}
+
+wiced_result_t wiced_tcp_server_add_tls( wiced_tcp_server_t* tcp_server, wiced_tls_advanced_context_t* context, const char* server_cert, const char* server_key )
+{
+    int i;
+    wiced_tls_init_advanced_context( context, server_cert, server_key );
+    for ( i = 0; i < WICED_MAXIMUM_NUMBER_OF_SERVER_SOCKETS; i++ )
+    {
+        wiced_tcp_enable_tls( &tcp_server->socket[ i ], context );
+    }
+    return WICED_SUCCESS;
+}
+
+/******************************************************
+ *            Static Function Definitions
+ ******************************************************/
+
+/*
+ ******************************************************************************
+ * Convert an ipv4 string to a uint32_t.
+ *
+ * @param     arg  The string containing the value.
+ *
+ * @return    The value represented by the string.
+ */
+static uint32_t str_to_ipv4( const char* arg )
+{
+    uint32_t addr = 0;
+    uint8_t num = 0;
+
+    arg--;
+
+    do
+    {
+        addr = addr << 8;
+        addr += (uint32_t) atoi( ++arg );
+        while ( ( *arg != '\x00' ) && ( *arg != '.' ) )
+        {
+            arg++;
+        }
+        num++;
+    } while ( ( num < 4 ) && ( *arg != '\x00' ) );
+    if ( num < 4 )
+    {
+        return 0;
+    }
+    return addr;
+}
+
+static VOID internal_tcp_listen_callback(NX_TCP_SOCKET *socket_ptr, UINT port)
+{
+    UNUSED_PARAMETER(port);
+    internal_common_tcp_callback( socket_ptr, WICED_TCP_CONNECT_CALLBACK_INDEX );
+}
+
+static void internal_common_tcp_callback( struct NX_TCP_SOCKET_STRUCT *socket_ptr, wiced_tcp_callback_index_t callback )
+{
+    int a;
+
+    /* Find the registered socket and tell the Network Worker thread to run the callback */
+    for ( a = 0; a < WICED_MAXIMUM_NUMBER_OF_SOCKETS_WITH_CALLBACKS; ++a )
+    {
+        if ( &tcp_sockets_with_callbacks[a]->socket == socket_ptr )
+        {
+            wiced_rtos_send_asynchronous_event( WICED_NETWORKING_WORKER_THREAD, tcp_sockets_with_callbacks[a]->callbacks[callback], tcp_sockets_with_callbacks[a] );
+            break;
+        }
+    }
+}
+
+static wiced_result_t internal_wiced_tcp_server_listen( wiced_tcp_server_t* tcp_server )
+{
+    int            i;
+    wiced_result_t status;
+    int            free_socket_index = -1;
+
+    /* Find a socket that is either listening or free to listen */
+    for ( i = 0; i < WICED_MAXIMUM_NUMBER_OF_SERVER_SOCKETS; i++ )
+    {
+        if ( tcp_server->socket[ i ].socket.nx_tcp_socket_state == NX_TCP_LISTEN_STATE )
+        {
+            return WICED_SUCCESS;
+        }
+        else if ( tcp_server->socket[ i ].socket.nx_tcp_socket_state == NX_TCP_CLOSED )
+        {
+            free_socket_index = i;
+        }
+        else if ( tcp_server->socket[ i ].socket.nx_tcp_socket_state == NX_TCP_CLOSE_WAIT )
+        {
+            nx_tcp_socket_disconnect( &tcp_server->socket[ i ].socket, NX_NO_WAIT );
+        }
+    }
+
+    /* Check if we didn't find a free socket */
+    if ( free_socket_index == -1 )
+    {
+        return WICED_ERROR;
+    }
+
+    status = nx_tcp_server_socket_relisten( tcp_server->socket[ free_socket_index ].socket.nx_tcp_socket_ip_ptr, tcp_server->port, &tcp_server->socket[ free_socket_index ].socket );
+
+    if ( status == NX_ALREADY_BOUND )
+    {
+        nx_tcp_server_socket_unaccept( &tcp_server->socket[ free_socket_index ].socket );
+        status = nx_tcp_server_socket_relisten( tcp_server->socket[ free_socket_index ].socket.nx_tcp_socket_ip_ptr, tcp_server->port, &tcp_server->socket[ free_socket_index ].socket );
+    }
+    return netx_returns[ status ];
+}
+
+static void internal_tcp_socket_disconnect_callback( struct NX_TCP_SOCKET_STRUCT *socket_ptr )
+{
+    internal_common_tcp_callback( socket_ptr, WICED_TCP_DISCONNECT_CALLBACK_INDEX );
+}
+
+static void internal_tcp_socket_receive_callback( struct NX_TCP_SOCKET_STRUCT *socket_ptr )
+{
+    internal_common_tcp_callback( socket_ptr, WICED_TCP_RECEIVE_CALLBACK_INDEX );
 }

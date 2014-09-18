@@ -14,13 +14,10 @@
 extern "C" {
 #endif
 
-
+/******************************************************
+ *                     Macros
+ ******************************************************/
 #ifdef CONSOLE_ENABLE_WPS
-
-extern int join_wps( int argc, char* argv[] );
-extern int start_registrar( int argc, char* argv[] );
-extern int force_alignment( int argc, char* argv[] );
-extern int stop_registrar( int argc, char* argv[] );
 
 #define WPS_COMMANDS \
     { (char*) "force_alignment",  force_alignment, 0, DELIMIT, NULL, (char*) "", (char*) "Force aligned memory accesses"}, \
@@ -31,6 +28,36 @@ extern int stop_registrar( int argc, char* argv[] );
 #else /* ifdef CONSOLE_ENABLE_WPS */
 #define WPS_COMMANDS
 #endif /* ifdef CONSOLE_ENABLE_WPS */
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+int join_wps( int argc, char* argv[] );
+int start_registrar( int argc, char* argv[] );
+int force_alignment( int argc, char* argv[] );
+int stop_registrar( int argc, char* argv[] );
+wiced_result_t enable_ap_registrar_events( void );
+void disable_ap_registrar_events( void );
 
 #ifdef __cplusplus
 } /*extern "C" */

@@ -56,8 +56,7 @@
 #define BCM_MSG_IFNAME_MAX            (16)      /** Maximum length of an interface name in a wl_event_msg_t structure*/
 
 /* QoS related definitions (type of service) */
-#define IPV4_TOS_OFFSET               (15)      /** Offset for finding the TOS field in an IPv4 header */
-#define TOS_MASK                    (0x07)      /** Mask for extracting priority the bits (IPv4 or IPv6) */
+#define IPV4_DSCP_OFFSET              (15)      /** Offset for finding the DSCP field in an IPv4 header */
 
 /* CDC flag definitions taken from bcmcdc.h */
 #define CDCF_IOC_ERROR              (0x01)      /** 0=success, 1=ioctl cmd failed */
@@ -246,28 +245,30 @@ typedef struct
  ******************************************************/
 
 /* Event list variables */
-static sdpcm_event_list_elem_t               wwd_sdpcm_event_list[WWD_EVENT_HANDLER_LIST_SIZE];
+static sdpcm_event_list_elem_t  wwd_sdpcm_event_list[WWD_EVENT_HANDLER_LIST_SIZE];
 
 /* IOCTL variables*/
-static uint16_t                              wwd_sdpcm_requested_ioctl_id;
-static host_semaphore_type_t                 wwd_sdpcm_ioctl_mutex;
-static /*@only@*/ wiced_buffer_t             wwd_sdpcm_ioctl_response;
-static host_semaphore_type_t                 wwd_sdpcm_ioctl_sleep;
-static uint32_t                              wwd_sdpcm_ioctl_abort_count                = 0;
+static uint16_t                  wwd_sdpcm_requested_ioctl_id;
+static host_semaphore_type_t     wwd_sdpcm_ioctl_mutex;
+static /*@only@*/ wiced_buffer_t wwd_sdpcm_ioctl_response;
+static host_semaphore_type_t     wwd_sdpcm_ioctl_sleep;
+static uint32_t                  wwd_sdpcm_ioctl_abort_count = 0;
 
 /* Bus data credit variables */
-static uint8_t                               wwd_sdpcm_packet_transmit_sequence_number;
-static uint8_t                               wwd_sdpcm_highest_rx_tos                   = 0;
-static uint8_t                               wwd_sdpcm_last_bus_data_credit             = (uint8_t) 0;
-static uint8_t                               wwd_sdpcm_credit_diff                      = 0;
-static uint8_t                               wwd_sdpcm_largest_credit_diff              = 0;
+static uint8_t wwd_sdpcm_packet_transmit_sequence_number;
+static uint8_t wwd_sdpcm_last_bus_data_credit    = 0;
+static uint8_t wwd_sdpcm_credit_diff             = 0;
+static uint8_t wwd_sdpcm_largest_credit_diff     = 0;
+
+/* QoS related variables */
+static uint8_t wwd_sdpcm_highest_rx_tos = 0;
 
 /* Packet send queue variables */
 static host_semaphore_type_t                 wwd_sdpcm_send_queue_mutex;
-static wiced_buffer_t /*@owned@*/ /*@null@*/ wwd_sdpcm_send_queue_head                  = (wiced_buffer_t) NULL;
-static wiced_buffer_t /*@owned@*/ /*@null@*/ wwd_sdpcm_send_queue_tail                  = (wiced_buffer_t) NULL;
+static wiced_buffer_t /*@owned@*/ /*@null@*/ wwd_sdpcm_send_queue_head   = (wiced_buffer_t) NULL;
+static wiced_buffer_t /*@owned@*/ /*@null@*/ wwd_sdpcm_send_queue_tail   = (wiced_buffer_t) NULL;
 
-static wwd_wifi_raw_packet_processor_t       wwd_sdpcm_raw_packet_processor             = NULL;
+static wwd_wifi_raw_packet_processor_t       wwd_sdpcm_raw_packet_processor = NULL;
 
 /******************************************************
  *             SDPCM Logging
@@ -326,7 +327,8 @@ static void add_sdpcm_log_entry( sdpcm_log_direction_t dir, sdpcm_log_type_t typ
 
 static wiced_buffer_t wwd_sdpcm_get_next_buffer_in_queue ( wiced_buffer_t buffer );
 static void           wwd_sdpcm_set_next_buffer_in_queue ( wiced_buffer_t buffer, wiced_buffer_t prev_buffer );
-static void           wwd_sdpcm_send_common        ( /*@only@*/ wiced_buffer_t buffer, sdpcm_header_type_t header_type );
+static void           wwd_sdpcm_send_common              ( /*@only@*/ wiced_buffer_t buffer, sdpcm_header_type_t header_type );
+static uint8_t        wwd_map_dscp_to_priority           ( uint8_t dscp_val );
 
 /******************************************************
  *             Function definitions
@@ -462,9 +464,18 @@ wwd_result_t wwd_sdpcm_send_iovar( sdpcm_command_type_t type, /*@only@*/ wiced_b
 void wwd_network_send_ethernet_data( /*@only@*/ wiced_buffer_t buffer, wwd_interface_t interface ) /* Returns immediately - Wiced_buffer_tx_completed will be called once the transmission has finished */
 {
     sdpcm_data_header_t* packet;
-    wwd_result_t result;
+    wwd_result_t         result;
+    uint8_t* dscp = NULL;
+    uint8_t priority = 0;
     static const int32_t packet_overhead = (int32_t) ( sizeof( sdpcm_common_header_t ) + sizeof ( uint8_t ) * 2 + sizeof ( sdpcm_bdc_header_t ) );
-    uint8_t* tos = (uint8_t*)host_buffer_get_current_piece_data_pointer( buffer ) + IPV4_TOS_OFFSET;
+    sdpcm_ethernet_header_t* ethernet_header = (sdpcm_ethernet_header_t*)host_buffer_get_current_piece_data_pointer( buffer );
+    uint16_t ether_type;
+
+    ether_type = NTOH16( ethernet_header->ethertype );
+    if ( ether_type == WICED_ETHERTYPE_IPv4 )
+    {
+        dscp = (uint8_t*)host_buffer_get_current_piece_data_pointer( buffer ) + IPV4_DSCP_OFFSET;
+    }
 
     add_sdpcm_log_entry( LOG_TX, DATA, host_buffer_get_current_piece_size( buffer ), (char*) host_buffer_get_current_piece_data_pointer( buffer ) );
 
@@ -480,7 +491,6 @@ void wwd_network_send_ethernet_data( /*@only@*/ wiced_buffer_t buffer, wwd_inter
         return;
     }
 
-
     packet = (sdpcm_data_header_t*) host_buffer_get_current_piece_data_pointer( buffer );
 
     if ( ( interface != WWD_STA_INTERFACE ) &&
@@ -494,9 +504,27 @@ void wwd_network_send_ethernet_data( /*@only@*/ wiced_buffer_t buffer, wwd_inter
     /* Prepare the BDC header */
     packet->bdc_header.flags = 0;
     packet->bdc_header.flags = (uint8_t) ( BDC_PROTO_VER << BDC_FLAG_VER_SHIFT );
-    packet->bdc_header.priority = *tos & TOS_MASK;
     packet->bdc_header.flags2 = (uint8_t) ( (interface == WWD_STA_INTERFACE)?CHIP_STA_INTERFACE:CHIP_AP_INTERFACE );
     packet->bdc_header.data_offset = 0;
+
+    /* If it's an IPv4 packet set the BDC header priority based on the DSCP field */
+    if ( ( ether_type == WICED_ETHERTYPE_IPv4 ) && ( dscp != NULL ) )
+    {
+        if ( *dscp != 0 ) /* If it's equal 0 then it's best effort traffic and nothing needs to be done */
+        {
+            priority = wwd_map_dscp_to_priority( *dscp );
+        }
+    }
+
+    /* If it's for the STA interface then re-map priority to the priority allowed by the AP, regardless of whether it's an IPv4 packet */
+    if ( interface == WWD_STA_INTERFACE )
+    {
+        packet->bdc_header.priority = wwd_tos_map[ priority ];
+    }
+    else
+    {
+        packet->bdc_header.priority = priority;
+    }
 
     /* Add the length of the BDC header and pass "down" */
     wwd_sdpcm_send_common( buffer, DATA_HEADER );
@@ -985,7 +1013,7 @@ wwd_result_t wwd_management_set_event_handler( /*@keep@*/ const wwd_event_num_t*
     }
 
     /* Send the new event mask value to the wifi chip */
-    data = (uint32_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 16 + 4, IOVAR_STR_BSSCFG_EVENT_MSGS );
+    data = (uint32_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) WL_EVENTING_MASK_LEN + 4, IOVAR_STR_BSSCFG_EVENT_MSGS );
     if ( data == NULL )
     {
         return WWD_BUFFER_UNAVAILABLE_PERMANENT;
@@ -995,10 +1023,10 @@ wwd_result_t wwd_management_set_event_handler( /*@keep@*/ const wwd_event_num_t*
     event_mask = (uint8_t*)&data[1];
 
     /* Keep the wlan awake while we set the event_msgs */
-    ++wwd_wlan_status.keep_wlan_awake;
+    WWD_WLAN_KEEP_AWAKE( );
 
     /* Set the event bits for each event from every handler */
-    memset( event_mask, 0, (size_t) 16 );
+    memset( event_mask, 0, (size_t) WL_EVENTING_MASK_LEN );
     for ( i = 0; i < (uint16_t) WWD_EVENT_HANDLER_LIST_SIZE; i++ )
     {
         if ( wwd_sdpcm_event_list[i].events != NULL )
@@ -1012,7 +1040,7 @@ wwd_result_t wwd_management_set_event_handler( /*@keep@*/ const wwd_event_num_t*
     res = wwd_sdpcm_send_iovar( SDPCM_SET, buffer, 0, WWD_STA_INTERFACE );
 
     /* The wlan chip can sleep from now on */
-    --wwd_wlan_status.keep_wlan_awake;
+    WWD_WLAN_LET_SLEEP( );
 
     return res;
 }
@@ -1132,9 +1160,9 @@ uint8_t wWd_sdpcm_get_available_credits( void )
  *
  * @return result code
  */
-wwd_result_t wwd_wifi_set_raw_packet_processor( wwd_wifi_raw_packet_processor_t func )
+wwd_result_t wwd_wifi_set_raw_packet_processor( wwd_wifi_raw_packet_processor_t function )
 {
-    wwd_sdpcm_raw_packet_processor = func;
+    wwd_sdpcm_raw_packet_processor = function;
     return WWD_SUCCESS;
 }
 
@@ -1226,4 +1254,42 @@ static void wwd_sdpcm_set_next_buffer_in_queue( wiced_buffer_t buffer, wiced_buf
 {
     wwd_buffer_header_t* packet = (wwd_buffer_header_t*) host_buffer_get_current_piece_data_pointer( prev_buffer );
     packet->queue_next = buffer;
+}
+
+
+
+/** Map a DSCP value from an IP header to a WMM QoS priority
+ *
+ * @param dscp_val : DSCP value from IP header
+ *
+ * @return wmm_qos : WMM priority
+ *
+ */
+static uint8_t wwd_map_dscp_to_priority( uint8_t val )
+{
+    uint8_t wmm_qos = 0;
+    uint8_t dscp_val = (uint8_t)(val >> 2); /* DSCP field is the first 6 bits of the second byte of an IPv4 header */
+
+    if ( dscp_val < 8 )        /* Best Effort traffic */
+    {
+        wmm_qos = 0;
+    }
+    else if ( dscp_val < 24 ) /* Background traffic */
+    {
+        wmm_qos = 1;
+    }
+    else if ( dscp_val < 32 ) /* Best Effort traffic again */
+    {
+        wmm_qos = 0;
+    }
+    else if ( dscp_val < 48 ) /* Video traffic */
+    {
+        wmm_qos = 5;
+    }
+    else if ( dscp_val < 64 ) /* Voice traffic */
+    {
+        wmm_qos = 7;
+    }
+
+    return wmm_qos;
 }

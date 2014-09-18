@@ -108,8 +108,8 @@ typedef struct
  */
 typedef struct
 {
-    uint8_t len;     /**< SSID length */
-    uint8_t val[32]; /**< SSID name (AP name)  */
+    uint8_t length;     /**< SSID length */
+    uint8_t value[32]; /**< SSID name (AP name)  */
 } wiced_ssid_t;
 
 /**

@@ -68,7 +68,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern uint32_t read_intstatus          ( void );
@@ -87,11 +87,12 @@ extern void     deinit_sddma            ( void );
 static void     boot_wlan               ( void );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_bool_t bus_is_up;
 static wiced_bool_t wwd_bus_flow_controlled;
+static uint32_t fake_backplane_window_addr = 0;
 
 /******************************************************
  *               Function Definitions
@@ -107,7 +108,7 @@ wwd_result_t wwd_bus_send_buffer( wiced_buffer_t buffer )
 
 extern resource_result_t resource_read( const resource_hnd_t* resource, uint32_t offset, uint32_t maxsize, uint32_t* size, void* buffer );
 
-static void  load_wlan_fw( void )
+wwd_result_t  wwd_bus_write_wifi_firmware_image( void )
 {
     uint32_t offset = 0;
     uint32_t total_size;
@@ -131,9 +132,10 @@ static void  load_wlan_fw( void )
      */
     write_reset_instruction( reset_inst );
 
+    return WWD_SUCCESS;
 }
 
-static void load_wlan_var( void )
+wwd_result_t wwd_bus_write_wifi_nvram_image( void )
 {
     uint32_t varsize, varaddr, ramsz, phys_size, varsizew;
     uint32_t wlan_mem_start_addr;
@@ -144,7 +146,6 @@ static void load_wlan_var( void )
     varsize = ROUNDUP(sizeof(wifi_nvram_image), 4);
 
     varaddr = (ramsz - 4) - varsize;
-    //WPRINT_WWD_DEBUG(("%s: varsize: %d, varaddr: %x, ram_base: %x\n", __FUNCTION__, varsize, varaddr, bus->dongle_ram_base));
 
     varaddr += wlan_mem_start_addr;
 
@@ -160,15 +161,21 @@ static void load_wlan_var( void )
     varsizew = (~varsizew << 16) | (varsizew & 0x0000FFFF);
     varsizew = htol32(varsizew);
     memcpy((uint8_t *)(phys_size - 4), (uint8_t*)&varsizew, 4);
+
+    return WWD_SUCCESS;
 }
 
 void boot_wlan( void )
 {
+#ifdef MFG_TEST_ALTERNATE_WLAN_DOWNLOAD
+    external_write_wifi_firmware_and_nvram_image( );
+#else
     /* Load wlan firmware from sflash */
-    load_wlan_fw();
+    wwd_bus_write_wifi_firmware_image();
 
     /* Load nvram from sflash */
-    load_wlan_var( );
+    wwd_bus_write_wifi_nvram_image( );
+#endif /* ifdef MFG_TEST_ALTERNATE_WLAN_DOWNLOAD */
 
     /* init wlan uart */
     init_wlan_uart();
@@ -185,6 +192,8 @@ wwd_result_t wwd_bus_init( void )
     wwd_result_t result;
     result = WWD_SUCCESS;
 
+    host_platform_power_wifi( WICED_FALSE );
+    host_platform_power_wifi( WICED_TRUE );
     setup_pre_wlan_download();
     boot_wlan();
 
@@ -289,7 +298,7 @@ wwd_result_t wwd_bus_ensure_is_up( void )
 
 wwd_result_t wwd_bus_allow_wlan_bus_to_sleep( void )
 {
-        return WWD_SUCCESS;
+    return WWD_SUCCESS;
 }
 
 wwd_result_t wwd_bus_set_flow_control( uint8_t value )
@@ -314,3 +323,37 @@ wwd_result_t wwd_bus_poke_wlan( void )
 {
     return WWD_SUCCESS;
 }
+
+
+wwd_result_t wwd_bus_set_backplane_window( uint32_t addr )
+{
+    /* No such thing as a backplane window on 4390 */
+    fake_backplane_window_addr = addr & (~((uint32_t)BACKPLANE_ADDRESS_MASK));
+    return WWD_SUCCESS;
+}
+
+wwd_result_t wwd_bus_transfer_bytes( wwd_bus_transfer_direction_t direction, wwd_bus_function_t function, uint32_t address, uint16_t size, /*@in@*/ /*@out@*/ wwd_transfer_bytes_packet_t* data )
+{
+    if ( function != BACKPLANE_FUNCTION )
+    {
+        wiced_assert( "Only backplane available on 4390", 0 != 0 );
+        return WWD_DOES_NOT_EXIST;
+    }
+
+    if ( direction == BUS_WRITE )
+    {
+        memcpy( (uint8_t *)(WLAN_ADDR + address + fake_backplane_window_addr), data->data, size );
+        if ( address == 0 )
+        {
+            uint32_t resetinst = *((uint32_t*)data->data);
+            write_reset_instruction( resetinst );
+        }
+    }
+    else
+    {
+        memcpy( data->data, (uint8_t *)(WLAN_ADDR + address + fake_backplane_window_addr), size );
+    }
+    return WWD_SUCCESS;
+}
+
+

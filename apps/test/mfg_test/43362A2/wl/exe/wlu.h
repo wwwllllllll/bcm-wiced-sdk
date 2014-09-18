@@ -65,9 +65,9 @@ extern int wl_cmd_help(void *wl, cmd_t *cmd_in, char **argv);
 /* functions for downloading firmware to a device via serial or other transport */
 #ifdef SERDOWNLOAD
 extern int dhd_init(void *dhd, cmd_t *cmd, char **argv);
-extern int dhd_download(void *dhd, cmd_t *cmd, char **argv);
 extern int hsic_download(void *dhd, cmd_t *cmd, char **argv);
 #endif /* SERDOWNLOAD */
+extern int dhd_download(void *dhd, cmd_t *cmd, char **argv);
 
 #ifdef BCMDLL
 #ifdef LOCAL
@@ -86,6 +86,7 @@ extern void raw_puts(const char *buf, void *dll_fd_out);
 #define	fputs(buf, stdout) raw_puts(buf, dll_fd_out)
 #endif /* BCMDLL */
 
+#define RAM_SIZE_43362 0x3C000
 #define RAM_SIZE_4325  0x60000
 #define RAM_SIZE_4329  0x48000
 #define RAM_SIZE_43291 0x60000

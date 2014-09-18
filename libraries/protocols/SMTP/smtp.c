@@ -17,6 +17,7 @@
 #include "wwd_debug.h"
 #include <string.h>
 #include <wiced_utilities.h>
+#include "base64.h"
 
 /******************************************************
  *                      Macros
@@ -61,11 +62,34 @@
 typedef enum
 {
     /* Successful outcomes */
-    SMTP_SERVICE_READY    = 220,
-    SMTP_AUTH_SUCCESSFUL  = 235,
-    SMTP_ACTION_COMPLETED = 250,
-    SMTP_MORE_INFO        = 334,
-    SMTP_START_MAIL_INPUT = 354,
+    SMTP_SERVICE_READY                      = 220,
+    SMTP_AUTH_SUCCESSFUL                    = 235,
+    SMTP_ACTION_COMPLETED                   = 250,
+    SMTP_MORE_INFO                          = 334,
+    SMTP_START_MAIL_INPUT                   = 354,
+    SMTP_OCTET_OFFSET_IS_TRANSACTION_OFFSET = 355,
+    SMTP_DOMAIN_SERVICE_UNAVAILABLE         = 421,
+    SMTP_PASSWORD_TRANSITION_NEEDED         = 432,
+    SMTP_ATRN_REQUEST_REFUSED               = 450,
+    SMTP_UNABLE_TO_PROCESS_ATRN_REQUEST     = 451,
+    SMTP_INSUFFICIENT_SYSTEM_STORAGE        = 452,
+    SMTP_NO_MAIL                            = 453,
+    SMTP_TLS_TEMPORARILY_UNAVAILABLE        = 454,
+    SMTP_UNABLE_TO_QUEUE_MESSAGES           = 458,
+    SMTP_NODE_NOT_ALLOWED                   = 459,
+    SMTP_COMMAND_NOT_RECOGNIZED             = 500,
+    SMTP_PARAMETERS_NOT_ALLOWED             = 501,
+    SMTP_COMMAND_NOT_IMPLEMENTED            = 502,
+    SMTP_BAD_COMMAND_SEQUENCE               = 503,
+    SMTP_PARAMETER_NOT_IMPLEMENTED          = 504,
+    SMTP_MACHINE_DOESNT_ACCEPT_MAIL         = 521,
+    SMTP_AUTHENTICATION_TOO_WEAK            = 534,
+    SMTP_ENCRYPTION_REQUIRED                = 538,
+    SMTP_MAILBOX_UNAVAILABLE                = 550,
+    SMTP_USER_NOT_LOCAL                     = 551,
+    SMTP_STORAGE_ALLOCATION_EXCEEDED        = 552,
+    SMTP_MAILBOX_NAME_NOT_ALLOWED           = 553,
+    SMTP_TRANSACTION_FAILED                 = 554,
 } smtp_reply_code_t;
 
 /******************************************************
@@ -92,7 +116,7 @@ typedef struct wiced_email_account_internal wiced_email_account_internal_t;
 
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t send_smtp_command           ( wiced_tcp_socket_t *socket, const char *command, uint8_t command_length, const char* params, uint16_t params_length );
@@ -102,15 +126,12 @@ static wiced_result_t send_smtp_sender            ( wiced_tcp_socket_t *socket, 
 static wiced_result_t send_smtp_recipient         ( wiced_tcp_socket_t *socket, const char *address, uint8_t length );
 static uint8_t        get_first_address_from_list ( char **address_list, char **first_address, uint8_t *first_address_length );
 static void           init_content_table          ( const wiced_email_account_t *account, const wiced_email_t *email, const char date[32], email_content_table_field_t *content_table );
-extern int32_t        base64_decode               ( unsigned char *dst, uint32_t *dlen, unsigned char *src, uint32_t slen );
-extern int32_t        base64_encode               ( unsigned char *dst, uint32_t *dlen, unsigned char *src, uint32_t slen );
 
 /******************************************************
  *               Variable Definitions
  ******************************************************/
 
 static const char const localhost[]                             = "WICED";
-//static const char const smtp_helo[]                             = "HELO";
 static const char const smtp_ehlo[]                             = "EHLO";
 static const char const smtp_starttls[]                         = "STARTTLS";
 static const char const smtp_auth_login[]                       = "AUTH LOGIN";
@@ -235,17 +256,19 @@ wiced_result_t wiced_smtp_send( wiced_email_account_t* account, const wiced_emai
               timeinfo->tm_sec );
 
     /* Connect to SMTP server */
-    if (wiced_tcp_create_socket(&account->internal->smtp_socket, WICED_STA_INTERFACE) != WICED_SUCCESS)
+    result = wiced_tcp_create_socket( &account->internal->smtp_socket, WICED_STA_INTERFACE );
+    if ( result != WICED_SUCCESS )
     {
-        return WICED_ERROR;
+        return result;
     }
-    if (wiced_tcp_connect(&account->internal->smtp_socket, &account->internal->smtp_server_ip, account->smtp_server_port,20000) != WICED_SUCCESS)
+
+    result = wiced_tcp_connect( &account->internal->smtp_socket, &account->internal->smtp_server_ip, account->smtp_server_port, 20000 );
+    if ( result != WICED_SUCCESS )
     {
-        result = WICED_ERROR;
         goto exit_without_connection;
     }
-    VERIFY(WICED_SUCCESS, receive_smtp_reply(&account->internal->smtp_socket, &packet, &reply, &length));
-    VERIFY(SMTP_SERVICE_READY, get_smtp_reply_code(&account->internal->smtp_socket, packet));
+    VERIFY( WICED_SUCCESS, receive_smtp_reply( &account->internal->smtp_socket, &packet, &reply, &length ) );
+    VERIFY( SMTP_SERVICE_READY, get_smtp_reply_code(&account->internal->smtp_socket, packet ) );
     wiced_packet_delete( packet );
 
     /* Send EHLO */
@@ -276,9 +299,9 @@ wiced_result_t wiced_smtp_send( wiced_email_account_t* account, const wiced_emai
             goto exit_without_sending_quit_command;
         }
 
-        if ( wiced_tcp_start_tls( &account->internal->smtp_socket, WICED_TLS_AS_CLIENT, WICED_TLS_DEFAULT_VERIFICATION ) != WICED_SUCCESS )
+        result = wiced_tcp_start_tls( &account->internal->smtp_socket, WICED_TLS_AS_CLIENT, WICED_TLS_DEFAULT_VERIFICATION );
+        if ( result != WICED_SUCCESS )
         {
-            result = WICED_ERROR;
             WPRINT_LIB_ERROR(( "Failed to start TLS\n" ));
             goto exit_without_sending_quit_command;
         }
@@ -304,7 +327,7 @@ wiced_result_t wiced_smtp_send( wiced_email_account_t* account, const wiced_emai
 
         /* Decode SMTP server reply using base64 algorithm */
         INIT_BUFFER_AND_LENGTH(buffer, buffer_length);
-        base64_decode( (uint8_t*) buffer, &buffer_length, (uint8_t*) reply, length );
+        base64_decode( (unsigned char*)reply, length, (unsigned char*)buffer, buffer_length, BASE64_DEC_STANDARD );
         wiced_packet_delete( packet );
 
         /* Check if decoded string is username challenge */
@@ -312,7 +335,7 @@ wiced_result_t wiced_smtp_send( wiced_email_account_t* account, const wiced_emai
         {
             /* Encode username */
             INIT_BUFFER_AND_LENGTH(buffer, buffer_length);
-            base64_encode( (uint8_t*) buffer, &buffer_length, (uint8_t*) account->user_name, (uint32_t) strlen( account->user_name ) );
+            base64_encode( (unsigned char*)account->user_name, (uint32_t) strlen( account->user_name ), (unsigned char*)buffer, buffer_length, BASE64_DEC_STANDARD );
 
             VERIFY(WICED_SUCCESS, send_smtp_command(&account->internal->smtp_socket, buffer, (uint8_t) buffer_length, NULL, 0));
             VERIFY(WICED_SUCCESS, receive_smtp_reply(&account->internal->smtp_socket, &packet, &reply, &length));
@@ -320,7 +343,7 @@ wiced_result_t wiced_smtp_send( wiced_email_account_t* account, const wiced_emai
 
             /* Decode SMTP server reply using base64 algorithm */
             INIT_BUFFER_AND_LENGTH(buffer, buffer_length);
-            base64_decode( (uint8_t*) buffer, &buffer_length, (uint8_t*) reply, length );
+            base64_decode( (unsigned char*)reply, length, (unsigned char*)buffer, buffer_length, BASE64_DEC_STANDARD );
             wiced_packet_delete( packet );
 
             /* Check if decoded string is password challenge */
@@ -328,7 +351,7 @@ wiced_result_t wiced_smtp_send( wiced_email_account_t* account, const wiced_emai
             {
                 /* Encode and send password back to SMTP server */
                 INIT_BUFFER_AND_LENGTH(buffer, buffer_length);
-                base64_encode( (uint8_t*) buffer, &buffer_length, (uint8_t*) account->password, (uint32_t) strlen( account->password ) );
+                base64_encode( (unsigned char*)account->password, (uint32_t) strlen( account->password ), (unsigned char*)buffer, buffer_length, BASE64_DEC_STANDARD );
 
                 VERIFY(WICED_SUCCESS, send_smtp_command(&account->internal->smtp_socket, buffer, (uint8_t) buffer_length, NULL, 0));
                 VERIFY(WICED_SUCCESS, receive_smtp_reply(&account->internal->smtp_socket, &packet, &reply, &length));
@@ -580,7 +603,7 @@ static uint8_t get_first_address_from_list(char **address_list, char **first_add
     char *current = (char*)*address_list;
     uint8_t length = 0;
 
-    // Clear leading spaces, if any
+    /* Clear leading spaces, if any */
     while ( *current == ' ' || *current == ';' || *current == ',' )
     {
         current++;
@@ -593,7 +616,7 @@ static uint8_t get_first_address_from_list(char **address_list, char **first_add
 
     *first_address = current;
 
-    // Iterate until the end of first address
+    /* Iterate until the end of first address */
     while ( *current != ' ' && *current != ';' && *current != ',' && *current != '\0' )
     {
         current++;
@@ -609,13 +632,13 @@ static void init_content_table(const wiced_email_account_t *account, const wiced
 {
     uint32_t index = 0;
 
-    // Message-ID
+    /* Message-ID */
     content_table[index].content   = (uint8_t*)email_header_msg_id;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_msg_id);
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // Date
+    /* Date */
     content_table[index].content   = (uint8_t*)email_header_date;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_date);
     content_table[index].content   = (uint8_t*)date;
@@ -623,7 +646,7 @@ static void init_content_table(const wiced_email_account_t *account, const wiced
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // From
+    /* From */
     content_table[index].content   = (uint8_t*)email_header_from;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_from);
     content_table[index].content   = (uint8_t*)account->email_address;
@@ -631,13 +654,13 @@ static void init_content_table(const wiced_email_account_t *account, const wiced
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // MIME-Version
+    /* MIME-Version */
     content_table[index].content   = (uint8_t*)email_header_mime_version;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_mime_version);
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // To
+    /* To */
     content_table[index].content   = (uint8_t*)email_header_to;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_to);
     content_table[index].content   = (uint8_t*)email->to_addresses;
@@ -645,7 +668,7 @@ static void init_content_table(const wiced_email_account_t *account, const wiced
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // Cc
+    /* Cc */
     content_table[index].content   = (uint8_t*)email_header_cc;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_cc);
     content_table[index].content   = (uint8_t*)email->cc_addresses;
@@ -653,7 +676,7 @@ static void init_content_table(const wiced_email_account_t *account, const wiced
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // Subject
+    /* Subject */
     content_table[index].content   = (uint8_t*)email_header_subject;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_subject);
     content_table[index].content   = (uint8_t*)email->subject;
@@ -661,13 +684,13 @@ static void init_content_table(const wiced_email_account_t *account, const wiced
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // Content Type
+    /* Content Type */
     content_table[index].content   = (uint8_t*)email_header_content_type;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_content_type);
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // Content Transfer Encoding
+    /* Content Transfer Encoding */
     content_table[index].content   = (uint8_t*)email_header_content_tranfer_encoding;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(email_header_content_tranfer_encoding);
     content_table[index].content   = (uint8_t*)smtp_return_newline;
@@ -675,15 +698,15 @@ static void init_content_table(const wiced_email_account_t *account, const wiced
     content_table[index].content   = (uint8_t*)smtp_return_newline;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_return_newline);
 
-    // Email body
+    /* Email body */
     content_table[index].content   = (uint8_t*)email->content;
     content_table[index++].length  = email->content_length;
 
-    // Email signature
+    /* Email signature */
     content_table[index].content   = (uint8_t*)email->signature;
     content_table[index++].length  = email->signature_length;
 
-    // End of data
+    /* End of data */
     content_table[index].content   = (uint8_t*)smtp_end_of_data;
     content_table[index++].length  = GET_CONST_BUF_LENGTH(smtp_end_of_data);
 }

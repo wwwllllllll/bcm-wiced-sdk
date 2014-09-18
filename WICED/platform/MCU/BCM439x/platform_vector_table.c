@@ -52,14 +52,14 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern void UnhandledInterrupt( void );
 extern void reset_handler     ( void );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* Pointer to stack location */
@@ -98,11 +98,11 @@ uint32_t interrupt_vector_table[] =
     (uint32_t)Reserved028_irq    ,
     (uint32_t)Reserved029_irq    ,
     (uint32_t)Reserved030_irq    ,
-    (uint32_t)PTU_irq            ,
+    (uint32_t)PTU1_irq           ,
     (uint32_t)DmaDoneInt_irq     ,
     (uint32_t)Reserved033_irq    ,
     (uint32_t)Reserved034_irq    ,
-    (uint32_t)Reserved035_irq    ,
+    (uint32_t)WAKEUP_irq         ,
     (uint32_t)GPIOA_BANK0_irq    ,
     (uint32_t)Reserved037_irq    ,
     (uint32_t)Reserved038_irq    ,

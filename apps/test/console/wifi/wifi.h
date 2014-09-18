@@ -14,33 +14,9 @@
 extern "C" {
 #endif
 
-// Console commands
-extern int antenna( int argc, char* argv[] );
-extern int get_associated_client_list( int argc, char* argv[] );
-extern int get_country( int argc, char* argv[] );
-extern int get_data_rate( int argc, char* argv[] );
-extern int get_mac_addr( int argc, char* argv[] );
-extern int get_random( int argc, char* argv[] );
-extern int get_rssi( int argc, char* argv[] );
-extern int get_tx_power( int argc, char* argv[] );
-extern int join( int argc, char* argv[] );
-extern int leave( int argc, char* argv[] );
-extern int wifi_powersave( int argc, char* argv[] );
-extern int scan( int argc, char* argv[] );
-extern int set_data_rate( int argc, char* argv[] );
-extern int set_ip( int argc, char* argv[] );
-extern int set_tx_power( int argc, char* argv[] );
-extern int start_ap( int argc, char* argv[] );
-extern int status( int argc, char* argv[] );
-extern int stop_ap( int argc, char* argv[] );
-extern int test_ap( int argc, char* argv[] );
-extern int test_join( int argc, char* argv[] );
-extern int get_pmk( int argc, char* argv[] );
-extern int get_counters( int argc, char* argv[] );
-extern int get_ap_info( int argc, char* argv[] );
-extern int get_soft_ap_credentials( int argc, char* argv[] );
-extern int test_credentials( int argc, char* argv[] );
-
+/******************************************************
+ *                     Macros
+ ******************************************************/
 #define WIFI_COMMANDS \
     { (char*) "antenna",                 antenna,                 1, DELIMIT, NULL, (char*) "<0|1|3>",                                    (char*) "Antenna selection. 3 = Auto"},\
     { (char*) "get_ap_info",             get_ap_info,             0, DELIMIT, NULL, (char*) "",                                           (char*) "Get AP information"}, \
@@ -68,8 +44,59 @@ extern int test_credentials( int argc, char* argv[] );
     { (char*) "test_join",               test_join,               2, DELIMIT, NULL, (char*) "<ssid> <open|wep|wpa_aes|wpa_tkip|wpa2|wpa2_tkip> [key] [ip netmask gateway] <iterations>", (char*) "Test joining an AP. DHCP assumed if no IP address provided"}, \
     { (char*) "test_cred",               test_credentials,        2, DELIMIT, NULL, (char*) "<ssid> <bssid> <channel> <open|wep|wpa_aes|wpa_tkip|wpa2|wpa2_tkip> [key]", (char*) "Test joining an AP"}, \
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+
+/* Console commands */
+int antenna                   ( int argc, char* argv[] );
+int get_associated_client_list( int argc, char* argv[] );
+int get_country               ( int argc, char* argv[] );
+int get_data_rate             ( int argc, char* argv[] );
+int get_mac_addr              ( int argc, char* argv[] );
+int get_random                ( int argc, char* argv[] );
+int get_rssi                  ( int argc, char* argv[] );
+int get_tx_power              ( int argc, char* argv[] );
+int join                      ( int argc, char* argv[] );
+int leave                     ( int argc, char* argv[] );
+int wifi_powersave            ( int argc, char* argv[] );
+int scan                      ( int argc, char* argv[] );
+int set_data_rate             ( int argc, char* argv[] );
+int set_ip                    ( int argc, char* argv[] );
+int set_tx_power              ( int argc, char* argv[] );
+int start_ap                  ( int argc, char* argv[] );
+int status                    ( int argc, char* argv[] );
+int stop_ap                   ( int argc, char* argv[] );
+int test_ap                   ( int argc, char* argv[] );
+int test_join                 ( int argc, char* argv[] );
+int get_pmk                   ( int argc, char* argv[] );
+int get_counters              ( int argc, char* argv[] );
+int get_ap_info               ( int argc, char* argv[] );
+int get_soft_ap_credentials   ( int argc, char* argv[] );
+int test_credentials          ( int argc, char* argv[] );
+
 /* Functions potentially used by other modules */
-extern int wifi_join(char* ssid, wiced_security_t auth_type, uint8_t* key, uint16_t key_length, char* ip, char* netmask, char* gateway);
+int wifi_join(char* ssid, wiced_security_t auth_type, uint8_t* key, uint16_t key_length, char* ip, char* netmask, char* gateway);
 
 #ifdef __cplusplus
 } /*extern "C" */

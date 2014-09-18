@@ -18,7 +18,7 @@ var searchData=
   ['appearance',['appearance',['../structattr__val__appearance__t.html#aae507e6864c05476c851ba7548517a3c',1,'attr_val_appearance_t::appearance()'],['../structwiced__bt__attribute.html#ab67cd91b4978f79c8b4f313c5bc73ffa',1,'wiced_bt_attribute::appearance()']]],
   ['arc4',['ARC4',['../group__arc4.html',1,'']]],
   ['arc4_5fcrypt',['arc4_crypt',['../group__arc4.html#ga327d970599a3d2f21b4fd7d3b7fac8b6',1,'wiced_security.h']]],
-  ['arc4_5fsetup',['arc4_setup',['../group__arc4.html#ga045e1a327296adbd8fdae41de48804c8',1,'wiced_security.h']]],
+  ['arc4_5fsetup',['arc4_setup',['../group__arc4.html#gab8e8617b289d74c9b48da17dcc421d47',1,'wiced_security.h']]],
   ['assoc',['assoc',['../structwiced__listen__interval__t.html#af001610277052191979db17c0133c933',1,'wiced_listen_interval_t']]],
   ['att_5fcache',['att_cache',['../structwiced__bt__smartbridge__socket.html#a76c6b8eab5436fd6103bdd95cfdb62ec',1,'wiced_bt_smartbridge_socket']]],
   ['attr_5fval_5faggregate_5fformat_5ft',['attr_val_aggregate_format_t',['../structattr__val__aggregate__format__t.html',1,'']]],

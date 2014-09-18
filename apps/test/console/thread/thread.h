@@ -14,12 +14,14 @@
 extern "C" {
 #endif
 
+/******************************************************
+ *                     Macros
+ ******************************************************/
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #ifdef CONSOLE_ENABLE_THREADS
-
-extern int thread_list( int argc, char* argv[] );
-extern int thread_kill( int argc, char* argv[] );
-extern int thread_spawn( int argc, char* argv[] );
 
 #define THREAD_COMMANDS \
     { (char*) "thread_list",    thread_list,        0, DELIMIT, NULL, (char*) "",                  (char*) "[ThreadX only] Lists the current running threads"}, \
@@ -29,6 +31,30 @@ extern int thread_spawn( int argc, char* argv[] );
 #else /* ifdef CONSOLE_ENABLE_THREADS */
 #define THREAD_COMMANDS
 #endif /* ifdef CONSOLE_ENABLE_THREADS */
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+
+int thread_list( int argc, char* argv[] );
+int thread_kill( int argc, char* argv[] );
+int thread_spawn( int argc, char* argv[] );
 
 #ifdef __cplusplus
 } /*extern "C" */

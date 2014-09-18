@@ -7,6 +7,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  */
+#pragma once
 
 /** @file
  *  Defines the Non-Bus part of the WICED Platform Interface.
@@ -14,9 +15,6 @@
  *  Provides prototypes for functions that allow WICED to use
  *  the hardware platform.
  */
-
-#ifndef INCLUDED_WWD_PLATFORM_INTERFACE_H_
-#define INCLUDED_WWD_PLATFORM_INTERFACE_H_
 
 #include "wwd_constants.h" /* for wwd_result_t */
 #include "network/wwd_buffer_interface.h" /* for wiced_buffer_t */
@@ -132,5 +130,3 @@ extern wwd_result_t host_platform_deinit_wlan_powersave_clock( void );
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-#endif /* ifndef INCLUDED_WWD_PLATFORM_INTERFACE_H_ */

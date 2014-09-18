@@ -10,8 +10,8 @@
 
 NAME = WICED
 
-CERTIFICATE := ../resources/config/device.cer
-PRIVATE_KEY := ../resources/config/id_rsa
+CERTIFICATE := $(SOURCE_ROOT)resources/certificates/brcm_demo_server_cert.cer
+PRIVATE_KEY := $(SOURCE_ROOT)resources/certificates/brcm_demo_server_cert_key.key
 
 ifndef USES_BOOTLOADER_OTA
 USES_BOOTLOADER_OTA :=1

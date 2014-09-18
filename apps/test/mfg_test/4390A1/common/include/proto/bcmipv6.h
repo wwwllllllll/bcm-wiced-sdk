@@ -3,7 +3,7 @@
  *
  * Fundamental constants relating to Neighbor Discovery Protocol
  *
- * $Id: bcmipv6.h 384537 2013-02-12 04:27:03Z xwei $
+ * $Id: bcmipv6.h 399481 2013-04-30 09:24:20Z cylee $
  */
 
 #ifndef _bcmipv6_h_
@@ -129,5 +129,17 @@ static const struct ipv6_addr all_node_ipv6_maddr = {
 									0, 0, 0, 0,
 									0, 0, 0, 1
 									}};
+
+#define IPV6_ISMULTI(a) (a[0] == 0xff)
+
+#define IPV6_MCAST_TO_ETHER_MCAST(ipv6, ether) \
+{ \
+	ether[0] = 0x33; \
+	ether[1] = 0x33; \
+	ether[2] = ipv6[12]; \
+	ether[3] = ipv6[13]; \
+	ether[4] = ipv6[14]; \
+	ether[5] = ipv6[15]; \
+}
 
 #endif	/* !defined(_bcmipv6_h_) */

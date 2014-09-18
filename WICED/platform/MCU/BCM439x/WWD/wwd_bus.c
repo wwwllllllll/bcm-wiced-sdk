@@ -55,7 +55,7 @@ volatile uint32_t total_int = 0;
 static   uint32_t intstatus;
 
 /******************************************************
- *             Function declarations
+ *             Static Function Declarations
  ******************************************************/
 
 int             rxactive_dma        ( void );

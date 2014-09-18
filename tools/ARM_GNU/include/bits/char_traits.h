@@ -1,6 +1,6 @@
 // Character Traits for use by standard string and iostream -*- C++ -*-
 
-// Copyright (C) 1997-2013 Free Software Foundation, Inc.
+// Copyright (C) 1997-2014 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -248,7 +248,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       static _GLIBCXX_CONSTEXPR bool
       lt(const char_type& __c1, const char_type& __c2) _GLIBCXX_NOEXCEPT
-      { return __c1 < __c2; }
+      {
+	// LWG 467.
+	return (static_cast<unsigned char>(__c1)
+		< static_cast<unsigned char>(__c2));
+      }
 
       static int
       compare(const char_type* __s1, const char_type* __s2, size_t __n)

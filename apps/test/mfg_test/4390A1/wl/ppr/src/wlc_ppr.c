@@ -64,7 +64,7 @@
 typedef BWL_PRE_PACKED_STRUCT struct ppr_deser_header {
 	uint8  version;
 	uint8  bw;
-	uint16 reserved;
+	uint16 per_band_size;
 	uint32 flags;
 } BWL_POST_PACKED_STRUCT ppr_deser_header_t;
 
@@ -86,9 +86,9 @@ typedef BWL_PRE_PACKED_STRUCT struct ppr_ser_mem_flag {
 
 
 /* Flag bits in serialization/deserialization */
-#define PPR_MAX_TX_CHAIN_MASK 0x00000003	/* mask of Tx chains */
-#define PPR_BEAMFORMING      0x00000004		/* bit indicates BF is on */
-#define PPR_SER_MEM_WORD     0xBEEFC0FF		/* magic word indicates serialization start */
+#define PPR_MAX_TX_CHAIN_MASK	0x00000003 /* mask of Tx chains */
+#define PPR_BEAMFORMING			0x00000004 /* bit indicates BF is on */
+#define PPR_SER_MEM_WORD		0xBEEFC0FF /* magic word indicates serialization start */
 
 
 /* size of serialization header */
@@ -136,32 +136,39 @@ typedef BWL_PRE_PACKED_STRUCT struct pprpb {
 #define PPR_CHAIN1_SIZE  PPR_CHAIN1_END
 #if (PPR_MAX_TX_CHAINS > 1)
 #define PPR_CHAIN2_FIRST OFFSETOF(pprpbw_t, p_1x2dsss)
+#define PPR_CHAIN2_FIRST_MCS OFFSETOF(pprpbw_t, p_1x2cdd_vhtss1)
 #define PPR_CHAIN2_END   (OFFSETOF(pprpbw_t, p_2x2vhtss2) + sizeof(((pprpbw_t *)0)->p_2x2vhtss2))
 #define PPR_CHAIN2_SIZE  (PPR_CHAIN2_END - PPR_CHAIN2_FIRST)
+#define PPR_CHAIN2_MCS_SIZE  (PPR_CHAIN2_END - PPR_CHAIN2_FIRST_MCS)
 #if (PPR_MAX_TX_CHAINS > 2)
 #define PPR_CHAIN3_FIRST OFFSETOF(pprpbw_t, p_1x3dsss)
+#define PPR_CHAIN3_FIRST_MCS OFFSETOF(pprpbw_t, p_1x3cdd_vhtss1)
 #define PPR_CHAIN3_END   (OFFSETOF(pprpbw_t, p_3x3vhtss3) + sizeof(((pprpbw_t *)0)->p_3x3vhtss3))
 #define PPR_CHAIN3_SIZE  (PPR_CHAIN3_END - PPR_CHAIN3_FIRST)
+#define PPR_CHAIN3_MCS_SIZE  (PPR_CHAIN3_END - PPR_CHAIN3_FIRST_MCS)
 #endif
 
 #ifdef WL_BEAMFORMING
 #define PPR_BF_CHAIN2_FIRST OFFSETOF(pprpbw_t, p_1x2txbf_ofdm)
+#define PPR_BF_CHAIN2_FIRST_MCS OFFSETOF(pprpbw_t, p_1x2txbf_vhtss1)
 #define PPR_BF_CHAIN2_END   (OFFSETOF(pprpbw_t, p_2x2txbf_vhtss2) + \
 	sizeof(((pprpbw_t *)0)->p_2x2txbf_vhtss2))
 #define PPR_BF_CHAIN2_SIZE  (PPR_BF_CHAIN2_END - PPR_BF_CHAIN2_FIRST)
+#define PPR_BF_CHAIN2_MCS_SIZE  (PPR_BF_CHAIN2_END - PPR_BF_CHAIN2_FIRST_MCS)
 #if (PPR_MAX_TX_CHAINS > 2)
 #define PPR_BF_CHAIN3_FIRST OFFSETOF(pprpbw_t, p_1x3txbf_ofdm)
+#define PPR_BF_CHAIN3_FIRST_MCS OFFSETOF(pprpbw_t, p_1x3txbf_vhtss1)
 #define PPR_BF_CHAIN3_END   (OFFSETOF(pprpbw_t, p_3x3txbf_vhtss3) + \
 	sizeof(((pprpbw_t *)0)->p_3x3txbf_vhtss3))
 #define PPR_BF_CHAIN3_SIZE  (PPR_BF_CHAIN3_END - PPR_BF_CHAIN3_FIRST)
+#define PPR_BF_CHAIN3_MCS_SIZE  (PPR_BF_CHAIN3_END - PPR_BF_CHAIN3_FIRST_MCS)
 #endif
 
 #endif /* WL_BEAMFORMING */
 #endif /* PPR_MAX_TX_CHAINS > 1 */
 
 
-#define PPR_BW_MAX WL_TX_BW_80 /* maximum supported bandwidth */
-
+#define PPR_BW_MAX WL_TX_BW_80 /* Maximum supported bandwidth */
 
 /* Structure to contain ppr values for a 20MHz channel */
 typedef BWL_PRE_PACKED_STRUCT struct ppr_bw_20 {
@@ -222,6 +229,55 @@ static uint32 ppr_get_flag(void)
 	return flag;
 }
 
+static uint16 ppr_ser_size_per_band(uint32 flags)
+{
+	uint16 ret = PPR_CHAIN1_SIZE; /* at least 1 chain rates should be there */
+	uint8 chain   = flags & PPR_MAX_TX_CHAIN_MASK;
+	bool bf      = (flags & PPR_BEAMFORMING) != 0;
+	BCM_REFERENCE(chain);
+	BCM_REFERENCE(bf);
+#if (PPR_MAX_TX_CHAINS > 1)
+	if (chain > 1) {
+		ret += PPR_CHAIN2_SIZE;
+	}
+#if (PPR_MAX_TX_CHAINS > 2)
+	if (chain > 2) {
+		ret += PPR_CHAIN3_SIZE;
+	}
+#endif
+
+#ifdef WL_BEAMFORMING
+	if (PPR_TXBF_ENAB() && bf) {
+		ret += PPR_BF_CHAIN2_SIZE;
+	}
+#if (PPR_MAX_TX_CHAINS > 2)
+	if (PPR_TXBF_ENAB() && bf && chain > 2) {
+		ret += PPR_BF_CHAIN3_SIZE;
+	}
+#endif
+#endif /* WL_BEAMFORMING */
+#endif /* PPR_MAX_TX_CHAINS > 1 */
+	return ret;
+}
+
+/* Return the required serialization size based on the flag field. */
+static uint ppr_ser_size_by_flag(uint32 flag, wl_tx_bw_t bw)
+{
+	uint ret = ppr_ser_size_per_band(flag);
+	switch (bw) {
+	case WL_TX_BW_20:
+		break;
+	case WL_TX_BW_40:
+		ret *= sizeof(ppr_bw_40_t)/sizeof(pprpbw_t);
+		break;
+	case WL_TX_BW_80:
+		ret *= sizeof(ppr_bw_80_t)/sizeof(pprpbw_t);
+		break;
+	default:
+		ASSERT(0);
+	}
+	return ret;
+}
 
 #define COPY_PPR_TOBUF(x, y) do { bcopy(&pprbuf[x], *buf, y); \
 	*buf += y; ret += y; } while (0);
@@ -271,6 +327,7 @@ static uint ppr_serialize_data(const ppr_t *pprptr, uint8* buf, uint32 serflag)
 	header->version = PPR_SERIALIZATION_VER;
 	header->bw      = (uint8)pprptr->ch_bw;
 	header->flags   = HTON32(ppr_get_flag());
+	header->per_band_size	= HTON16(ppr_ser_size_per_band(serflag));
 
 	buf += sizeof(*header);
 	switch (header->bw) {
@@ -306,10 +363,11 @@ static uint ppr_serialize_data(const ppr_t *pprptr, uint8* buf, uint32 serflag)
 
 
 /* Copy serialized ppr data of a bandwidth */
-static void ppr_copy_serdata(uint8* pobuf, const uint8** inbuf, uint32 flag)
+static void ppr_copy_serdata(uint8* pobuf, const uint8** inbuf, uint32 flag, uint16 per_band_size)
 {
 	uint chain   = flag & PPR_MAX_TX_CHAIN_MASK;
 	bool bf      = (flag & PPR_BEAMFORMING) != 0;
+	uint16 len   = PPR_CHAIN1_SIZE;
 	BCM_REFERENCE(chain);
 	BCM_REFERENCE(bf);
 	bcopy(*inbuf, pobuf, PPR_CHAIN1_SIZE);
@@ -318,11 +376,13 @@ static void ppr_copy_serdata(uint8* pobuf, const uint8** inbuf, uint32 flag)
 	if (chain > 1) {
 		bcopy(*inbuf, &pobuf[PPR_CHAIN2_FIRST], PPR_CHAIN2_SIZE);
 		*inbuf += PPR_CHAIN2_SIZE;
+		len += PPR_CHAIN2_SIZE;
 	}
 #if (PPR_MAX_TX_CHAINS > 2)
 	if (chain > 2) {
 		bcopy(*inbuf, &pobuf[PPR_CHAIN3_FIRST], PPR_CHAIN3_SIZE);
 		*inbuf += PPR_CHAIN3_SIZE;
+		len += PPR_CHAIN3_SIZE;
 	}
 #endif
 
@@ -330,45 +390,51 @@ static void ppr_copy_serdata(uint8* pobuf, const uint8** inbuf, uint32 flag)
 	if (PPR_TXBF_ENAB() && bf) {
 		bcopy(*inbuf, &pobuf[PPR_BF_CHAIN2_FIRST], PPR_BF_CHAIN2_SIZE);
 		*inbuf += PPR_BF_CHAIN2_SIZE;
+		len += PPR_BF_CHAIN2_SIZE;
 	}
 #if (PPR_MAX_TX_CHAINS > 2)
 	if (PPR_TXBF_ENAB() && bf && chain > 2) {
 		bcopy(*inbuf, &pobuf[PPR_BF_CHAIN3_FIRST], PPR_BF_CHAIN3_SIZE);
 		*inbuf += PPR_BF_CHAIN3_SIZE;
+		len += PPR_BF_CHAIN3_SIZE;
 	}
 #endif
 #endif  /* WL_BEAMFORMING */
 #endif /* (PPR_MAX_TX_CHAINS > 1) */
+	if (len < per_band_size) {
+		 *inbuf += (per_band_size - len);
+	}
 }
 
 
 /* Deserialize data into a ppr_t structure */
-static void ppr_deser_cpy(ppr_t* pptr, const uint8* inbuf, uint32 flag, wl_tx_bw_t bw)
+static void
+ppr_deser_cpy(ppr_t* pptr, const uint8* inbuf, uint32 flag, wl_tx_bw_t bw, uint16 per_band_size)
 {
 	pptr->ch_bw = bw;
 	switch (bw) {
 	case WL_TX_BW_20:
 		{
 			uint8* pobuf = (uint8*)&pptr->ppr_bw.ch20;
-			ppr_copy_serdata(pobuf, &inbuf, flag);
+			ppr_copy_serdata(pobuf, &inbuf, flag, per_band_size);
 		}
 		break;
 	case WL_TX_BW_40:
 		{
 			uint8* pobuf = (uint8*)&pptr->ppr_bw.ch40.b40;
-			ppr_copy_serdata(pobuf, &inbuf, flag);
+			ppr_copy_serdata(pobuf, &inbuf, flag, per_band_size);
 			pobuf = (uint8*)&pptr->ppr_bw.ch40.b20in40;
-			ppr_copy_serdata(pobuf, &inbuf, flag);
+			ppr_copy_serdata(pobuf, &inbuf, flag, per_band_size);
 		}
 		break;
 	case WL_TX_BW_80:
 		{
 			uint8* pobuf = (uint8*)&pptr->ppr_bw.ch80.b80;
-			ppr_copy_serdata(pobuf, &inbuf, flag);
+			ppr_copy_serdata(pobuf, &inbuf, flag, per_band_size);
 			pobuf = (uint8*)&pptr->ppr_bw.ch80.b20in80;
-			ppr_copy_serdata(pobuf, &inbuf, flag);
+			ppr_copy_serdata(pobuf, &inbuf, flag, per_band_size);
 			pobuf = (uint8*)&pptr->ppr_bw.ch80.b40in80;
-			ppr_copy_serdata(pobuf, &inbuf, flag);
+			ppr_copy_serdata(pobuf, &inbuf, flag, per_band_size);
 		}
 		break;
 	default:
@@ -985,6 +1051,38 @@ int ppr_get_vht_mcs(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_nss_t Nss, wl_tx_mode_t 
 }
 
 
+#define TXPPR_TXPWR_MAX 0x7f             /* WLC_TXPWR_MAX */
+
+/* Get the minimum power for a VHT MCS rate specified by Nss, with the given bw and tx chains.
+ * Disabled rates are ignored
+ */
+int ppr_get_vht_mcs_min(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_nss_t Nss, wl_tx_mode_t mode,
+ wl_tx_chains_t tx_chains, int8* mcs_min)
+{
+	pprpbw_t* bw_pwrs;
+	const int8* powers;
+	int result = BCME_ERROR;
+	uint i = 0;
+
+	*mcs_min = TXPPR_TXPWR_MAX;
+
+	ASSERT(pprptr);
+	bw_pwrs = ppr_get_bw_powers(pprptr, bw);
+	if (bw_pwrs != NULL) {
+		powers = ppr_get_mcs_group(bw_pwrs, Nss, mode, tx_chains);
+		if (powers != NULL) {
+			for (i = 0; i < sizeof(ppr_vht_mcs_rateset_t); i++) {
+				/* ignore disabled rates! */
+				if (powers[i] != WL_RATE_DISABLED)
+					*mcs_min = MIN(*mcs_min, powers[i]);
+			}
+			result = BCME_OK;
+		}
+	}
+	return result;
+}
+
+
 /* Routines to set target powers per rate in a group */
 
 /* Set the dsss values for the given number of tx_chains and 20, 20in40, etc. */
@@ -1169,6 +1267,137 @@ uint ppr_apply_max(ppr_t* pprptr, int8 maxval)
 	}
 	return i;
 }
+
+
+/*
+ * Check for any power in the rate group at or below the threshold. If any is
+ * found, set the entire group to WL_RATE_DISABLED. An exception is made for
+ * VHT 8 and 9 which will not cause the entire group to be disabled if they
+ * are disabled or below the threshold.
+ */
+static void ppr_force_disabled_group(int8* powers, int8 threshold, uint len)
+{
+	uint i;
+
+	for (i = 0; (i < len) && (i < WL_RATESET_SZ_HT_MCS); i++) {
+		/* if we find a below-threshold rate in the set... */
+		if (powers[i] <= threshold) {
+			/* disable the entire rate set and return */
+			for (i = 0; i < len; i++) {
+				powers[i] = WL_RATE_DISABLED;
+			}
+			return;
+		}
+	}
+	/* VHT 8 and 9 can be disabled separately */
+	for (; i < len; i++) {
+		if (powers[i] <= threshold) {
+			powers[i] = WL_RATE_DISABLED;
+		}
+	}
+}
+
+
+/*
+ * Make low power rates (below the threshold) explicitly disabled.
+ * If one rate in a group is disabled, disable the whole group.
+ */
+int ppr_force_disabled(ppr_t* pprptr, int8 threshold)
+{
+	wl_tx_bw_t bw;
+
+	for (bw = WL_TX_BW_20; bw <= WL_TX_BW_80; bw++) {
+		pprpbw_t* bw_pwrs = ppr_get_bw_powers(pprptr, bw);
+
+		if (bw_pwrs != NULL) {
+			int8* powers;
+#if (PPR_MAX_TX_CHAINS > 1)
+			int8* mcs_powers;
+#endif
+			powers = (int8*)ppr_get_dsss_group(bw_pwrs, WL_TX_CHAINS_1);
+			ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_DSSS);
+
+			powers = (int8*)ppr_get_ofdm_group(bw_pwrs,
+				WL_TX_MODE_NONE, WL_TX_CHAINS_1);
+			ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_OFDM);
+
+			powers = (int8*)ppr_get_mcs_group(bw_pwrs, WL_TX_NSS_1, WL_TX_MODE_NONE,
+				WL_TX_CHAINS_1);
+			ASSERT(powers);
+			ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_VHT_MCS);
+
+#if (PPR_MAX_TX_CHAINS > 1)
+			powers = (int8*)ppr_get_dsss_group(bw_pwrs, WL_TX_CHAINS_2);
+			ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_DSSS);
+
+			powers = (int8*)ppr_get_ofdm_group(bw_pwrs, WL_TX_MODE_CDD, WL_TX_CHAINS_2);
+			ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_OFDM);
+
+			mcs_powers = (int8*)ppr_get_mcs_group(bw_pwrs, WL_TX_NSS_1, WL_TX_MODE_CDD,
+				WL_TX_CHAINS_2);
+			ASSERT(mcs_powers);
+			for (powers = mcs_powers; powers < &mcs_powers[PPR_CHAIN2_MCS_SIZE];
+				powers += WL_RATESET_SZ_VHT_MCS) {
+				ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_VHT_MCS);
+			}
+
+#ifdef WL_BEAMFORMING
+			if (PPR_TXBF_ENAB()) {
+				powers = (int8*)ppr_get_ofdm_group(bw_pwrs, WL_TX_MODE_TXBF,
+					WL_TX_CHAINS_2);
+				ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_OFDM);
+
+				mcs_powers = (int8*)ppr_get_mcs_group(bw_pwrs, WL_TX_NSS_1,
+					WL_TX_MODE_TXBF, WL_TX_CHAINS_2);
+				ASSERT(mcs_powers);
+				for (powers = mcs_powers;
+					powers < &mcs_powers[PPR_BF_CHAIN2_MCS_SIZE];
+					powers += WL_RATESET_SZ_VHT_MCS) {
+					ppr_force_disabled_group(powers, threshold,
+						WL_RATESET_SZ_VHT_MCS);
+				}
+			}
+#endif /* WL_BEAMFORMING */
+
+#if (PPR_MAX_TX_CHAINS > 2)
+			powers = (int8*)ppr_get_dsss_group(bw_pwrs, WL_TX_CHAINS_3);
+			ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_DSSS);
+
+			powers = (int8*)ppr_get_ofdm_group(bw_pwrs, WL_TX_MODE_CDD, WL_TX_CHAINS_3);
+			ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_OFDM);
+
+			mcs_powers = (int8*)ppr_get_mcs_group(bw_pwrs, WL_TX_NSS_1, WL_TX_MODE_CDD,
+				WL_TX_CHAINS_3);
+			ASSERT(mcs_powers);
+			for (powers = mcs_powers; powers < &mcs_powers[PPR_CHAIN3_MCS_SIZE];
+				powers += WL_RATESET_SZ_VHT_MCS) {
+				ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_VHT_MCS);
+			}
+
+#ifdef WL_BEAMFORMING
+			if (PPR_TXBF_ENAB()) {
+				powers = (int8*)ppr_get_ofdm_group(bw_pwrs, WL_TX_MODE_TXBF,
+					WL_TX_CHAINS_3);
+				ppr_force_disabled_group(powers, threshold, WL_RATESET_SZ_OFDM);
+
+				mcs_powers = (int8*)ppr_get_mcs_group(bw_pwrs, WL_TX_NSS_1,
+					WL_TX_MODE_TXBF, WL_TX_CHAINS_3);
+				ASSERT(mcs_powers);
+				for (powers = mcs_powers;
+					powers < &mcs_powers[PPR_BF_CHAIN3_MCS_SIZE];
+					powers += WL_RATESET_SZ_VHT_MCS) {
+					ppr_force_disabled_group(powers, threshold,
+						WL_RATESET_SZ_VHT_MCS);
+				}
+			}
+#endif /* WL_BEAMFORMING */
+#endif /* (PPR_MAX_TX_CHAINS > 2) */
+#endif /* (PPR_MAX_TX_CHAINS > 1) */
+		}
+	}
+	return BCME_OK;
+}
+
 
 #if (PPR_MAX_TX_CHAINS > 1)
 #define APPLY_CONSTRAINT(x, y, max) do {		\
@@ -1390,6 +1619,9 @@ ppr_map_vec_dsss(ppr_mapfn_t fn, void* context, ppr_t* pprptr1, ppr_t* pprptr2,
 	int8* powers1;
 	int8* powers2;
 	uint i;
+
+	ASSERT(pprptr1);
+	ASSERT(pprptr2);
 
 	bw_pwrs1 = ppr_get_bw_powers(pprptr1, bw);
 	bw_pwrs2 = ppr_get_bw_powers(pprptr2, bw);
@@ -1719,53 +1951,6 @@ ppr_compare_max(ppr_t* p1, ppr_t* p2)
 }
 
 
-/* Return the required serialization size based on the flag field. */
-static uint ppr_ser_size_by_flag(uint32 flag, wl_tx_bw_t bw)
-{
-	uint ret = PPR_CHAIN1_SIZE; /* at least 1 chain rates should be there */
-	uint chain   = flag & PPR_MAX_TX_CHAIN_MASK;
-	bool bf      = (flag & PPR_BEAMFORMING) != 0;
-	BCM_REFERENCE(chain);
-	BCM_REFERENCE(bf);
-#if (PPR_MAX_TX_CHAINS > 1)
-	if (chain > 1) {
-		ret += PPR_CHAIN2_SIZE;
-	}
-#if (PPR_MAX_TX_CHAINS > 2)
-	if (chain > 2) {
-		ret += PPR_CHAIN3_SIZE;
-	}
-#endif
-
-#ifdef WL_BEAMFORMING
-	if (bf) {
-		ret += PPR_BF_CHAIN2_SIZE;
-	}
-#if (PPR_MAX_TX_CHAINS > 2)
-	if (bf && chain > 2) {
-		ret += PPR_BF_CHAIN3_SIZE;
-	}
-#endif
-#endif /* WL_BEAMFORMING */
-#endif /* PPR_MAX_TX_CHAINS > 1 */
-	switch (bw) {
-	case WL_TX_BW_20:
-		ret *= sizeof(ppr_bw_20_t)/sizeof(pprpbw_t);
-		break;
-	case WL_TX_BW_40:
-		ret *= sizeof(ppr_bw_40_t)/sizeof(pprpbw_t);
-		break;
-	case WL_TX_BW_80:
-		ret *= sizeof(ppr_bw_80_t)/sizeof(pprpbw_t);
-		break;
-	default:
-		ASSERT(0);
-	}
-	return ret;
-
-}
-
-
 /* Serialize the contents of the opaque ppr struct.
  * Writes number of bytes copied, zero on error.
  * Returns error code, BCME_OK if successful.
@@ -1811,16 +1996,17 @@ ppr_deserialize_create(osl_t *osh, const uint8* buf, uint buflen, ppr_t** pprptr
 	if ((buflen > SER_HDR_LEN) && (bptr != NULL) && (*bptr == PPR_SERIALIZATION_VER)) {
 		const ppr_deser_header_t * ser_head = (const ppr_deser_header_t *)bptr;
 		wl_tx_bw_t ch_bw = ser_head->bw;
-
 		/* struct size plus header */
 		uint32 ser_size = ppr_pwrs_size(ch_bw) + SER_HDR_LEN;
 
-		if ((buflen >= ser_size) && ((lpprptr = ppr_create(osh, ch_bw)) != NULL)) {
+		if ((lpprptr = ppr_create(osh, ch_bw)) != NULL) {
 			uint32 flags = NTOH32(ser_head->flags);
+			uint16 per_band_size = NTOH16(ser_head->per_band_size);
 			/* set the data with default value before deserialize */
 			ppr_set_cmn_val(lpprptr, WL_RATE_DISABLED);
 
-			ppr_deser_cpy(lpprptr, bptr + sizeof(*ser_head), flags, ch_bw);
+			ppr_deser_cpy(lpprptr, bptr + sizeof(*ser_head), flags, ch_bw,
+				per_band_size);
 		} else if (buflen < ser_size) {
 			err = BCME_BUFTOOSHORT;
 		} else {
@@ -1854,8 +2040,10 @@ ppr_deserialize(ppr_t* pprptr, const uint8* buf, uint buflen)
 
 		if (ch_bw == pprptr->ch_bw) {
 			uint32 flags = NTOH32(ser_head->flags);
+			uint16 per_band_size = NTOH16(ser_head->per_band_size);
 			ppr_set_cmn_val(pprptr, WL_RATE_DISABLED);
-			ppr_deser_cpy(pprptr, bptr + sizeof(*ser_head), flags, ch_bw);
+			ppr_deser_cpy(pprptr, bptr + sizeof(*ser_head), flags, ch_bw,
+				per_band_size);
 		} else {
 			err = BCME_BADARG;
 		}
@@ -1874,34 +2062,49 @@ ppr_deserialize(ppr_t* pprptr, const uint8* buf, uint buflen)
 
 #define MAX_TXPWR_CACHE_ENTRIES 2
 #define TXPWR_ALL_INVALID	 0xff
+#define TXPWR_CACHE_TXPWR_MAX 0x7f             /* WLC_TXPWR_MAX; */
 
 /* transmit power cache */
-typedef struct txpwr_cache_entry {
+typedef struct tx_pwr_cache_entry {
 	chanspec_t chanspec;
 	ppr_t* cache_pwrs[TXPWR_CACHE_NUM_TYPES];
 	uint8 tx_pwr_max[PPR_MAX_TX_CHAINS];
 	uint8 tx_pwr_min[PPR_MAX_TX_CHAINS];
 	int8 txchain_offsets[PPR_MAX_TX_CHAINS];
 	uint8 data_invalid_flags;
-} txpwr_cache_entry_t;
+#if !defined(WLC_LOW) || !defined(WLC_HIGH)
+	int stf_tx_target_pwr_min;
+#endif
+#if defined(WLC_HIGH)
+	uint8 stf_tx_max_offset;
+#endif
+} tx_pwr_cache_entry_t;
 
-txpwr_cache_entry_t txpwr_cache[MAX_TXPWR_CACHE_ENTRIES] = {{0}, {0}};
+/* Work around to pass 4345a0 ROM validation
+ * 16 bytes are the size of the padded struct tx_pwr_cache_entry_t in ROM
+ */
+#ifdef TXPWR_CACHE_IN_ROM
+uint8 txpwr_cache[MAX_TXPWR_CACHE_ENTRIES*16] = {0};
+#endif
 
+static tx_pwr_cache_entry_t tx_pwr_cache[MAX_TXPWR_CACHE_ENTRIES] = {{0}, {0}};
 
-static txpwr_cache_entry_t* wlc_phy_txpwr_cache_get_entry(chanspec_t chanspec);
-static txpwr_cache_entry_t* wlc_phy_txpwr_cache_get_diff_entry(chanspec_t chanspec);
-static void wlc_phy_txpwr_cache_clear_entry(osl_t *osh, txpwr_cache_entry_t* entryptr);
+static int stf_tx_pwr_min = TXPWR_CACHE_TXPWR_MAX;
+
+static tx_pwr_cache_entry_t* wlc_phy_txpwr_cache_get_entry(chanspec_t chanspec);
+static tx_pwr_cache_entry_t* wlc_phy_txpwr_cache_get_diff_entry(chanspec_t chanspec);
+static void wlc_phy_txpwr_cache_clear_entry(osl_t *osh, tx_pwr_cache_entry_t* entryptr);
 
 
 /* Find a cache entry for the specified chanspec. */
-static txpwr_cache_entry_t* wlc_phy_txpwr_cache_get_entry(chanspec_t chanspec)
+static tx_pwr_cache_entry_t* wlc_phy_txpwr_cache_get_entry(chanspec_t chanspec)
 {
 	uint i;
-	txpwr_cache_entry_t* entryptr = NULL;
+	tx_pwr_cache_entry_t* entryptr = NULL;
 
 	for (i = 0; i < (MAX_TXPWR_CACHE_ENTRIES) && (entryptr == NULL); i++) {
-		if (txpwr_cache[i].chanspec == chanspec) {
-			entryptr = &txpwr_cache[i];
+		if (tx_pwr_cache[i].chanspec == chanspec) {
+			entryptr = &tx_pwr_cache[i];
 		}
 	}
 	return entryptr;
@@ -1909,14 +2112,14 @@ static txpwr_cache_entry_t* wlc_phy_txpwr_cache_get_entry(chanspec_t chanspec)
 
 
 /* Find a cache entry that's NOT for the specified chanspec. */
-static txpwr_cache_entry_t* wlc_phy_txpwr_cache_get_diff_entry(chanspec_t chanspec)
+static tx_pwr_cache_entry_t* wlc_phy_txpwr_cache_get_diff_entry(chanspec_t chanspec)
 {
 	uint i;
-	txpwr_cache_entry_t* entryptr = NULL;
+	tx_pwr_cache_entry_t* entryptr = NULL;
 
 	for (i = 0; i < (MAX_TXPWR_CACHE_ENTRIES) && (entryptr == NULL); i++) {
-		if (txpwr_cache[i].chanspec != chanspec) {
-			entryptr = &txpwr_cache[i];
+		if (tx_pwr_cache[i].chanspec != chanspec) {
+			entryptr = &tx_pwr_cache[i];
 		}
 	}
 	return entryptr;
@@ -1924,7 +2127,7 @@ static txpwr_cache_entry_t* wlc_phy_txpwr_cache_get_diff_entry(chanspec_t chansp
 
 
 /* Clear a specific cache entry. Delete any ppr_t structs and clear the pointers. */
-static void wlc_phy_txpwr_cache_clear_entry(osl_t *osh, txpwr_cache_entry_t* entryptr)
+static void wlc_phy_txpwr_cache_clear_entry(osl_t *osh, tx_pwr_cache_entry_t* entryptr)
 {
 	uint i;
 
@@ -1953,7 +2156,7 @@ ppr_t* wlc_phy_get_cached_pwr(chanspec_t chanspec, uint pwr_type)
 	ppr_t* pwrptr = NULL;
 
 	if (pwr_type < TXPWR_CACHE_NUM_TYPES) {
-		txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+		tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 
 		if ((entryptr != NULL) &&
 			((entryptr->data_invalid_flags & (0x01 << pwr_type)) == 0))
@@ -1970,7 +2173,7 @@ int wlc_phy_set_cached_pwr(osl_t *osh, chanspec_t chanspec, uint pwr_type, ppr_t
 	int result = BCME_NOTFOUND;
 
 	if (pwr_type < TXPWR_CACHE_NUM_TYPES) {
-		txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+		tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 
 		if (entryptr != NULL) {
 			if ((entryptr->cache_pwrs[pwr_type] != NULL) &&
@@ -1993,13 +2196,45 @@ bool wlc_phy_is_pwr_cached(uint pwr_type, ppr_t* pwrptr)
 
 	if (pwr_type < TXPWR_CACHE_NUM_TYPES) {
 		for (i = 0; (i < MAX_TXPWR_CACHE_ENTRIES) && (result == FALSE); i++) {
-			if (txpwr_cache[i].cache_pwrs[pwr_type] == pwrptr) {
+			if (tx_pwr_cache[i].cache_pwrs[pwr_type] == pwrptr) {
 				result = TRUE;
 			}
 		}
 	}
 	return result;
 }
+
+#if !defined(WLC_LOW) || !defined(WLC_HIGH)
+/* Get the minimum target power for all cores for the chanspec. */
+int wlc_phy_get_cached_stf_target_pwr_min(chanspec_t chanspec)
+{
+	int min_pwr = TXPWR_CACHE_TXPWR_MAX;
+
+	tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+
+	if ((entryptr != NULL) &&
+		((entryptr->data_invalid_flags & (TXPWR_STF_TARGET_PWR_MIN_INVALID)) == 0))
+		min_pwr = entryptr->stf_tx_target_pwr_min;
+
+	return min_pwr;
+}
+
+
+/* set the minimum target power for all cores for the chanspec. */
+int wlc_phy_set_cached_stf_target_pwr_min(chanspec_t chanspec, int min_pwr)
+{
+	int result = BCME_NOTFOUND;
+
+	tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+
+	if (entryptr != NULL) {
+		entryptr->stf_tx_target_pwr_min = min_pwr;
+		entryptr->data_invalid_flags &= ~TXPWR_STF_TARGET_PWR_MIN_INVALID; /* now valid */
+		result = BCME_OK;
+	}
+	return result;
+}
+#endif /* !WLC_HIGH || !WLC_LOW */
 
 
 /* Get the maximum power for the specified core and chanspec. */
@@ -2008,7 +2243,7 @@ uint8 wlc_phy_get_cached_pwr_max(chanspec_t chanspec, uint core)
 	uint8 max_pwr = WL_RATE_DISABLED;
 
 	if (core < PPR_MAX_TX_CHAINS) {
-		txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+		tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 
 		if (entryptr != NULL)
 			max_pwr = entryptr->tx_pwr_max[core];
@@ -2024,7 +2259,7 @@ int wlc_phy_set_cached_pwr_max(chanspec_t chanspec, uint core, uint8 max_pwr)
 	int result = BCME_NOTFOUND;
 
 	if (core < PPR_MAX_TX_CHAINS) {
-		txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+		tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 
 		if (entryptr != NULL) {
 			entryptr->tx_pwr_max[core] = max_pwr;
@@ -2041,7 +2276,7 @@ uint8 wlc_phy_get_cached_pwr_min(chanspec_t chanspec, uint core)
 	uint8 min_pwr = WL_RATE_DISABLED;
 
 	if (core < PPR_MAX_TX_CHAINS) {
-		txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+		tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 
 		if (entryptr != NULL)
 			min_pwr = entryptr->tx_pwr_min[core];
@@ -2057,7 +2292,7 @@ int wlc_phy_set_cached_pwr_min(chanspec_t chanspec, uint core, uint8 min_pwr)
 	int result = BCME_NOTFOUND;
 
 	if (core < PPR_MAX_TX_CHAINS) {
-		txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+		tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 
 		if (entryptr != NULL) {
 			entryptr->tx_pwr_min[core] = min_pwr;
@@ -2074,7 +2309,7 @@ int8 wlc_phy_get_cached_txchain_offsets(chanspec_t chanspec, uint core)
 	uint8 offset = WL_RATE_DISABLED;
 
 	if (core < PPR_MAX_TX_CHAINS) {
-		txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+		tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 
 		if (entryptr != NULL)
 			offset = entryptr->txchain_offsets[core];
@@ -2090,7 +2325,7 @@ int wlc_phy_set_cached_txchain_offsets(chanspec_t chanspec, uint core, int8 offs
 	int result = BCME_NOTFOUND;
 
 	if (core < PPR_MAX_TX_CHAINS) {
-		txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+		tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 
 		if (entryptr != NULL) {
 			entryptr->txchain_offsets[core] = offset;
@@ -2118,7 +2353,7 @@ chanspec_t wlc_phy_txpwr_cache_find_other_cached_chanspec(chanspec_t chanspec)
 {
 	chanspec_t chan = 0;
 
-	txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_diff_entry(chanspec);
+	tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_diff_entry(chanspec);
 	if (entryptr != NULL) {
 		chan = entryptr->chanspec;
 	}
@@ -2129,7 +2364,7 @@ chanspec_t wlc_phy_txpwr_cache_find_other_cached_chanspec(chanspec_t chanspec)
 /* Find a specific cache entry and clear it. */
 void wlc_phy_txpwr_cache_clear(osl_t *osh, chanspec_t chanspec)
 {
-	txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+	tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
 	if (entryptr != NULL) {
 		wlc_phy_txpwr_cache_clear_entry(osh, entryptr);
 	}
@@ -2142,19 +2377,24 @@ void wlc_phy_txpwr_cache_invalidate(void)
 	uint j;
 
 	for (j = 0; j < MAX_TXPWR_CACHE_ENTRIES; j++) {
-		txpwr_cache_entry_t* entryptr = &txpwr_cache[j];
+		tx_pwr_cache_entry_t* entryptr = &tx_pwr_cache[j];
 		if (entryptr->chanspec != 0) {
 			uint i;
 			entryptr->data_invalid_flags = TXPWR_ALL_INVALID;
 			for (i = 0; i < PPR_MAX_TX_CHAINS; i++) {
-				entryptr->tx_pwr_min[i] = 0x7f; /* WLC_TXPWR_MAX; */
+				entryptr->tx_pwr_min[i] = TXPWR_CACHE_TXPWR_MAX;
 				entryptr->tx_pwr_max[i] = WL_RATE_DISABLED;
 				entryptr->txchain_offsets[i] = WL_RATE_DISABLED;
 			}
+#if !defined(WLC_LOW) || !defined(WLC_HIGH)
+			entryptr->stf_tx_target_pwr_min = TXPWR_CACHE_TXPWR_MAX;
+#endif
+#if defined(WLC_HIGH)
+			entryptr->stf_tx_max_offset = TXPWR_CACHE_TXPWR_MAX;
+#endif
 		}
 	}
 }
-
 
 /* Clear all cache entries. */
 void wlc_phy_txpwr_cache_close(osl_t *osh)
@@ -2162,7 +2402,7 @@ void wlc_phy_txpwr_cache_close(osl_t *osh)
 	uint i;
 
 	for (i = 0; i < MAX_TXPWR_CACHE_ENTRIES; i++) {
-		txpwr_cache_entry_t* entryptr = &txpwr_cache[i];
+		tx_pwr_cache_entry_t* entryptr = &tx_pwr_cache[i];
 		if (entryptr->chanspec != 0) {
 			wlc_phy_txpwr_cache_clear_entry(osh, entryptr);
 		}
@@ -2175,18 +2415,102 @@ int wlc_phy_txpwr_setup_entry(chanspec_t chanspec)
 {
 	int result = BCME_NOTFOUND;
 	/* find an empty entry */
-	txpwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(0);
+	tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(0);
 	if (entryptr != NULL) {
 		uint i;
 
 		entryptr->chanspec = chanspec;
 		for (i = 0; i < PPR_MAX_TX_CHAINS; i++) {
-			entryptr->tx_pwr_min[i] = 0x7f; /* WLC_TXPWR_MAX; */
+			entryptr->tx_pwr_min[i] = TXPWR_CACHE_TXPWR_MAX; /* WLC_TXPWR_MAX; */
 			entryptr->tx_pwr_max[i] = WL_RATE_DISABLED;
 			entryptr->txchain_offsets[i] = WL_RATE_DISABLED;
 		}
+#if !defined(WLC_LOW) || !defined(WLC_HIGH)
+		entryptr->stf_tx_target_pwr_min = TXPWR_CACHE_TXPWR_MAX;
+#endif
+#if !defined(WLC_HIGH)
+		entryptr->data_invalid_flags |= TXPWR_STF_TARGET_PWR_NOT_CACHED;
+
+#else
+		entryptr->stf_tx_max_offset = TXPWR_CACHE_TXPWR_MAX;
+#endif
 		result = BCME_OK;
 	}
 	return result;
 }
+
+#ifndef WLC_LOW
+/* Drop any reference to a particular ppr_t struct from the cache. */
+void wlc_phy_uncache_pwr(uint pwr_type, ppr_t* pwrptr)
+{
+	bool result = FALSE;
+	uint i;
+
+	if (pwr_type < TXPWR_CACHE_NUM_TYPES) {
+		for (i = 0; (i < MAX_TXPWR_CACHE_ENTRIES) && (result == FALSE); i++) {
+			if (tx_pwr_cache[i].cache_pwrs[pwr_type] == pwrptr) {
+				tx_pwr_cache[i].cache_pwrs[pwr_type] = NULL;
+			}
+		}
+	}
+}
+#endif
+
+#if !defined(WLC_HIGH)
+bool wlc_phy_get_stf_ppr_cached(chanspec_t chanspec)
+{
+	bool ret = FALSE;
+	tx_pwr_cache_entry_t *entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+	if (entryptr != NULL)
+		ret = !(entryptr->data_invalid_flags & TXPWR_STF_TARGET_PWR_NOT_CACHED);
+	return ret;
+}
+
+void wlc_phy_set_stf_ppr_cached(chanspec_t chanspec, bool bcached)
+{
+	tx_pwr_cache_entry_t *entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+	if (entryptr != NULL) {
+		if (bcached)
+			entryptr->data_invalid_flags &= ~TXPWR_STF_TARGET_PWR_NOT_CACHED;
+		else
+			entryptr->data_invalid_flags |= TXPWR_STF_TARGET_PWR_NOT_CACHED;
+	}
+}
+#endif /* !defined(WLC_HIGH) */
+
+/* Get the cached minimum Tx power */
+int wlc_phy_get_cached_stf_pwr_min_dbm(void)
+{
+	return stf_tx_pwr_min;
+}
+
+/* set the cached minimum Tx power */
+void wlc_phy_set_cached_stf_pwr_min_dbm(int min_pwr)
+{
+	stf_tx_pwr_min = min_pwr;
+}
+
+#if defined(WLC_HIGH)
+void wlc_phy_set_cached_stf_max_offset(chanspec_t chanspec, uint8 max_offset)
+{
+	tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+
+	if (entryptr != NULL) {
+		entryptr->stf_tx_max_offset = max_offset;
+	}
+}
+
+uint8 wlc_phy_get_cached_stf_max_offset(chanspec_t chanspec)
+{
+	uint8 max_offset = TXPWR_CACHE_TXPWR_MAX;
+
+	tx_pwr_cache_entry_t* entryptr = wlc_phy_txpwr_cache_get_entry(chanspec);
+
+	if (entryptr != NULL)
+		max_offset = entryptr->stf_tx_max_offset;
+
+	return max_offset;
+
+}
+#endif /* defined(WLC_HIGH) */
 #endif /* WLTXPWR_CACHE */

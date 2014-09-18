@@ -39,23 +39,24 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern wiced_result_t wiced_platform_init( void );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* Externed from platforms/<Platform>/platform.c */
-extern const platform_gpio_t  platform_gpio_pins[];
-extern const platform_adc_t   platform_adc_peripherals[];
-extern const platform_i2c_t   platform_i2c_peripherals[];
-extern const platform_pwm_t   platform_pwm_peripherals[];
-extern const platform_spi_t   platform_spi_peripherals[];
-extern const platform_uart_t  platform_uart_peripherals[];
-extern platform_uart_driver_t platform_uart_drivers[];
+extern const platform_gpio_t       platform_gpio_pins[];
+extern const platform_adc_t        platform_adc_peripherals[];
+extern const platform_i2c_t        platform_i2c_peripherals[];
+extern const platform_pwm_t        platform_pwm_peripherals[];
+extern const platform_spi_t        platform_spi_peripherals[];
+extern const platform_uart_t       platform_uart_peripherals[];
+extern platform_uart_driver_t      platform_uart_drivers[];
+extern platform_spi_slave_driver_t platform_spi_slave_drivers[];
 
 wiced_bool_t i2c_initialized[WICED_I2C_MAX];
 
@@ -177,7 +178,7 @@ wiced_bool_t wiced_i2c_probe_device( wiced_i2c_device_t* device, int retries )
     return platform_i2c_probe_device( &platform_i2c_peripherals[device->port], &config, retries );
 }
 
-wiced_result_t wiced_i2c_init_tx_message( wiced_i2c_message_t* message, void* tx_buffer, uint16_t tx_buffer_length, uint16_t retries, wiced_bool_t disable_dma )
+wiced_result_t wiced_i2c_init_tx_message( wiced_i2c_message_t* message, const void* tx_buffer, uint16_t tx_buffer_length, uint16_t retries, wiced_bool_t disable_dma )
 {
     return platform_i2c_init_tx_message( message, tx_buffer, tx_buffer_length, retries, disable_dma );
 }
@@ -277,6 +278,36 @@ wiced_result_t wiced_spi_transfer( const wiced_spi_device_t* spi, const wiced_sp
     config.bits        = spi->bits;
 
     return platform_spi_transfer( &platform_spi_peripherals[spi->port], &config, segments, number_of_segments );
+}
+
+wiced_result_t wiced_spi_slave_init( wiced_spi_t spi, const wiced_spi_slave_config_t* config )
+{
+    return platform_spi_slave_init( &platform_spi_slave_drivers[spi], &platform_spi_peripherals[spi], config );
+}
+
+wiced_result_t wiced_spi_slave_deinit( wiced_spi_t spi )
+{
+    return platform_spi_slave_deinit( &platform_spi_slave_drivers[spi] );
+}
+
+wiced_result_t wiced_spi_slave_send_error_status( wiced_spi_t spi, wiced_spi_slave_transfer_status_t error_status )
+{
+    return platform_spi_slave_send_error_status( &platform_spi_slave_drivers[spi], error_status );
+}
+
+wiced_result_t wiced_spi_slave_receive_command( wiced_spi_t spi, wiced_spi_slave_command_t* command, uint32_t timeout_ms )
+{
+    return platform_spi_slave_receive_command( &platform_spi_slave_drivers[spi], command, timeout_ms );
+}
+
+wiced_result_t wiced_spi_slave_transfer_data( wiced_spi_t spi, wiced_spi_slave_transfer_direction_t direction, wiced_spi_slave_data_buffer_t* buffer, uint32_t timeout_ms )
+{
+    return platform_spi_slave_transfer_data( &platform_spi_slave_drivers[spi], direction, buffer, timeout_ms );
+}
+
+wiced_result_t wiced_spi_slave_generate_interrupt( wiced_spi_t spi, uint32_t pulse_duration_ms )
+{
+    return platform_spi_slave_generate_interrupt( &platform_spi_slave_drivers[spi], pulse_duration_ms );
 }
 
 wiced_result_t wiced_uart_init( wiced_uart_t uart, const wiced_uart_config_t* config, wiced_ring_buffer_t* optional_rx_buffer )

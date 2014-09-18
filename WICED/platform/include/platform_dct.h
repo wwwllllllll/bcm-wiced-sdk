@@ -108,7 +108,7 @@ typedef struct
     char mfg_info_programmed;
     unsigned long magic_number;
     boot_detail_t boot_detail;
-    void (*load_app_func)(void); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!TEMPORARY
+    void (*load_app_func)(void); /* WARNING: TEMPORARY */
 } platform_dct_header_t;
 
 typedef struct

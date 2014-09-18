@@ -19,8 +19,34 @@
 #include "wps_host.h"
 #include "string.h"
 
+/******************************************************
+ *                      Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define MAX_CREDENTIALS     5
 
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 static const wiced_wps_device_detail_t details =
 {
     .device_name     = PLATFORM,
@@ -33,7 +59,9 @@ static const wiced_wps_device_detail_t details =
     .config_methods  = WPS_CONFIG_LABEL | WPS_CONFIG_VIRTUAL_PUSH_BUTTON | WPS_CONFIG_VIRTUAL_DISPLAY_PIN
 };
 
-
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 void do_wps( wiced_wps_mode_t wps_mode, char* pin )
 {
     WINFO_APP(("Starting WPS enrollee. Press WPS button on access point\n"));
@@ -44,7 +72,7 @@ void do_wps( wiced_wps_mode_t wps_mode, char* pin )
     besl_wps_deinit();
 
     /* Check if we got valid credentials */
-    if (credential[0].ssid.len == 0)
+    if (credential[0].SSID.length == 0)
     {
         /* WPS failed. Abort */
         WINFO_APP(("No access point found. Halting\n"));
@@ -58,19 +86,19 @@ void do_wps( wiced_wps_mode_t wps_mode, char* pin )
     do
     {
         cred = &credential[a];
-        WINFO_APP(("Joining : %s\n", cred->ssid.val));
-        ret = wiced_wifi_join( (char*)cred->ssid.val, cred->security, (uint8_t*) cred->passphrase, cred->passphrase_length, NULL );
+        WINFO_APP(("Joining : %s\n", cred->SSID.value));
+        ret = wiced_wifi_join( (char*)cred->SSID.value, cred->security, (uint8_t*) cred->passphrase, cred->passphrase_length, NULL );
         if (ret != WICED_SUCCESS)
         {
-            WINFO_APP(("Failed to join  : %s   .. retrying\n", cred->ssid.val));
+            WINFO_APP(("Failed to join  : %s   .. retrying\n", cred->SSID.value));
             ++a;
-            if (credential[a].ssid.len == 0)
+            if (credential[a].SSID.length == 0)
             {
                 a = 0;
             }
         }
     }
     while (ret != WICED_SUCCESS);
-    WINFO_APP(("Successfully joined : %s\n", cred->ssid.val));
+    WINFO_APP(("Successfully joined : %s\n", cred->SSID.value));
 
 }

@@ -48,11 +48,11 @@ typedef struct
 } platform_gpio_irq_data_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* GPIO peripheral clocks */

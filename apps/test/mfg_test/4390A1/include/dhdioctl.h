@@ -7,7 +7,7 @@
  *
  * $Copyright Open Broadcom Corporation$
  *
- * $Id: dhdioctl.h 327775 2012-04-16 18:54:32Z dmo $
+ * $Id: dhdioctl.h 403347 2013-05-20 14:05:15Z sudhirbs $
  */
 
 #ifndef _dhdioctl_h_

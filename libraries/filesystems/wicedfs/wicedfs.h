@@ -22,6 +22,9 @@
 extern "C" {
 #endif
 
+/******************************************************
+ *                     Macros
+ ******************************************************/
 /* Define the appropriate sized types for storing
  * address, offsest and size data
  * To support files or filesystems larger than
@@ -36,16 +39,38 @@ typedef uint32_t wicedfs_usize_t;
 typedef int32_t  wicedfs_ssize_t;
 #endif
 
-/* Forward declaration of filesystem, file and directory handle types */
-typedef /*@abstract@*/ /*@immutable@*/ struct wiced_filesystem_struct  wiced_filesystem_t;
-typedef /*@abstract@*/ /*@immutable@*/ struct WFILE_struct             WFILE;
-typedef /*@abstract@*/ /*@immutable@*/ struct BDIR_struct              WDIR;
+/******************************************************
+ *                    Constants
+ ******************************************************/
 
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 typedef enum
 {
     WICEDFS_FILE,
     WICEDFS_DIR,
 } wicedfs_entry_type_t;
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+/* Forward declaration of filesystem, file and directory handle types */
+typedef /*@abstract@*/ /*@immutable@*/ struct wiced_filesystem_struct  wiced_filesystem_t;
+typedef /*@abstract@*/ /*@immutable@*/ struct WFILE_struct             WFILE;
+typedef /*@abstract@*/ /*@immutable@*/ struct BDIR_struct              WDIR;
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
 
 /**
  * Typedef of Read Function which will be used to read data from the hardware device.

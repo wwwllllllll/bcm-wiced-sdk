@@ -17,14 +17,18 @@
 #include "lwip/sockets.h"  /* equivalent of <sys/socket.h> */
 #include <string.h>
 #include <stdint.h>
+#include "appliance.h"
 #include "network/wwd_network_constants.h"
 #include "RTOS/wwd_rtos_interface.h"
 #include "wwd_assert.h"
 
 /******************************************************
- *        DEFINES
+ *                      Macros
  ******************************************************/
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define DNS_STACK_SIZE                     (600)
 
 #define DNS_FLAG_QR_POS                     (15)
@@ -76,17 +80,23 @@
 /* DNS socket timeout value in milliseconds. Modify this to make thread exiting more responsive */
 #define DNS_SOCKET_TIMEOUT                 (500)
 
-/******************************************************
- *        Structures
- ******************************************************/
-
 #define DNS_MAX_DOMAIN_LEN                 (255)
 #define DNS_QUESTION_TYPE_CLASS_SIZE         (4)
 #define DNS_IPV4_ADDRESS_SIZE                (4)
 
 #define DNS_MAX_PACKET_SIZE   ( sizeof(dns_header_t) + DNS_MAX_DOMAIN_LEN + DNS_QUESTION_TYPE_CLASS_SIZE + sizeof(response_answer_array) + DNS_IPV4_ADDRESS_SIZE )
 
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
 /* DNS data structure */
 typedef struct
 {
@@ -100,6 +110,15 @@ typedef struct
 } dns_header_t;
 
 
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static void dns_thread( void * thread_input );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 static const char response_answer_array[] =
 {
         0xC0,                   /* Indicates next value is a offset to a name, rather than the length of an immediately following segment */
@@ -110,27 +129,13 @@ static const char response_answer_array[] =
         0x00, 0x04,             /* Data Length - 4 bytes for IPv4 address */
 };
 
-
-
-/******************************************************
- *        Static Variables
- ******************************************************/
-
 static volatile char    dns_quit_flag = 0;
 static int              dns_socket_handle            = -1;
 static xTaskHandle      dns_thread_handle;
 static char             dns_packet_buff[ DNS_MAX_PACKET_SIZE ];
 
 /******************************************************
- *        Function Prototypes
- ******************************************************/
-
-static void dns_thread( void * thread_input );
-void start_dns_server( uint32_t local_addr );
-void quit_dns_server( void );
-
-/******************************************************
- *        Function Definitions
+ *               Function Definitions
  ******************************************************/
 
 void start_dns_server( uint32_t local_addr )

@@ -58,14 +58,14 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void link_up  ( void );
 static void link_down( void );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_semaphore_t link_up_semaphore;
@@ -79,9 +79,6 @@ void application_start(void)
     /* Initialise the device */
     wiced_init();
 
-    /* Configure the device */
-    //wiced_configure_device( app_config );  /* Config bypassed in local makefile and wifi_config_dct.h */
-
     /* Register callbacks */
     wiced_network_register_link_callback( link_up, link_down );
 
@@ -91,12 +88,9 @@ void application_start(void)
     /* Initialise semaphore to notify when the network comes up */
     wiced_rtos_init_semaphore( &link_up_semaphore );
 
-    WPRINT_APP_INFO( ("\r\nSwitch your AP off.\n\n") );
+    WPRINT_APP_INFO( ("\nSwitch your AP off\n\n") );
 
-    /*
-     * The link_up() function sets a semaphore when the link is back up
-     * Wait here until the semaphore is set ...
-     */
+    /* The link_up() function sets a semaphore when the link is back up. Wait here until the semaphore is set */
     wiced_rtos_get_semaphore( &link_up_semaphore, WICED_NEVER_TIMEOUT );
 
     /* Clean up and halt */

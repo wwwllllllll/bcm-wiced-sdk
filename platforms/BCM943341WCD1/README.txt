@@ -6,6 +6,9 @@ Provider    : Broadcom
 Website     : http://broadcom.com/wiced
 Description : Broadcom BCM943341WCD1 mounted on a Broadcom BCM9WCD5EVAL1 evaluation board
 
+Schematics & Photos : /platforms/BCM943341WCD1/schematics/
+                      /platforms/evaluation_boards/BCM9WCD5EVAL1/
+
 Module
   Mfr     : Broadcom
   P/N     : BCM943341WCD1

@@ -64,14 +64,14 @@ while (0)
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t bt_transport_thread_send_packet_handler   ( void* arg );
 static wiced_result_t bt_transport_thread_receive_packet_handler( void* arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_worker_thread_t                         bt_transport_thread;

@@ -17,7 +17,7 @@ old_library='libstdc++.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' -lm'
+dependency_libs=' -L/c/pf8_3/Wiced-Tool-Source/ARM_GNU/gcc-build/arm-none-eabi/libstdc++-v3/src -L/c/pf8_3/Wiced-Tool-Source/ARM_GNU/gcc-build/arm-none-eabi/libstdc++-v3/src/.libs -L/c/pf8_3/Wiced-Tool-Source/ARM_GNU/gcc-build/arm-none-eabi/libstdc++-v3/libsupc++/.libs -lm'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''
@@ -25,7 +25,7 @@ weak_library_names=''
 # Version information for libstdc++.
 current=6
 age=0
-revision=18
+revision=20
 
 # Is this an already installed library?
 installed=yes
@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/home/ehunter/Documents/projects/WICED/Wiced-Tool-Source/ARM_GNU/install/lib'
+libdir='/c/pf8_3/Wiced-Tool-Source/ARM_GNU/install/lib'

@@ -99,7 +99,7 @@ static wiced_bool_t wwd_bus_flow_controlled = WICED_FALSE;
 
 
 /******************************************************
- *             Function declarations
+ *             Static Function Declarations
  ******************************************************/
 
 static wwd_result_t wwd_download_firmware   ( void );
@@ -220,7 +220,6 @@ static wwd_result_t wwd_bus_transfer_buffer( wwd_bus_transfer_direction_t direct
             }
             if ( result != WWD_SUCCESS )
             {
-                host_buffer_release( buffer, WWD_NETWORK_TX );
                 return result;
             }
             if ( loop_count >= (uint32_t) F2_READY_TIMEOUT_LOOPS )
@@ -687,9 +686,12 @@ static wwd_result_t wwd_download_firmware( void )
     VERIFY_RESULT( wwd_disable_device_core(SOCRAM_CORE) );
     VERIFY_RESULT( wwd_reset_device_core(SOCRAM_CORE) );
 
+#ifdef MFG_TEST_ALTERNATE_WLAN_DOWNLOAD
+    VERIFY_RESULT( external_write_wifi_firmware_and_nvram_image( ) );
+#else
     VERIFY_RESULT( wwd_bus_write_wifi_firmware_image( ) );
-
     VERIFY_RESULT( wwd_bus_write_wifi_nvram_image( ) );
+#endif /* ifdef MFG_TEST_ALTERNATE_WLAN_DOWNLOAD */
 
     /* Take the ARM core out of reset */
     VERIFY_RESULT( wwd_reset_device_core( ARM_CORE ) );

@@ -26,11 +26,40 @@ extern "C" {
 #error wicedfs_internal.h should not be used externally
 #endif /* ifndef INSIDE_WICEDFS_C_ */
 
+/******************************************************
+ *                     Macros
+ ******************************************************/
 /* Suppress unused parameter warning */
 #ifndef UNUSED_PARAMETER
 #define UNUSED_PARAMETER(x) /*@-noeffect@*/ ( (void)(x) ) /*@+noeffect@*/
 #endif
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
+/* File table Entry Type definitions
+ * To be used for the type_flags_permissions field
+ */
+
+#define WICEDFS_TYPE_DIR       (0)
+#define WICEDFS_TYPE_FILE      (1)
+#define WICEDFS_TYPE_LINK      (2)
+#define WICEDFS_TYPE_MASK      (0xf)
+
+/* Magic Number for the filesystem header (wicedfs_filesystem_header_t) */
+#define WICEDFS_MAGIC     ((uint32_t)(((uint8_t)'B'<<0)|((uint8_t)'R'<<8)|((uint8_t)'C'<<16)|((uint8_t)'M'<<24)))
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
 /*****************************************************************
  * The following structures define the filesystem data structures
  * on the hardware device.
@@ -69,19 +98,13 @@ typedef struct
 
 #pragma pack()
 
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
 
-/* File table Entry Type definitions
- * To be used for the type_flags_permissions field
- */
-
-#define WICEDFS_TYPE_DIR       (0)
-#define WICEDFS_TYPE_FILE      (1)
-#define WICEDFS_TYPE_LINK      (2)
-#define WICEDFS_TYPE_MASK      (0xf)
-
-
-/* Magic Number for the filesystem header (wicedfs_filesystem_header_t) */
-#define WICEDFS_MAGIC     ((uint32_t)(((uint8_t)'B'<<0)|((uint8_t)'R'<<8)|((uint8_t)'C'<<16)|((uint8_t)'M'<<24)))
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
 
 #ifdef __cplusplus
 } /*extern "C" */

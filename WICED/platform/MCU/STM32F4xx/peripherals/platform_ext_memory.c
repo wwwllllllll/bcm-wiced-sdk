@@ -147,7 +147,7 @@ typedef struct
 } stm32f4_sram_nor_control_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 int fsmc_sram_configure( const wiced_sram_device_t* sram, const stm32f4xx_platform_nor_sram_t* settings );

@@ -73,7 +73,7 @@ static wiced_network_link_callback_t link_down_callbacks[WICED_MAXIMUM_LINK_CALL
 static wiced_bool_t ip_networking_up[2];
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void tcpip_init_done( void* arg );
@@ -186,14 +186,19 @@ wiced_result_t wiced_network_up( wiced_interface_t interface, wiced_network_conf
                 return retval;
             }
 
-            // Check config DCT is valid
+            /* Check config DCT is valid */
             if ( config_ap->details_valid == CONFIG_VALIDITY_VALUE )
             {
-                result = wiced_start_ap( (char*) config_ap->SSID.val, config_ap->security, config_ap->security_key, config_ap->channel );
+                result = wiced_start_ap( &config_ap->SSID, config_ap->security, config_ap->security_key, config_ap->channel );
             }
             else
             {
-                result = wiced_start_ap( (char*)"Wiced Config", WICED_SECURITY_OPEN, "", 1 );
+                wiced_ssid_t ssid =
+                {
+                    .length =  sizeof("Wiced Config")-1,
+                    .value  = "Wiced Config",
+                };
+                result = wiced_start_ap( &ssid, WICED_SECURITY_OPEN, "", 1 );
             }
             wiced_dct_read_unlock( config_ap, WICED_FALSE );
         }
@@ -205,7 +210,7 @@ wiced_result_t wiced_network_up( wiced_interface_t interface, wiced_network_conf
             {
                 return result;
             }
-            result = (wiced_result_t) wwd_wifi_start_ap( (char*) soft_ap->SSID.val, soft_ap->security, (uint8_t*) soft_ap->security_key, soft_ap->security_key_length, soft_ap->channel );
+            result = (wiced_result_t) wwd_wifi_start_ap( &soft_ap->SSID, soft_ap->security, (uint8_t*) soft_ap->security_key, soft_ap->security_key_length, soft_ap->channel );
             wiced_dct_read_unlock( soft_ap, WICED_FALSE );
         }
         else
@@ -279,8 +284,6 @@ wiced_result_t wiced_ip_up( wiced_interface_t interface, wiced_network_config_t 
         /* Bring up the network interface */
         netif_set_up( &IP_HANDLE(interface) );
         netif_set_default( &IP_HANDLE(interface) );
-
-        //igmp_start(&IP_HANDLE(interface));
 
         WPRINT_NETWORK_INFO(("Obtaining IP address via DHCP\n"));
         dhcp_set_struct( &IP_HANDLE(interface), &wiced_dhcp_handle );

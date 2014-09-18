@@ -23,13 +23,54 @@
 #include "wl_drv.h"
 #include "network/wwd_buffer_interface.h"
 #include "RTOS/wwd_rtos_interface.h"
+#include "chip_constants.h"
+#include "wiced_rtos.h"
+#include "wiced_management.h"
+#include "wiced_defaults.h"
+#include "internal/bus_protocols/wwd_bus_protocol_interface.h"
 #include <string.h>
+#include "wifi_nvram_image.h"
+#include "resources.h"
+#include "wwd_assert.h"
+#include "mfg_test.h"
 
+/******************************************************
+ *                      Macros
+ ******************************************************/
 
-static int ifnum = 0;
-unsigned short defined_debug = 0; //DEBUG_ERR | DEBUG_INFO;
+/******************************************************
+ *                    Constants
+ ******************************************************/
 
-extern int remote_server_exec(int argc, char **argv, void *ifr);
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+static int                   ifnum                    = 0;
+static int                   currently_downloading    = 0;
+static host_semaphore_type_t downloading_semaphore;
+static host_semaphore_type_t download_ready_semaphore;
+static wiced_thread_t        downloading_thread;
+unsigned short               defined_debug            = 0; //DEBUG_ERR | DEBUG_INFO;
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 int
 rwl_create_dir(void)
@@ -151,17 +192,53 @@ set_interface(void *wl, char *intf_name)
     return BCME_OK;
 }
 
-
-
-void app_main( void )
+static void downloading_init_func( uint32_t arg )
 {
-    // turn off buffers, so IO occurs immediately
-    setvbuf(stdin, NULL, _IONBF, 0);
-    setvbuf(stdout, NULL, _IONBF, 0);
-    setvbuf(stderr, NULL, _IONBF, 0);
-
-    int argc = 2;
-    char *argv[] = { "", "" };
-    /* Main server process for all transport types */
-    remote_server_exec(argc, argv, NULL);
+    wiced_init( );
+    WICED_END_OF_CURRENT_THREAD_NO_LEAK_CHECK( );
 }
+
+void start_download( void )
+{
+    wiced_deinit( );
+    currently_downloading = 1;
+
+    host_rtos_init_semaphore( &downloading_semaphore );
+    host_rtos_init_semaphore( &download_ready_semaphore );
+
+    wiced_rtos_create_thread( &downloading_thread, WICED_NETWORK_WORKER_PRIORITY, "downloading_init_func", downloading_init_func, 5000, NULL);
+    host_rtos_get_semaphore( &download_ready_semaphore, NEVER_TIMEOUT, WICED_FALSE );
+    host_rtos_deinit_semaphore( &download_ready_semaphore );
+}
+
+void finish_download( void )
+{
+    host_rtos_set_semaphore( &downloading_semaphore, WICED_FALSE );
+    host_rtos_deinit_semaphore( &downloading_semaphore );
+    currently_downloading = 0;
+}
+
+void membytes_write( uint32_t address, uint8_t* buf, uint32_t length )
+{
+    wwd_bus_set_backplane_window( address );
+    wwd_bus_transfer_bytes( BUS_WRITE, BACKPLANE_FUNCTION, ( address & BACKPLANE_ADDRESS_MASK ), length, (wwd_transfer_bytes_packet_t*) ( buf -  WWD_BUS_HEADER_SIZE ) );
+}
+
+wwd_result_t external_write_wifi_firmware_and_nvram_image( void )
+{
+    if ( currently_downloading == 0 )
+    {
+        wwd_result_t result;
+        result = wwd_bus_write_wifi_firmware_image( );
+        if ( result != WWD_SUCCESS )
+        {
+            return result;
+        }
+        return wwd_bus_write_wifi_nvram_image( );
+    }
+
+    host_rtos_set_semaphore( &download_ready_semaphore, WICED_FALSE );
+    host_rtos_get_semaphore( &downloading_semaphore, NEVER_TIMEOUT, WICED_FALSE );
+    return WWD_SUCCESS;
+}
+

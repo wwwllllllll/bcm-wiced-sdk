@@ -102,8 +102,9 @@ typedef enum
 typedef struct
 {
     wiced_scan_result_t ap_details;    /**< Access point details     */
-    wiced_bool_t        scan_complete; /**< True if scan is complete */
+    wiced_scan_status_t status;
     void*               user_data;     /**< Pointer to user data passed into wiced_wifi_scan_networks() function */
+    void*               next;
 } wiced_scan_handler_result_t;
 
 /** @cond !ADDTHIS*/
@@ -558,7 +559,7 @@ static inline wiced_result_t wiced_wifi_get_channel( uint32_t* channel )
 
 static inline wiced_result_t wiced_wifi_get_mac_address( wiced_mac_t* mac )
 {
-    return (wiced_result_t) wwd_wifi_get_mac_address( mac );
+    return (wiced_result_t) wwd_wifi_get_mac_address( mac, WWD_STA_INTERFACE );
 }
 
 static inline wiced_result_t wiced_wifi_get_counters(wwd_interface_t interface, wiced_counters_t* counters )
@@ -659,6 +660,11 @@ static inline wiced_result_t wiced_wifi_disable_keep_alive( uint8_t id )
 static inline wiced_result_t wiced_wifi_get_associated_client_list( void* client_list_buffer, uint16_t buffer_length )
 {
     return (wiced_result_t) wwd_wifi_get_associated_client_list( client_list_buffer, buffer_length );
+}
+
+static inline wiced_result_t wiced_wifi_get_ap_client_rssi( int32_t* rssi, const wiced_mac_t* client_mac_addr )
+{
+    return (wiced_result_t) wwd_wifi_get_ap_client_rssi( rssi, client_mac_addr );
 }
 
 static inline wiced_result_t wiced_wifi_get_ap_info( wiced_bss_info_t* ap_info, wiced_security_t* security )

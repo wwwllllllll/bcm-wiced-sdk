@@ -148,6 +148,11 @@ typedef struct
 
 typedef struct
 {
+    uint8_t unimplemented;
+} platform_spi_slave_driver_t;
+
+typedef struct
+{
     platform_i2c_port_t*   port;
     const platform_gpio_t* pin_scl;
     const platform_gpio_t* pin_sda;

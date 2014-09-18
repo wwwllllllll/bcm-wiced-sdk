@@ -26,12 +26,30 @@
 #include <stdlib.h>
 #include "wwd_assert.h"
 #include "appliance.h"
-
+#include "icons.h"
 #include "internal/wwd_sdpcm.h"
 #include "wwd_wlioctl.h"
 
 /******************************************************
- *             Defines
+ *                      Macros
+ ******************************************************/
+/* Macros for comparing MAC addresses */
+#define CMP_MAC( a, b )  (((a[0])==(b[0]))&& \
+                          ((a[1])==(b[1]))&& \
+                          ((a[2])==(b[2]))&& \
+                          ((a[3])==(b[3]))&& \
+                          ((a[4])==(b[4]))&& \
+                          ((a[5])==(b[5])))
+
+#define NULL_MAC( a )  (((a[0])==0)&& \
+                        ((a[1])==0)&& \
+                        ((a[2])==0)&& \
+                        ((a[3])==0)&& \
+                        ((a[4])==0)&& \
+                        ((a[5])==0))
+
+/******************************************************
+ *                    Constants
  ******************************************************/
 #define CIRCULAR_RESULT_BUFF_SIZE  (5)
 #define MAX_SCAN_RESULTS           (100)
@@ -54,25 +72,17 @@
 #define RSSI_VERY_GOOD_STR         "Very good"
 #define RSSI_EXCELLENT_STR         "Excellent"
 
-/* Macros for comparing MAC addresses */
-#define CMP_MAC( a, b )  (((a[0])==(b[0]))&& \
-                          ((a[1])==(b[1]))&& \
-                          ((a[2])==(b[2]))&& \
-                          ((a[3])==(b[3]))&& \
-                          ((a[4])==(b[4]))&& \
-                          ((a[5])==(b[5])))
-
-#define NULL_MAC( a )  (((a[0])==0)&& \
-                        ((a[1])==0)&& \
-                        ((a[2])==0)&& \
-                        ((a[3])==0)&& \
-                        ((a[4])==0)&& \
-                        ((a[5])==0))
-
 /******************************************************
- *             Structures
+ *                   Enumerations
  ******************************************************/
 
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
 typedef struct
 {
     uint8_t               scan_done;
@@ -80,14 +90,9 @@ typedef struct
     wiced_scan_result_t*  result_buff;
 } scan_cb_t;
 
-
 /******************************************************
- *             Static Function Prototypes
+ *               Static Function Declarations
  ******************************************************/
-
-int  process_favicon       ( void* socket, char * params, int params_len );
-int  process_brcmlogo      ( void* socket, char * params, int params_len );
-
 static int  process_top           ( void* socket, char * params, int params_len );
 static int  process_wps_icon      ( void* socket, char * params, int params_len );
 static int  process_wps_pbc       ( void* socket, char * params, int params_len );
@@ -98,16 +103,13 @@ static int  process_scanjoin      ( void* socket, char * params, int params_len 
 static int  process_scan          ( void* socket, char * params, int params_len );
 static int  process_connect       ( void* socket, char * params, int params_len );
 static int  process_ajax          ( void* socket, char * params, int params_len );
-static void scan_results_handler  ( wiced_scan_result_t ** result_ptr, void * user_data );
+static void scan_results_handler( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status );
 static int  decode_connect_params ( char * params, int params_len );
 static void url_decode            ( char * str );
+
 /******************************************************
- *             Global variables
+ *               Variable Definitions
  ******************************************************/
-
-extern const unsigned char scan_icon[2339];
-extern const unsigned char wps_icon[2205];
-
 /**
  * URL Handler List
  */
@@ -132,12 +134,6 @@ const url_list_elem_t config_AP_url_list[] = {
                                      /* Add more pages here */
                                      { NULL, NULL, NULL }
                                    };
-
-
-
-/******************************************************
- *             Static variables
- ******************************************************/
 
 /**
  * HTML data for main Appliance web page
@@ -329,8 +325,9 @@ static wiced_scan_result_t       result_buff[CIRCULAR_RESULT_BUFF_SIZE];
 static uint16_t                  result_buff_write_pos = 0;
 static uint16_t                  result_buff_read_pos  = 0;
 
+
 /******************************************************
- *             Static Functions
+ *               Function Definitions
  ******************************************************/
 
 /**
@@ -460,7 +457,7 @@ static int process_scan( void * socket, char * params, int params_len )
     host_rtos_init_semaphore( &scan_cb_data.result_avail_sema );
 
     /* Start Scan */
-    if ( WWD_SUCCESS != wwd_wifi_scan( WICED_SCAN_TYPE_ACTIVE, WICED_BSS_TYPE_ANY, NULL, NULL, NULL, NULL, scan_results_handler, (wiced_scan_result_t **) &update_result_ptr, &scan_cb_data ) )
+    if ( WWD_SUCCESS != wwd_wifi_scan( WICED_SCAN_TYPE_ACTIVE, WICED_BSS_TYPE_ANY, NULL, NULL, NULL, NULL, scan_results_handler, (wiced_scan_result_t **) &update_result_ptr, &scan_cb_data, WWD_STA_INTERFACE ) )
     {
         WPRINT_APP_ERROR(("Error starting scan\n"));
         send_web_data( socket, (unsigned char*) scan_results_bottom, sizeof( scan_results_bottom ) - 1 ); /* minus one to avoid copying terminating null */
@@ -485,9 +482,9 @@ static int process_scan( void * socket, char * params, int params_len )
 
             /* Print SSID into buffer */
             recordbuffptr += sprintf( recordbuffptr, "<tr><td>" );
-            for ( k = 0; k < read_result_ptr->SSID.len; k++ )
+            for ( k = 0; k < read_result_ptr->SSID.length; k++ )
             {
-                recordbuffptr += sprintf( recordbuffptr, "%c", read_result_ptr->SSID.val[k] );
+                recordbuffptr += sprintf( recordbuffptr, "%c", read_result_ptr->SSID.value[k] );
             }
 
             /* Print a signal strength indication into buffer */
@@ -499,9 +496,9 @@ static int process_scan( void * socket, char * params, int params_len )
 
             /* Print the join button into the buffer */
             recordbuffptr += sprintf( recordbuffptr, "</td><td><input type=\"button\" value=\"Join\" onclick=\"do_conn( '" );
-            for ( k = 0; k < read_result_ptr->SSID.len; k++ )
+            for ( k = 0; k < read_result_ptr->SSID.length; k++ )
             {
-                recordbuffptr += sprintf( recordbuffptr, "%c", read_result_ptr->SSID.val[k] );
+                recordbuffptr += sprintf( recordbuffptr, "%c", read_result_ptr->SSID.value[k] );
             }
             recordbuffptr += sprintf( recordbuffptr, "', %d, %d, '%02X%02X%02X%02X%02X%02X' )\"/></td></tr>\n", read_result_ptr->security, read_result_ptr->channel, read_result_ptr->BSSID.octet[0], read_result_ptr->BSSID.octet[1], read_result_ptr->BSSID.octet[2], read_result_ptr->BSSID.octet[3], read_result_ptr->BSSID.octet[4], read_result_ptr->BSSID.octet[5] );
 
@@ -537,7 +534,7 @@ static int process_scan( void * socket, char * params, int params_len )
  *  @param user_data : unused
  */
 
-static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user_data )
+static void scan_results_handler( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status )
 {
     scan_cb_t* scan_cb_data = (scan_cb_t*) user_data;
 
@@ -550,11 +547,11 @@ static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user
     }
 
     /* Check the list of BSSID values which have already been printed */
-    wiced_mac_t * tmp_mac = bssid_list;
+    wiced_mac_t* tmp_mac = bssid_list;
     while ( ( tmp_mac < bssid_list + ( sizeof(bssid_list) / sizeof(wiced_mac_t) ) ) &&
-            !NULL_MAC( tmp_mac->octet ) )
+            NULL_MAC( tmp_mac->octet ) == WICED_FALSE )
     {
-        if ( CMP_MAC( tmp_mac->octet, (*result_ptr)->BSSID.octet ) )
+        if ( CMP_MAC( tmp_mac->octet, (*result_ptr)->BSSID.octet ) == WICED_TRUE )
         {
             /* already seen this BSSID */
             return;
@@ -565,7 +562,6 @@ static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user
     memcpy( &tmp_mac->octet, ( *result_ptr )->BSSID.octet, sizeof(wiced_mac_t) );
 
     /* Increment the write location for the next scan result */
-
     result_buff_write_pos++;
     if ( result_buff_write_pos >= CIRCULAR_RESULT_BUFF_SIZE )
     {
@@ -574,10 +570,8 @@ static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user
 
     *result_ptr =&scan_cb_data->result_buff[result_buff_write_pos];
 
-
-    /* signal other thread */
+    /* Signal other thread */
     host_rtos_set_semaphore( &scan_cb_data->result_avail_sema, WICED_FALSE );
-
 
     wiced_assert( "Circular result buffer overflow", result_buff_write_pos != result_buff_read_pos );
 }
@@ -726,8 +720,8 @@ static int decode_connect_params( char * params, int params_len )
 
     /* Copy the ssid into the config buffer */
     appliance_config.config_type = CONFIG_SCANJOIN;
-    strcpy( (char*) appliance_config.vals.scanjoin.scanresult.SSID.val, ssid );
-    appliance_config.vals.scanjoin.scanresult.SSID.len = strlen( ssid );
+    strcpy( (char*) appliance_config.vals.scanjoin.scanresult.SSID.value, ssid );
+    appliance_config.vals.scanjoin.scanresult.SSID.length = strlen( ssid );
 
     /* Decode the hex value of the BSSID into the config buffer */
     for ( i = 0; i < sizeof(wiced_mac_t); i++ )

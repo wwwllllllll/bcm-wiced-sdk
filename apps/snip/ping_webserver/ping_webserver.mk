@@ -10,7 +10,7 @@
 
 NAME := App_Ping_webserver
 
-$(NAME)_SOURCES := ping_webserver.c
+$(NAME)_SOURCES    := ping_webserver.c
 
 $(NAME)_COMPONENTS := daemons/HTTP_server \
                       daemons/Gedday
@@ -24,5 +24,3 @@ $(NAME)_RESOURCES  := apps/ping_webserver/top.html \
                       scripts/wpad.dat
 
 APPLICATION_DCT    := ping_webserver_dct.c
-
-WIFI_CONFIG_DCT_H := wifi_config_dct.h

@@ -112,6 +112,12 @@ int ppr_get_ht_mcs(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_nss_t Nss, wl_tx_mode_t m
 int ppr_get_vht_mcs(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_nss_t Nss, wl_tx_mode_t mode,
  wl_tx_chains_t tx_chains, ppr_vht_mcs_rateset_t* mcs);
 
+/* Get the minimum power for a VHT MCS rate specified by Nss, with the given bw and tx chains.
+ * Disabled rates are ignored
+ */
+int ppr_get_vht_mcs_min(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_nss_t Nss, wl_tx_mode_t mode,
+ wl_tx_chains_t tx_chains, int8* mcs_min);
+
 
 /* Routines to set target powers per rate for a whole rate set */
 
@@ -155,6 +161,9 @@ int ppr_set_same_vht_mcs(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_nss_t Nss, wl_tx_mo
 
 /* Ensure no rate limit is greater than the specified maximum */
 uint ppr_apply_max(ppr_t* pprptr, int8 max);
+
+/* Make disabled rates explicit. If one rate in a group is disabled, disable the whole group */
+int ppr_force_disabled(ppr_t* pprptr, int8 threshold);
 
 /*
  * Reduce total transmitted power to level of constraint.
@@ -265,11 +274,40 @@ void ppr_multiply_percentage(ppr_t* pprptr, uint8 val);
 
 
 #ifdef WLTXPWR_CACHE
+
+/**
+ * Usage of the WLTXPWR_CACHE API:
+ * 1. Reserve one or more entries in the cache for a specific chanspec:
+ * 		wlc_phy_txpwr_setup_entry(chanspec1);
+ * 		wlc_phy_txpwr_setup_entry(chanspec2);
+ * 2. Use any of the getter/setter functions. Note that they may return an error on a chanspec
+ *    that was not reserved. For setter functions, for pointer type arguments (e.g. ppr_t), the
+ *    cache maintains a reference to the caller provided object rather than copying it.
+ * 3. Use wlc_phy_txpwr_cache_clear() or wlc_phy_txpwr_cache_invalidate() to get rid of cache
+ *    entries. Note that this clears, amongst others, ppr_t structs.
+ *
+ * For non-BMAC builds, only the cache is allowed to delete the ppr_t object, and the driver code is
+ * not allowed to reuse it for another channel as it can when the cache is not being used.
+ *
+ * For BMAC builds, the cache has to be made to release the stf offsets object to avoid some nasty
+ * race conditions.
+ *
+ * Mike thinks when this is reimplemented for trunk he would consider having a reference count
+ * associated with each object to make this cleaner.
+ *
+ * Note that the functions start with wlc_phy_* despite not residing in the PHY code. This is
+ * probably for historical reasons.
+ */
+
 enum txpwr_cache_info_type {
 	TXPWR_CACHE_STF_OFFSETS,	/* PPR offsets for stf */
 	TXPWR_CACHE_POWER_OFFSETS,	/* PPR offsets for phy */
 	TXPWR_CACHE_NUM_TYPES,	/* How many types of pwr info */
 };
+
+#define TXPWR_STF_PWR_MIN_INVALID 0x80
+#define TXPWR_STF_TARGET_PWR_MIN_INVALID 0x40
+#define TXPWR_STF_TARGET_PWR_NOT_CACHED 0x20
 
 extern ppr_t* wlc_phy_get_cached_pwr(chanspec_t chanspec, uint pwr_type);
 
@@ -283,6 +321,10 @@ extern uint8 wlc_phy_get_cached_pwr_min(chanspec_t chanspec, uint core);
 
 extern int wlc_phy_set_cached_pwr_min(chanspec_t chanspec, uint core, uint8 min_pwr);
 
+extern int wlc_phy_get_cached_stf_target_pwr_min(chanspec_t chanspec);
+
+extern int wlc_phy_set_cached_stf_target_pwr_min(chanspec_t chanspec, int min_pwr);
+
 extern int8 wlc_phy_get_cached_txchain_offsets(chanspec_t chanspec, uint core);
 
 extern int wlc_phy_set_cached_txchain_offsets(chanspec_t chanspec, uint core, int8 offset);
@@ -290,6 +332,8 @@ extern int wlc_phy_set_cached_txchain_offsets(chanspec_t chanspec, uint core, in
 extern bool wlc_phy_txpwr_cache_is_cached(chanspec_t chanspec);
 
 extern bool wlc_phy_is_pwr_cached(uint pwr_type, ppr_t* pwrptr);
+
+extern void wlc_phy_uncache_pwr(uint pwr_type, ppr_t* pwrptr);
 
 extern chanspec_t wlc_phy_txpwr_cache_find_other_cached_chanspec(chanspec_t chanspec);
 
@@ -300,6 +344,17 @@ extern void wlc_phy_txpwr_cache_invalidate(void);
 extern void wlc_phy_txpwr_cache_close(osl_t *osh);
 
 extern int wlc_phy_txpwr_setup_entry(chanspec_t chanspec);
-#endif /* WLTXPWR_CACHE */
 
+extern bool wlc_phy_get_stf_ppr_cached(chanspec_t chanspec);
+
+extern void wlc_phy_set_stf_ppr_cached(chanspec_t chanspec, bool bcached);
+
+extern int wlc_phy_get_cached_stf_pwr_min_dbm(void);
+
+extern void wlc_phy_set_cached_stf_pwr_min_dbm(int min_pwr);
+
+extern void wlc_phy_set_cached_stf_max_offset(chanspec_t chanspec, uint8 max_offset);
+
+extern uint8 wlc_phy_get_cached_stf_max_offset(chanspec_t chanspec);
+#endif /* WLTXPWR_CACHE */
 #endif	/* _wlc_ppr_h_ */

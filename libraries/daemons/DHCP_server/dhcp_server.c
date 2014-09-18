@@ -93,7 +93,7 @@ typedef struct
 } dhcp_header_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void           dhcp_thread                      ( uint32_t thread_input );
@@ -103,7 +103,7 @@ static wiced_result_t add_client_to_cache              ( const wiced_mac_t* clie
 static void           ipv4_to_string                   ( char* buffer, uint32_t ipv4_address );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************
@@ -326,7 +326,7 @@ static void dhcp_thread( uint32_t thread_input )
                     given_ip_address.ip.v4     = next_available_ip_addr;
                 }
 
-                if ( memcmp( &requested_ip_address, &given_ip_address, sizeof( requested_ip_address ) ) != 0 )
+                if ( memcmp( &requested_ip_address.ip.v4, &given_ip_address.ip.v4, sizeof( requested_ip_address.ip.v4 ) ) != 0 )
                 {
                     /* Request is not for next available IP - force client to take next available IP by sending NAK */
                     /* Add appropriate options */

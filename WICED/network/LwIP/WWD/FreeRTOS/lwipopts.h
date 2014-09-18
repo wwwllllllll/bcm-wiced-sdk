@@ -241,6 +241,9 @@ extern "C" {
 /* ARP before DHCP causes multi-second delay  - turn it off */
 #define DHCP_DOES_ARP_CHECK            (0)
 
+/* ARP Queue size needs to be reduced to avoid using up all PBUFs when SoftAP is in use under load in busy environments */
+#define MEMP_NUM_ARP_QUEUE              5
+
 /**
  * LWIP_NETIF_LOOPBACK==1: Support sending packets with a destination IP
  * address equal to the netif IP address, looping them back up the stack.
@@ -300,6 +303,12 @@ extern "C" {
 #else
 #define LWIP_STATS                     (0)
 #endif /* ifdef WICED_LWIP_DEBUG */
+
+/**
+ * Use a random number generator to assign local TCP ports for
+ * outgoing connections
+ */
+#define LWIP_RANDOM_INITIAL_TCP_PORT
 
 /**
  * Debug printing

@@ -3,7 +3,7 @@
  *
  * $Copyright Open Broadcom Corporation$
  *
- * $Id: bcmdefs.h 381895 2013-01-30 07:06:40Z gracecsm $
+ * $Id: bcmdefs.h 414569 2013-07-25 09:10:33Z anoops $
  */
 
 #ifndef	_bcmdefs_h_
@@ -140,7 +140,8 @@ typedef struct {
 	bcmromdat_patch_t BCMROMDATA(data##__bcmpatch) = \
 	{ sizeof(data), 1, ((void*)&data) };
 #define BCMROMFN_NAME(_fn)	_fn
-#elif defined(BCMROMBUILD) && !defined(BCMROMSYMGEN_BUILD) && !defined(BCMJMPTBL_TCAM)
+#elif defined(BCMROMBUILD) && !defined(BCMROMSYMGEN_BUILD) && !defined(BCMJMPTBL_TCAM) && \
+	!defined(WLC_PATCH_IOCTL_CHECKSUM)
 #include <bcmjmptbl.h>
 #define STATIC	static
 #else /* !BCMROMBUILD */
@@ -216,23 +217,28 @@ typedef struct {
 #define	DMADDRWIDTH_63  63 /* 64-bit addressing capability */
 #define	DMADDRWIDTH_64  64 /* 64-bit addressing capability */
 
-#ifdef BCMDMA64OSL
 typedef struct {
 	uint32 loaddr;
 	uint32 hiaddr;
 } dma64addr_t;
 
-typedef dma64addr_t dmaaddr_t;
-#define PHYSADDRHI(_pa) ((_pa).hiaddr)
-#define PHYSADDRHISET(_pa, _val) \
+#define PHYSADDR64HI(_pa) ((_pa).hiaddr)
+#define PHYSADDR64HISET(_pa, _val) \
 	do { \
 		(_pa).hiaddr = (_val);		\
 	} while (0)
-#define PHYSADDRLO(_pa) ((_pa).loaddr)
-#define PHYSADDRLOSET(_pa, _val) \
+#define PHYSADDR64LO(_pa) ((_pa).loaddr)
+#define PHYSADDR64LOSET(_pa, _val) \
 	do { \
 		(_pa).loaddr = (_val);		\
 	} while (0)
+
+#ifdef BCMDMA64OSL
+typedef dma64addr_t dmaaddr_t;
+#define PHYSADDRHI(_pa) PHYSADDR64HI(_pa)
+#define PHYSADDRHISET(_pa, _val) PHYSADDR64HISET(_pa, _val)
+#define PHYSADDRLO(_pa)  PHYSADDR64LO(_pa)
+#define PHYSADDRLOSET(_pa, _val) PHYSADDR64LOSET(_pa, _val)
 
 #else
 typedef unsigned long dmaaddr_t;
@@ -367,5 +373,40 @@ typedef struct {
 #ifdef EFI
 #define __attribute__(x)	/* CSTYLED */
 #endif
+
+/* WL_ENAB_RUNTIME_CHECK may be set based upon the #define below (for ROM builds). It may also
+ * be defined via makefiles (e.g. ROM auto abandon unoptimized compiles).
+ */
+#if defined(BCMROMBUILD)
+	#ifndef WL_ENAB_RUNTIME_CHECK
+		#define WL_ENAB_RUNTIME_CHECK
+	#endif
+#endif /* BCMROMBUILD */
+
+
+#ifdef BCMLFRAG /* BCMLFRAG support enab macros  */
+	extern bool _bcmlfrag;
+	#if defined(WL_ENAB_RUNTIME_CHECK) || !defined(DONGLEBUILD)
+		#define BCMLFRAG_ENAB() (_bcmlfrag)
+	#elif defined(BCMLFRAG_DISABLED)
+		#define BCMLFRAG_ENAB()	(0)
+	#else
+		#define BCMLFRAG_ENAB()	(1)
+	#endif
+#else
+	#define BCMLFRAG_ENAB()		(0)
+#endif /* BCMLFRAG_ENAB */
+#ifdef BCMSPLITRX /* BCMLFRAG support enab macros  */
+	extern bool _bcmsplitrx;
+	#if defined(WL_ENAB_RUNTIME_CHECK) || !defined(DONGLEBUILD)
+		#define BCMSPLITRX_ENAB() (_bcmsplitrx)
+	#elif defined(BCMSPLITRX_DISABLED)
+		#define BCMSPLITRX_ENAB()	(0)
+	#else
+		#define BCMSPLITRX_ENAB()	(1)
+	#endif
+#else
+	#define BCMSPLITRX_ENAB()		(0)
+#endif /* BCMSPLITRX */
 
 #endif /* _bcmdefs_h_ */

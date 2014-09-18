@@ -31,7 +31,7 @@
         <td style="width:117px"><img src="brcmlogo.png" alt="Broadcom Logo" /></td>
         <td style="width:20px;background-image:url('brcmlogo_line.png');"></td>
         <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('brcmlogo_line.png');">
-        WICED&trade; v3.0.1 - API Reference Guide
+        WICED&trade; v3.1.0 - API Reference Guide
         </td>
         <td style="width:20px"></td>
         <td style="width:1px"><img src="wiced_logo.png" alt="WICED Logo" /></td>
@@ -80,8 +80,11 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow4" class="tabs3">
     <ul class="tablist">
       <li><a href="globals_func.html#index_a"><span>a</span></a></li>
+      <li><a href="globals_func_0x63.html#index_c"><span>c</span></a></li>
       <li><a href="globals_func_0x64.html#index_d"><span>d</span></a></li>
+      <li><a href="globals_func_0x65.html#index_e"><span>e</span></a></li>
       <li><a href="globals_func_0x6d.html#index_m"><span>m</span></a></li>
+      <li><a href="globals_func_0x70.html#index_p"><span>p</span></a></li>
       <li><a href="globals_func_0x72.html#index_r"><span>r</span></a></li>
       <li><a href="globals_func_0x73.html#index_s"><span>s</span></a></li>
       <li class="current"><a href="globals_func_0x77.html#index_w"><span>w</span></a></li>
@@ -387,6 +390,12 @@ $(document).ready(function(){initNavTree('globals_func_0x77.html','');});
 <li>wiced_configure_device()
 : <a class="el" href="group__initconf.html#ga32793f5aa7031cc847da6f3bc86a71b3">wiced_management.h</a>
 </li>
+<li>wiced_core_deinit()
+: <a class="el" href="group__sysmon.html#gaf6e09916e2bed788ffa2f03405df8a8d">wiced_management.h</a>
+</li>
+<li>wiced_core_init()
+: <a class="el" href="group__sysmon.html#ga7c502ac66f7cb06ac5b1b0adca7918b5">wiced_management.h</a>
+</li>
 <li>wiced_dct_read_lock()
 : <a class="el" href="group__dct.html#ga8a48c1c9301b78369ee89536f0e654d8">wiced_framework.h</a>
 </li>
@@ -442,7 +451,7 @@ $(document).ready(function(){initNavTree('globals_func_0x77.html','');});
 : <a class="el" href="group__i2c.html#ga2bd4747bc05e6ac9f4cf44ec062155cd">wiced_platform.h</a>
 </li>
 <li>wiced_i2c_init_tx_message()
-: <a class="el" href="group__i2c.html#gab449ad3b839f0ef38cac18c2ca8ea879">wiced_platform.h</a>
+: <a class="el" href="group__i2c.html#ga9f676926390ac2dd6d6b4cb354ba9e86">wiced_platform.h</a>
 </li>
 <li>wiced_i2c_probe_device()
 : <a class="el" href="group__i2c.html#ga41be352ac0d458f8f72a571b82bb82d5">wiced_platform.h</a>
@@ -672,6 +681,24 @@ $(document).ready(function(){initNavTree('globals_func_0x77.html','');});
 <li>wiced_spi_init()
 : <a class="el" href="group__spi.html#gaac38d8f5e97c6505a72b3e6ae1a7dd83">wiced_platform.h</a>
 </li>
+<li>wiced_spi_slave_deinit()
+: <a class="el" href="group__spi.html#gaf56514aef2976e6f374c19c5c8b0867a">wiced_platform.h</a>
+</li>
+<li>wiced_spi_slave_generate_interrupt()
+: <a class="el" href="group__spi.html#ga3ee9efc49d468431fc6ba06ec34ae937">wiced_platform.h</a>
+</li>
+<li>wiced_spi_slave_init()
+: <a class="el" href="group__spi.html#gae5336959b654c023e4b13e8379f17f36">wiced_platform.h</a>
+</li>
+<li>wiced_spi_slave_receive_command()
+: <a class="el" href="group__spi.html#gaafd1c0838c54a4e616a22d44946b66bd">wiced_platform.h</a>
+</li>
+<li>wiced_spi_slave_send_error_status()
+: <a class="el" href="group__spi.html#gac370c4eb9eb7b775d31aa3affd9cb961">wiced_platform.h</a>
+</li>
+<li>wiced_spi_slave_transfer_data()
+: <a class="el" href="group__spi.html#ga7f91105c8a20b848ab91c1b1c1d4d7ab">wiced_platform.h</a>
+</li>
 <li>wiced_spi_transfer()
 : <a class="el" href="group__spi.html#ga61b905d6302aa06a2636a107784b6fa2">wiced_platform.h</a>
 </li>
@@ -711,11 +738,29 @@ $(document).ready(function(){initNavTree('globals_func_0x77.html','');});
 <li>wiced_tcp_send_packet()
 : <a class="el" href="group__tcppkt.html#ga315986990c1f41f01663f1a70efdd57f">wiced_tcpip.h</a>
 </li>
+<li>wiced_tcp_server_accept()
+: <a class="el" href="group__tcpserver.html#ga5bf07938926f80ddbb81651d0a022cc8">wiced_tcpip.h</a>
+</li>
+<li>wiced_tcp_server_add_tls()
+: <a class="el" href="group__tcpserver.html#ga0b12c0e98de1335a3a7e57843a822538">wiced_tcpip.h</a>
+</li>
+<li>wiced_tcp_server_disconnect_socket()
+: <a class="el" href="group__tcpserver.html#ga56ed625caf314c000bc5ad327fc906e4">wiced_tcpip.h</a>
+</li>
 <li>wiced_tcp_server_peer()
 : <a class="el" href="group__tcp.html#ga77cc2a7ed9597cba008cdf178b9703df">wiced_tcpip.h</a>
 </li>
+<li>wiced_tcp_server_start()
+: <a class="el" href="group__tcpserver.html#gaa8861ce7c813a2f3b0b512ee152007c9">wiced_tcpip.h</a>
+</li>
+<li>wiced_tcp_server_stop()
+: <a class="el" href="group__tcpserver.html#gaf7c249ae3118f43841cd3858142212f1">wiced_tcpip.h</a>
+</li>
 <li>wiced_tcp_start_tls()
 : <a class="el" href="group__tcp.html#gae25065d3b56d32fef81c175babc2274a">wiced_tcpip.h</a>
+</li>
+<li>wiced_tcp_start_tls_with_ciphers()
+: <a class="el" href="group__tcp.html#ga3700fd5881cf08ac8f750bc349862864">wiced_tcpip.h</a>
 </li>
 <li>wiced_tcp_stream_deinit()
 : <a class="el" href="group__tcpstream.html#gab8f2b05f971383716de4c3a8574527d0">wiced_tcpip.h</a>
@@ -734,6 +779,9 @@ $(document).ready(function(){initNavTree('globals_func_0x77.html','');});
 </li>
 <li>wiced_tcp_stream_write_resource()
 : <a class="el" href="group__tcpstream.html#ga9976a9f3b92b36b76f86e1bd2611c8e7">wiced_tcpip.h</a>
+</li>
+<li>wiced_tcp_unregister_callbacks()
+: <a class="el" href="group__tcp.html#ga08122f98b9c9d2d9ccb0e41d6f067e05">wiced_tcpip.h</a>
 </li>
 <li>wiced_time_get_iso8601_time()
 : <a class="el" href="group__time.html#gaad6cbc907c2a94af709ada0429eca9e4">wiced_time.h</a>
@@ -804,6 +852,9 @@ $(document).ready(function(){initNavTree('globals_func_0x77.html','');});
 <li>wiced_udp_send()
 : <a class="el" href="group__udp.html#gaee1f49b3a33811a21c74a2b2897ef2aa">wiced_tcpip.h</a>
 </li>
+<li>wiced_udp_unregister_callbacks()
+: <a class="el" href="group__udp.html#gafa88e1a07129c9a687bfb33c5f042de0">wiced_tcpip.h</a>
+</li>
 <li>wiced_update_system_monitor()
 : <a class="el" href="group__sysmon.html#ga0f547b69a5fbfc1e4fcc4f77159f3689">wiced_management.h</a>
 </li>
@@ -812,6 +863,12 @@ $(document).ready(function(){initNavTree('globals_func_0x77.html','');});
 </li>
 <li>wiced_wifi_scan_networks()
 : <a class="el" href="group__wifi.html#ga4e058d74fb992af5396eff59755cbde0">wiced_wifi.h</a>
+</li>
+<li>wiced_wlan_connectivity_deinit()
+: <a class="el" href="group__sysmon.html#gadfbdb5739e5429cd0f57ca16ebd0f0e9">wiced_management.h</a>
+</li>
+<li>wiced_wlan_connectivity_init()
+: <a class="el" href="group__sysmon.html#gaae32ca07e0d56854d5af1b237e327f43">wiced_management.h</a>
 </li>
 <li>wiced_wps_enrollee()
 : <a class="el" href="group__wifi.html#gac9fb59d0bc733fcd1b09966679d09de4">wiced_wifi.h</a>

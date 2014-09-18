@@ -41,11 +41,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************
@@ -66,21 +66,26 @@ void host_platform_power_wifi( wiced_bool_t power_enabled )
 {
     if ( power_enabled == WICED_FALSE )
     {
-#if 0
-        /* en_WLAN_SRAM  = 0 */
-        *(volatile int *)0x00640160 &= ~(0x1);
-#else
-        /* en_WLAN_SRAM  = 1 */
-        *(volatile int *) 0x00640160 |= ( 0x1 );
-#endif
-        //    *(int *)0x00640084 |= 0xc;
-        /* Watchdog reset */
-        *(volatile int *) 0x700080 = 1;
-        host_rtos_delay_milliseconds( 100 );
-        /* set apps2wl_wl_wake = 0 and apps2wl_wl_pwrup = 0 */
-        *(volatile int *) 0x0064015c &= ~( 0x3 );
+        /* Enable WLAN SRAM */
+        platform_powersave_wlan_sram_on( );
+
+        platform_powersave_allow_wlan_to_sleep( );
+        platform_powersave_wlan_off( );
+
         /* delay 100 ms */
         host_rtos_delay_milliseconds( 100 );
+    }
+    else
+    {
+        /* Enable WLAN SRAM */
+        platform_powersave_wlan_sram_on( );
+
+        /* Power and wake up WLAN core */
+        platform_powersave_wlan_on( );
+        platform_powersave_wake_wlan( );
+
+        /* Disable WLAN SRAM. This is okay because apps core holds WLAN up */
+        platform_powersave_wlan_sram_off( );
     }
 }
 

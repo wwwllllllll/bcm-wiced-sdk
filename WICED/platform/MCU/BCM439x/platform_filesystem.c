@@ -15,6 +15,7 @@
 #include "string.h"
 #include "platform_init.h"
 #include "platform_peripheral.h"
+#include "platform_mcu_peripheral.h"
 #include "platform_stdio.h"
 #include "platform_sleep.h"
 #include "platform_config.h"
@@ -34,8 +35,6 @@
  *                    Constants
  ******************************************************/
 
-#define FILESYSTEM_BASE_ADDR ((uint64_t)0x00020000)
-
 /******************************************************
  *                   Enumerations
  ******************************************************/
@@ -49,7 +48,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern uint32_t        sfi_read      ( uint32_t addr, uint32_t len, const uint8_t *buffer )   __attribute__((long_call));
@@ -59,7 +58,7 @@ extern void            sfi_erase     ( uint32_t addr, uint32_t len )            
 static wicedfs_usize_t read_callback ( void* user_param, void* buf, wicedfs_usize_t size, wicedfs_usize_t pos );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 extern char bcm439x_platform_inited;
@@ -101,10 +100,15 @@ int init_sflash( sflash_handle_t* const handle, void* peripheral_id, sflash_writ
     UNUSED_PARAMETER( peripheral_id );
     UNUSED_PARAMETER( write_allowed );
 
+    platform_ptu2_enable_serial_flash();
+
     if ( sfi_size( ) )
     {
+        platform_ptu2_disable_serial_flash();
         return 0;
     }
+
+    platform_ptu2_disable_serial_flash();
     return -1;
 }
 
@@ -118,7 +122,11 @@ int sflash_read( const sflash_handle_t* const handle, unsigned long device_addre
     {
         host_rtos_get_semaphore( &sflash_mutex, NEVER_TIMEOUT, WICED_FALSE );
     }
+
+    platform_ptu2_enable_serial_flash();
     num_read = sfi_read( device_address, size, data_addr );
+    platform_ptu2_disable_serial_flash();
+
     if ( bcm439x_platform_inited )
     {
         host_rtos_set_semaphore( &sflash_mutex, WICED_FALSE );
@@ -137,7 +145,10 @@ int sflash_write( const sflash_handle_t* const handle, unsigned long device_addr
     {
         host_rtos_get_semaphore( &sflash_mutex, NEVER_TIMEOUT, WICED_FALSE );
     }
+
+    platform_ptu2_enable_serial_flash();
     num_written = sfi_write( device_address, size, data_addr );
+    platform_ptu2_disable_serial_flash();
 
     if ( bcm439x_platform_inited )
     {
@@ -154,7 +165,11 @@ int sflash_chip_erase( const sflash_handle_t* const handle )
     {
         host_rtos_get_semaphore( &sflash_mutex, NEVER_TIMEOUT, WICED_FALSE );
     }
+
+    platform_ptu2_enable_serial_flash();
     sfi_erase( 0, sfi_size( ) );
+    platform_ptu2_disable_serial_flash();
+
     if ( bcm439x_platform_inited )
     {
         host_rtos_set_semaphore( &sflash_mutex, WICED_FALSE );
@@ -170,7 +185,11 @@ int sflash_sector_erase( const sflash_handle_t* const handle, unsigned long devi
     {
         host_rtos_get_semaphore( &sflash_mutex, NEVER_TIMEOUT, WICED_FALSE );
     }
+
+    platform_ptu2_enable_serial_flash();
     sfi_erase( device_address, 4096 );
+    platform_ptu2_disable_serial_flash();
+
     if ( bcm439x_platform_inited )
     {
         host_rtos_set_semaphore( &sflash_mutex, WICED_FALSE );

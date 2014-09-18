@@ -49,7 +49,7 @@ typedef enum IRQn
   Reserved028_IRQn             = 12,
   Reserved029_IRQn             = 13,
   Reserved030_IRQn             = 14,
-  PTU_IRQn                     = 15,
+  PTU1_IRQn                    = 15,
   DmaDoneInt_IRQn              = 16,
   Reserved033_IRQn             = 17,
   Reserved034_IRQn             = 18,

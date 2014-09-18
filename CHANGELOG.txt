@@ -2,6 +2,47 @@
 Broadcom WICED Software Development Kit - CHANGELOG
 =====================================================================
 
+Changes for WICED-SDK 3.1.0 : 03 September 2014 
+-----------------------------------------------------------
+* Added support for Apple HomeKit Beta 3 (compatible with HAT version 1.0 (42) )
+* Updated 4390A1 WLAN firmware to revision 6.38.15.1
+    * This version is ready to pass regulatory testing properly
+* Consolidated duplicate parts of crypto functions to increase speed and reduce size
+* Added new toolchain (GCC 4.9.0) that supports hardware floating point on the Cortex-M4 
+* Added new crypto suites: ChaCha, Curve25519, Ed25519, Poly1305, SHA512
+* Modified API to fix 32 character SSID bug. Functions affected:
+    * wwd_wifi_ap_init
+    * wiced_start_ap
+    * wwd_wifi_join
+* Updated NVRAM files for 43362 platforms
+* Modified FreeRTOS thread creation to yield to higher priority threads
+* Fixed NoOS semaphore API to be atomic
+* Added beta support for TLS 1.2
+* Updated wiced_ssid_t structure to follow WICED naming conventions
+* New 43362 WLAN firmware that adds support for reading arbitrary length of random values
+* Fix SDIO bus credit update when host_buffer_get() fails
+* Added wiced_tcp_unregister_callbacks() and wiced_udp_unregister_callbacks() for NetX_Duo
+* Added wiced_tcp_unregister_callbacks() for LwIP
+* Reduced LwIP ARP queue to 5
+* Added status variable to wiced_scan_result_callback_t to indicate the reason a scan completed
+* LwIP network_tcp_send_packet() now calls netconn_write() with NETCONN_DONTBLOCK
+* Modified API to accept a wiced_interface_t . Functions affected:
+    * wwd_wifi_join_specific()
+    * wwd_wifi_leave()
+    * wwd_wifi_get_mac_address()
+    * wwd_wifi_scan() to accept interface 
+* Added NX_ARP_DISABLE_AUTO_ARP_ENTRY for both NetX and NetX_Duo to conserve ARP cache entries
+* Added websocket library
+* Modified AP interface to transmit multicast packets at 11Mbps instead of 1Mbps
+* Added API to set AMPDU parameters: wwd_wifi_set_ampdu_parameters()
+* Set the AMPDU parameters in wwd_management_wifi_on(). Reduced available and advertised sizes
+* Fixed DHCP issue for NetX_Duo with some APs
+* Increased ARP cache size from 3 to 6
+* Added optional SDIO bus API for platforms that mask the SDIO iterrupt: host_platform_unmask_sdio_interrupt()
+* Added capability to NetX and NetX_Duo to limit the TX and RX queues for TCP sockets    
+* Upgraded HTTP_server library to allow for multiple concurrent, persistent connections
+* Added wiced_tcp_server_xxxxx() API to simplify creation of a multi-socket TCP server
+
 Changes for WICED-SDK 3.0.1 : 15 April 2014
 -----------------------------------------------------------
 * Replaced WLAN firmware with version 5.90.230.3

@@ -22,32 +22,19 @@
 #include "wicedfs_unit_images.h"
 
 /******************************************************
- *            Compatibility Macros
+ *                      Macros
  ******************************************************/
 #ifndef _WIN32
+/*define_style_exception_start*/
 #define off64_t __off64_t
 #define _stati64 stat64
+/*define_style_exception_end*/
 #endif /* ifndef _WIN32 */
 
 #ifndef MIN
 extern int MIN (/*@sef@*/ int x, /*@sef@*/ int y); /* LINT : This tells lint that  the parameter must be side-effect free. i.e. evaluation does not change any values (since it is being evaulated more than once */
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 #endif /* ifndef MIN */
-
-
-/******************************************************
- *                    Constants
- ******************************************************/
-#define DIRECTORY_SEPARATOR_STR "/"
-#define TEST_FILENAME           "test.txt"
-#define TEST2_DIR               "test2"
-#define TEST2_FILENAME          "test2/test2.txt"
-#define GARBAGE_FILENAME        "badfood"
-#define BASE_SIZE               ((int)sizeof(wicedfs_usize_t))
-
-/******************************************************
- *                    Macros
- ******************************************************/
 
 #define RETCHK_START( retcheck_var_in )  \
         { \
@@ -71,13 +58,41 @@ extern int MIN (/*@sef@*/ int x, /*@sef@*/ int y); /* LINT : This tells lint tha
             *retcheck_var = -1; \
         }
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
+#define DIRECTORY_SEPARATOR_STR "/"
+#define TEST_FILENAME           "test.txt"
+#define TEST2_DIR               "test2"
+#define TEST2_FILENAME          "test2/test2.txt"
+#define GARBAGE_FILENAME        "badfood"
+#define BASE_SIZE               ((int)sizeof(wicedfs_usize_t))
 
 /******************************************************
- *                    Global Variables
+ *                   Enumerations
  ******************************************************/
 
 /******************************************************
- *                    Static Variables
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static wicedfs_usize_t testimage_wicedfs_read( void* user_param, void* buf, wicedfs_usize_t size, wicedfs_usize_t pos );
+//static int unit_fopen( void );
+//static int unit_fread_ftell_feof_fseek( void );
+//static int unit_filesize( void );
+//static int unit_opendir( void );
+//static int unit_readdir_eodir( void );
+//static int unit_wicedfs_init( void );
+
+/******************************************************
+ *               Variable Definitions
  ******************************************************/
 
 static const char lorem[] = "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor\n" \
@@ -95,23 +110,8 @@ static int corruption_countdown = -1;
 static void* user_param_received = NULL;
 
 /******************************************************
- *               Static Function Declarations
- ******************************************************/
-
-static wicedfs_usize_t testimage_wicedfs_read( void* user_param, void* buf, wicedfs_usize_t size, wicedfs_usize_t pos );
-//static int unit_fopen( void );
-//static int unit_fread_ftell_feof_fseek( void );
-//static int unit_filesize( void );
-//static int unit_opendir( void );
-//static int unit_readdir_eodir( void );
-//static int unit_wicedfs_init( void );
-
-/******************************************************
  *               Function Definitions
  ******************************************************/
-
-
-
 
 
 /******************************************************

@@ -147,7 +147,7 @@ static wiced_bool_t bus_is_up               = WICED_FALSE;
 static wiced_bool_t wwd_bus_flow_controlled = WICED_FALSE;
 
 /******************************************************
- *             Function declarations
+ *             Static Function Declarations
  ******************************************************/
 
 static wwd_result_t wwd_bus_sdio_transfer               ( wwd_bus_transfer_direction_t direction, wwd_bus_function_t function, uint32_t address, uint16_t data_size, /*@in@*/ /*@out@*/  uint8_t* data, sdio_response_needed_t response_expected );
@@ -415,7 +415,7 @@ uint32_t wwd_bus_packet_available_to_read(void)
 {
     uint32_t int_status = 0;
 
-    // Read the IntStatus
+    /* Read the IntStatus */
     if ( wwd_bus_read_backplane_value( (uint32_t) SDIO_INT_STATUS, (uint8_t) 4, (uint8_t*)&int_status ) != WWD_SUCCESS )
     {
     }
@@ -424,6 +424,10 @@ uint32_t wwd_bus_packet_available_to_read(void)
     if ( wwd_bus_write_backplane_value( (uint32_t) SDIO_INT_STATUS, (uint8_t) 4, int_status ) != WWD_SUCCESS )
     {
     }
+
+#if defined(WICED_PLATFORM_MASKS_BUS_IRQ)
+    host_platform_unmask_sdio_interrupt();
+#endif
 
     return ((int_status) & (FRAME_AVAILABLE_MASK));
 }
@@ -490,10 +494,9 @@ wwd_result_t wwd_bus_read_frame( /*@out@*/ wiced_buffer_t* buffer )
     result = host_buffer_get( buffer, WWD_NETWORK_RX, (unsigned short) ( (uint16_t) INITIAL_READ + extra_space_required + (uint16_t) sizeof(wwd_buffer_header_t) ), WICED_FALSE );
     if ( result != WWD_SUCCESS )
     {
-        /* Read out the first 12 bytes to get the bus credit information */
-        uint8_t temp_buffer[12];
+        /* Read out the first 12 bytes to get the bus credit information, 4 bytes are already read in hwtag */
         wiced_assert( "Get buffer error", ( ( result == WWD_BUFFER_UNAVAILABLE_TEMPORARY ) || ( result == WWD_BUFFER_UNAVAILABLE_PERMANENT ) ) );
-        result = wwd_bus_transfer_bytes( BUS_READ, WLAN_FUNCTION, 0, 12, (wwd_transfer_bytes_packet_t*) temp_buffer );
+        result = wwd_bus_sdio_transfer(BUS_READ, WLAN_FUNCTION, 0, (uint16_t) 8, (uint8_t*) &hwtag[2], RESPONSE_NEEDED);
         if ( result != WWD_SUCCESS )
         {
             (void) wwd_bus_sdio_abort_read( WICED_FALSE ); /* ignore return - not much can be done if this fails */
@@ -501,7 +504,7 @@ wwd_result_t wwd_bus_read_frame( /*@out@*/ wiced_buffer_t* buffer )
         }
         result = wwd_bus_sdio_abort_read( WICED_FALSE );
         wiced_assert( "Read-abort failed", result==WWD_SUCCESS );
-        wwd_sdpcm_update_credit( temp_buffer );
+        wwd_sdpcm_update_credit( (uint8_t *)hwtag );
         return WWD_RX_BUFFER_ALLOC_FAIL;
     }
 
@@ -670,8 +673,13 @@ static wwd_result_t wwd_bus_sdio_download_firmware( void )
     VERIFY_RESULT( wwd_bus_write_backplane_value(0x18000654, 4, data) );
 #endif
 
+
+#ifdef MFG_TEST_ALTERNATE_WLAN_DOWNLOAD
+    VERIFY_RESULT( external_write_wifi_firmware_and_nvram_image( ) );
+#else
     VERIFY_RESULT( wwd_bus_write_wifi_firmware_image( ) );
     VERIFY_RESULT( wwd_bus_write_wifi_nvram_image( ) );
+#endif /* ifdef MFG_TEST_ALTERNATE_WLAN_DOWNLOAD */
 
     /* Take the ARM core out of reset */
     VERIFY_RESULT( wwd_reset_device_core( ARM_CORE ) );

@@ -91,7 +91,7 @@ typedef struct
 #pragma pack()
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t smartbridge_att_cache_get_free_cache          ( bt_smartbridge_att_cache_t** free_cache );
@@ -102,7 +102,7 @@ static wiced_bool_t   smartbridge_att_cache_find_by_device_callback ( bt_list_no
 static wiced_bool_t   smartbridge_att_cache_get_free_callback       ( bt_list_node_t* node_to_compare, void* user_data );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* Attribute Caching Management Globals */

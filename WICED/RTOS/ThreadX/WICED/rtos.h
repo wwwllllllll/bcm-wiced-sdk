@@ -29,6 +29,7 @@ extern "C" {
 #define WICED_PRIORITY_TO_NATIVE_PRIORITY(priority) ( priority )
 #define WICED_END_OF_THREAD(thread)                 malloc_leak_check( &(thread).handle, LEAK_CHECK_THREAD); (void)(thread)
 #define WICED_END_OF_CURRENT_THREAD( )              malloc_leak_check( NULL, LEAK_CHECK_THREAD)
+#define WICED_END_OF_CURRENT_THREAD_NO_LEAK_CHECK( )
 
 #define WICED_TO_MALLOC_THREAD( x )                 ((malloc_thread_handle) &((x)->handle ))
 

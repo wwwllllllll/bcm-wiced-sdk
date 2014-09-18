@@ -20,4 +20,4 @@ $(NAME)_LINK_FILES := mem_newlib.o
 $(NAME)_SOURCES += $(if $(WICED_DISABLE_STDIO),,stdio_newlib.c)
 $(NAME)_LINK_FILES += $(if $(WICED_DISABLE_STDIO),,stdio_newlib.o)
 
-
+GLOBAL_INCLUDES += .

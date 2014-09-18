@@ -144,6 +144,7 @@ static const char wifi_nvram_image[] =
         "noise_cal_high_gain_5g=73"                                          "\x00"
         "noise_cal_nf_substract_val_5g=346"                                  "\x00"
         "cckpapden=0"                                                        "\x00"
+        "paparambwver=1"                                                     "\x00"
         "\x00\x00";
 
 

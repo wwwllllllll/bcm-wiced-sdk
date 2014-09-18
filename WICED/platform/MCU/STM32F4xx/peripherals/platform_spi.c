@@ -49,7 +49,7 @@ typedef struct
 } spi_baudrate_division_mapping_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static platform_result_t calculate_prescaler( uint32_t speed, uint16_t* prescaler );
@@ -58,7 +58,7 @@ static platform_result_t spi_dma_transfer   ( const platform_spi_t* spi, const p
 static void              spi_dma_config     ( const platform_spi_t* spi, const platform_spi_message_segment_t* message );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const spi_baudrate_division_mapping_t spi_baudrate_prescalers[MAX_NUM_SPI_PRESCALERS] =
@@ -202,6 +202,7 @@ platform_result_t platform_spi_init( const platform_spi_t* spi, const platform_s
     spi_init.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
     spi_init.SPI_Mode      = SPI_Mode_Master;
     spi_init.SPI_NSS       = SPI_NSS_Soft;
+    spi_init.SPI_CRCPolynomial = 0x7; /* reset value */
     SPI_CalculateCRC( spi->port, DISABLE );
 
     /* Init and enable SPI */

@@ -18,6 +18,19 @@
 extern "C" {
 #endif
 
+/******************************************************
+ *                     Macros
+ ******************************************************/
+#define CMD_TABLE_END      { NULL, NULL, 0, NULL, NULL, NULL, NULL }
+#define CMD_TABLE_DIV(str) { (char*) "",   NULL, 0, NULL, NULL, str,  NULL }
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 typedef enum
 {
     ERR_CMD_OK           =  0,
@@ -30,7 +43,9 @@ typedef enum
     ERR_LAST_ERROR       = -7
 } cmd_err_t;
 
-
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 typedef int       (*command_function_t)     ( int argc, char *argv[] );
 typedef cmd_err_t (*help_example_function_t)( char* command_name, uint32_t eg_select );
 
@@ -51,9 +66,18 @@ typedef struct
     char *brief;                            /* Brief description of the command used by the generic help generator function. */
 } command_t;
 
-#define CMD_TABLE_END      { NULL, NULL, 0, NULL, NULL, NULL, NULL }
-#define CMD_TABLE_DIV(str) { (char*) "",   NULL, 0, NULL, NULL, str,  NULL }
 
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
 
 /* helper function */
 int              hex_str_to_int ( const char* hex_str );
@@ -65,12 +89,14 @@ void             console_redraw ( void );
 
 
 /* Network functions required */
-extern void network_init  ( uint32_t interface_id, char* ip, char* netmask, char* gw );
-extern void network_deinit( uint32_t interface_id );
-extern void network_print_state( char* ssid, char* ap_ssid );
+void network_init  ( uint32_t interface_id, char* ip, char* netmask, char* gw );
+void network_deinit( uint32_t interface_id );
+void network_print_state( char* ssid, char* ap_ssid );
 
 /* Host time functions required */
-extern uint32_t host_get_time( void ); /* Returns the time in milliseconds */
+uint32_t host_get_time( void ); /* Returns the time in milliseconds */
+
+void console_app_main( void );
 
 #ifdef __cplusplus
 } /* extern "C" */

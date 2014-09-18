@@ -42,9 +42,24 @@
 #include "platform/wwd_platform_interface.h"
 #include "RTOS/wwd_rtos_interface.h"
 
+/******************************************************
+ *                      Macros
+ ******************************************************/
+/** @cond */
+#define MAKE_IPV4_ADDRESS(a, b, c, d)          ((((uint32_t) (a)) << 24) | (((uint32_t) (b)) << 16) | (((uint32_t) (c)) << 8) | ((uint32_t) (d)))
+
+/* In release builds all UART printing is suppressed to remove remove printf and malloc dependency which reduces memory usage dramatically */
+#ifndef DEBUG
+#undef  WPRINT_APP_INFO
+#define WPRINT_APP_INFO(args) printf args
+#undef  WPRINT_APP_ERROR
+#define WPRINT_APP_ERROR(args) printf args
+#endif
+
+/** @endcond */
 
 /******************************************************
- *        Settable Constants
+ *                    Constants
  ******************************************************/
 
 #define AP_SSID              "YOUR_AP_SSID"
@@ -71,42 +86,45 @@
 #define APP_THREAD_STACKSIZE (5120)
 
 
-
 /******************************************************
- * @cond       Macros
+ *                   Enumerations
  ******************************************************/
 
-#define MAKE_IPV4_ADDRESS(a, b, c, d)          ((((uint32_t) (a)) << 24) | (((uint32_t) (b)) << 16) | (((uint32_t) (c)) << 8) | ((uint32_t) (d)))
-
-
-/* In release builds all UART printing is suppressed to remove remove printf and malloc dependency which reduces memory usage dramatically */
-#ifndef DEBUG
-#undef  WPRINT_APP_INFO
-#define WPRINT_APP_INFO(args) printf args
-#undef  WPRINT_APP_ERROR
-#define WPRINT_APP_ERROR(args) printf args
-#endif
-
-/** @endcond */
-
 /******************************************************
- *             Static Variables
+ *                 Type Definitions
  ******************************************************/
 
-static uint16_t     ping_seq_num;
-static struct netif wiced_if;
-static xTaskHandle  startup_thread_handle;
-
 /******************************************************
- *             Static Prototypes
+ *                    Structures
  ******************************************************/
 
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
 static void ping_prepare_echo( struct icmp_echo_hdr *iecho, uint16_t len );
 static err_t ping_recv( int socket_hnd );
 static err_t ping_send( int s, struct ip_addr *addr );
 static void tcpip_init_done( void * arg );
 static void startup_thread( void *arg );
 static void app_main( void );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+
+static uint16_t     ping_seq_num;
+static struct netif wiced_if;
+static xTaskHandle  startup_thread_handle;
+
+static const wiced_ssid_t ap_ssid =
+{
+    .length = sizeof(AP_SSID)-1,
+    .value  = AP_SSID,
+};
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 /**
  * Main Ping app
@@ -135,14 +153,14 @@ static void app_main( void )
     if (AP_SEC == WICED_SECURITY_WEP_PSK)  /* Demonstrates usage of WEP */
     {
         wiced_wep_key_t key[] = WEP_KEY;
-        while ( wwd_wifi_join( AP_SSID, AP_SEC, (uint8_t*) key, sizeof( key ), NULL ) != WWD_SUCCESS )
+        while ( wwd_wifi_join( &ap_ssid, AP_SEC, (uint8_t*) key, sizeof( key ), NULL ) != WWD_SUCCESS )
         {
             WPRINT_APP_INFO(("Failed to join  : " AP_SSID "   .. retrying\n"));
         }
     }
     else
     {
-        while ( wwd_wifi_join( AP_SSID, AP_SEC, (uint8_t*) AP_PASS, sizeof( AP_PASS ) - 1, NULL ) != WWD_SUCCESS )
+        while ( wwd_wifi_join( &ap_ssid, AP_SEC, (uint8_t*) AP_PASS, sizeof( AP_PASS ) - 1, NULL ) != WWD_SUCCESS )
         {
             WPRINT_APP_INFO(("Failed to join  : " AP_SSID "   .. retrying\n"));
         }

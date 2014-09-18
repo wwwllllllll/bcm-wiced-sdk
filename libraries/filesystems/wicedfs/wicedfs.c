@@ -16,22 +16,14 @@
 #include <stdint.h>
 #include <string.h>
 #include "wicedfs.h"
-#define  INSIDE_WICEDFS_C_
+#define INSIDE_WICEDFS_C_
 #include "wicedfs_internal.h"
 
 /*@access wiced_filesystem_t, WFILE, WDIR@*/ /* Lint: permit access to abstract handle implementations */
 
 /******************************************************
- *                    Constants
+ *                      Macros
  ******************************************************/
-
-#define WICEDFS_CMP_FILENAME_BUFF_SIZE (32)
-#define WICEDFS_DIRECTORY_SEPARATOR    '/'
-
-/******************************************************
- *                    Macros
- ******************************************************/
-
 #ifndef WICEDFS_ASSERT_ACTION
 #define WICEDFS_ASSERT_ACTION( )
 #endif /* ifndef WICEDFS_ASSERT_ACTION */
@@ -50,11 +42,22 @@
 #endif /* ifndef WICEDFS_NO_CHECK_PARAMS */
 
 /******************************************************
- *               Global Variable Definitions
+ *                    Constants
+ ******************************************************/
+
+#define WICEDFS_CMP_FILENAME_BUFF_SIZE (32)
+#define WICEDFS_DIRECTORY_SEPARATOR    '/'
+
+/******************************************************
+ *                   Enumerations
  ******************************************************/
 
 /******************************************************
- *               Static Variable Definitions
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
  ******************************************************/
 
 /******************************************************
@@ -63,6 +66,10 @@
 
 static int cmp_filename ( const wiced_filesystem_t* fs_handle, wicedfs_usize_t loc, const char* filename, uint32_t num_cmp_bytes, uint32_t filename_storage_len );
 static int find_item    ( /*@in@*/ const wiced_filesystem_t* fs_handle, /*@in@*/ const char * filename, /*@out@*/ wicedfs_dir_header_t* curr_dir, /*@out@*/ wicedfs_file_header_t* file_hnd, /*@out@*/ wicedfs_usize_t* curr_dir_addr );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 
 /******************************************************
  *               Function Definitions

@@ -43,11 +43,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************
@@ -110,8 +110,8 @@ wiced_result_t wiced_besl_wifi_get_random( uint16_t* val )
     wiced_result_t ret;
     static uint16_t pseudo_random = 0;
 
-    (void) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 2, IOVAR_STR_RAND ); /* Do not need to put anything in buffer hence void cast */
-    ret = wwd_sdpcm_send_iovar( SDPCM_GET, buffer, &response, WWD_STA_INTERFACE );
+    (void) wwd_sdpcm_get_ioctl_buffer( &buffer, (uint16_t) 2 ); /* Do not need to put anything in buffer hence void cast */
+    ret = wwd_sdpcm_send_ioctl( SDPCM_GET, WLC_GET_RANDOM_BYTES, buffer, &response, WWD_STA_INTERFACE );
 
     if ( ret == WICED_SUCCESS )
     {
@@ -121,7 +121,7 @@ wiced_result_t wiced_besl_wifi_get_random( uint16_t* val )
     }
     else
     {
-        // Use a pseudo random number
+        /* Use a pseudo random number */
         if ( pseudo_random == 0 )
         {
             pseudo_random = (uint16_t) host_rtos_get_time( );

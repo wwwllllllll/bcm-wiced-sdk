@@ -57,11 +57,11 @@ typedef enum
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* GPIO pin table. Used by WICED/platform/MCU/wiced_platform_common.c */
@@ -227,7 +227,7 @@ const platform_uart_t platform_uart_peripherals[] =
             .channel        = DMA_Channel_4,
             .irq_vector     = DMA2_Stream7_IRQn,
             .complete_flags = DMA_HISR_TCIF7,
-            .error_flags    = ( DMA_HISR_TEIF7 | DMA_HISR_FEIF7 | DMA_HISR_DMEIF7 ),
+            .error_flags    = ( DMA_HISR_TEIF7 | DMA_HISR_FEIF7 ),
         },
         .rx_dma_config =
         {
@@ -253,7 +253,7 @@ const platform_uart_t platform_uart_peripherals[] =
             .channel        = DMA_Channel_4,
             .irq_vector     = DMA1_Stream6_IRQn,
             .complete_flags = DMA_HISR_TCIF6,
-            .error_flags    = ( DMA_HISR_TEIF6 | DMA_HISR_FEIF6 | DMA_HISR_DMEIF6 ),
+            .error_flags    = ( DMA_HISR_TEIF6 | DMA_HISR_FEIF6 ),
         },
         .rx_dma_config =
         {

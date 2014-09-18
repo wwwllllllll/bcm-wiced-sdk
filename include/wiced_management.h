@@ -338,6 +338,48 @@ extern wiced_result_t wiced_update_system_monitor(wiced_system_monitor_t* system
 
 /** @} */
 
+/*****************************************************************************/
+/** @addtogroup sysmon       Advanced Init
+ *  @ingroup mgmt
+ *
+ * Functions to initialise WICED in a more modular way.
+ * wiced_init()    =  wiced_core_init()   + wiced_wlan_connectivity_init()
+ * wiced_deinit()  =  wiced_core_deinit() + wiced_wlan_connectivity_deinit()
+ *
+ *  @{
+ */
+/*****************************************************************************/
+
+/** Initialises the core parts of WICED without starting any WLAN systems
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_core_init               ( void );
+
+/** De-initialises the core parts of WICED without touching any WLAN systems
+ *
+ * @note: WLAN should be already de-inited when this function is called
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_core_deinit             ( void );
+
+/** Initialises the WLAN parts of WICED
+ *
+ * @note: The WICED core should have already been initialised when this is called
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_wlan_connectivity_init  ( void );
+
+/** Initialises the WLAN parts of WICED
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_wlan_connectivity_deinit( void );
+
+/** @} */
+
 #ifdef __cplusplus
 } /*extern "C" */
 #endif

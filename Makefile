@@ -8,6 +8,8 @@
 # written permission of Broadcom Corporation.
 #
 
+default: Help
+
 export SOURCE_ROOT:=$(dir $(word $(words $(MAKEFILE_LIST)), $(MAKEFILE_LIST)))
 export MAKEFILES_PATH := $(SOURCE_ROOT)tools/makefiles
 
@@ -114,7 +116,7 @@ export EXTERNAL_WICED_GLOBAL_DEFINES
 
 .PHONY: $(BUILD_STRING) main_app bootloader download_only test testlist clean iar_project Help download no_dct download_dct download_work copy_elf_for_eclipse run debug download_bootloader sflash_image .gdbinit factory_reset_dct
 
-Help:
+Help: $(TOOLCHAIN_HOOK_TARGETS)
 	$(error $(USAGE_TEXT))
 
 IAR_PROJECT_BUILDER = $(TOOLS_ROOT)/IAR/wiced_sdk_project/build_iar_project.exe

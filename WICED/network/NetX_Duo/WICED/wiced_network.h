@@ -9,7 +9,6 @@
  */
 #pragma once
 
-
 #include "nx_api.h"
 #include "tx_port.h" /* Needed by nx_dhcp.h that follows */
 #include "netx_applications/dhcp/nxd_dhcp_client.h"
@@ -25,14 +24,19 @@ extern "C"
  *                      Macros
  ******************************************************/
 
-#define IP_HANDLE(interface)   (wiced_ip_handle[(interface==WICED_STA_INTERFACE)?0:1])
+#define IP_HANDLE(interface)         (wiced_ip_handle[(interface==WICED_STA_INTERFACE)?0:1])
 
 /******************************************************
  *                    Constants
  ******************************************************/
 
+#define WICED_MAXIMUM_NUMBER_OF_SOCKETS_WITH_CALLBACKS    (9)
+#define WICED_MAXIMUM_NUMBER_OF_SERVER_SOCKETS            (WICED_MAXIMUM_NUMBER_OF_SOCKETS_WITH_CALLBACKS)
+
+#define SIZE_OF_ARP_ENTRY           sizeof(NX_ARP)
+
 #define IP_STACK_SIZE               (2*1024)
-#define ARP_CACHE_SIZE              (3*52)
+#define ARP_CACHE_SIZE              (6 * SIZE_OF_ARP_ENTRY)
 #define DHCP_STACK_SIZE             (1024)
 
 #define WICED_ANY_PORT              (0)
@@ -52,7 +56,7 @@ typedef enum
  *                 Type Definitions
  ******************************************************/
 
-typedef NX_PACKET         wiced_packet_t;
+typedef NX_PACKET        wiced_packet_t;
 typedef wiced_result_t (*wiced_socket_callback_t)( void* socket );
 
 /******************************************************
@@ -92,6 +96,12 @@ typedef struct
     wiced_socket_callback_t receive_callback;
 } wiced_udp_socket_t;
 
+typedef struct
+{
+    wiced_tcp_socket_t socket[WICED_MAXIMUM_NUMBER_OF_SERVER_SOCKETS];
+    int                interface;
+    uint16_t           port;
+} wiced_tcp_server_t;
 /******************************************************
  *                 Global Variables
  ******************************************************/

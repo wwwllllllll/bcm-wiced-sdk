@@ -6,5 +6,6 @@ var group__udp =
     [ "wiced_udp_receive", "group__udp.html#gac29e6ccc1296ead553d2b86f1cb10991", null ],
     [ "wiced_udp_register_callbacks", "group__udp.html#gaa6c42cd0081710602aecfcbc6aadba57", null ],
     [ "wiced_udp_reply", "group__udp.html#ga59bb6811d33e724c3803720907eb61eb", null ],
-    [ "wiced_udp_send", "group__udp.html#gaee1f49b3a33811a21c74a2b2897ef2aa", null ]
+    [ "wiced_udp_send", "group__udp.html#gaee1f49b3a33811a21c74a2b2897ef2aa", null ],
+    [ "wiced_udp_unregister_callbacks", "group__udp.html#gafa88e1a07129c9a687bfb33c5f042de0", null ]
 ];

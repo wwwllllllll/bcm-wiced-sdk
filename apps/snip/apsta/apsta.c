@@ -79,13 +79,13 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t send_ping ( void* arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const wiced_ip_setting_t ap_ip_settings =
@@ -115,13 +115,8 @@ static wiced_ip_address_t  ping_target_ip;
 
 void application_start(void)
 {
-
     /* Initialise the device */
     wiced_init();
-
-    /* Configure the device */
-    //wiced_configure_device( app_config );  /* Config bypassed in local makefile and wifi_config_dct.h */
-
 
     /* Bring up the STA (client) interface ------------------------------------------------------- */
     wiced_network_up(WICED_STA_INTERFACE, WICED_USE_EXTERNAL_DHCP_SERVER, NULL);
@@ -131,15 +126,14 @@ void application_start(void)
 
     /* Print ping description to the UART */
     WPRINT_APP_INFO(("Pinging %u.%u.%u.%u every %ums with a %ums timeout.\n", (unsigned int)((GET_IPV4_ADDRESS(ping_target_ip) >> 24) & 0xFF),
-                                                                                (unsigned int)((GET_IPV4_ADDRESS(ping_target_ip) >> 16) & 0xFF),
-                                                                                (unsigned int)((GET_IPV4_ADDRESS(ping_target_ip) >>  8) & 0xFF),
-                                                                                (unsigned int)((GET_IPV4_ADDRESS(ping_target_ip) >>  0) & 0xFF),
-                                                                                PING_PERIOD,
-                                                                                PING_TIMEOUT) );
+                                                                              (unsigned int)((GET_IPV4_ADDRESS(ping_target_ip) >> 16) & 0xFF),
+                                                                              (unsigned int)((GET_IPV4_ADDRESS(ping_target_ip) >>  8) & 0xFF),
+                                                                              (unsigned int)((GET_IPV4_ADDRESS(ping_target_ip) >>  0) & 0xFF),
+                                                                              PING_PERIOD,
+                                                                              PING_TIMEOUT) );
 
     /* Setup a regular ping event and setup the callback to run in the networking worker thread */
     wiced_rtos_register_timed_event( &ping_timed_event, WICED_NETWORKING_WORKER_THREAD, &send_ping, PING_PERIOD, 0 );
-
 
     /* Bring up the softAP interface ------------------------------------------------------------- */
     wiced_network_up(WICED_AP_INTERFACE, WICED_USE_INTERNAL_DHCP_SERVER, &ap_ip_settings);
@@ -149,11 +143,6 @@ void application_start(void)
 
     /* Start a web server on the AP interface */
     wiced_http_server_start( &ap_http_server, 80, ap_web_pages, WICED_AP_INTERFACE );
-
-
-    while (1)
-    {
-    }
 }
 
 

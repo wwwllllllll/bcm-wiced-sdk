@@ -52,87 +52,68 @@
 #include "wiced_platform.h"
 #include "wifi_config_dct.h"
 #include "reboot/reboot.h"
+#include "bt_smartbridge_console.h"
+
+/******************************************************
+ *                      Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
 
 #define MAX_LINE_LENGTH  128
 #define DELIMIT ((char*) " ")
 
 #define MAX_ARGUMENTS      18
 
-extern int start_smartbridge               ( int argc, char *argv[] );
-extern int stop_smartbridge                ( int argc, char *argv[] );
-extern int auto_test_smartbridge           ( int argc, char *argv[] );
-extern int connect                         ( int argc, char *argv[] );
-extern int disconnect                      ( int argc, char *argv[] );
-extern int scan_connect_direct_adv         ( int argc, char *argv[] );
-extern int scan                            ( int argc, char *argv[] );
-extern int status                          ( int argc, char *argv[] );
-extern int clear_bond_info_dct             ( int argc, char *argv[] );
-extern int enable_attribute_cache          ( int argc, char *argv[] );
-extern int disable_attribute_cache         ( int argc, char *argv[] );
-extern int print_attribute_cache           ( int argc, char *argv[] );
-extern int write_attribute_cache           ( int argc, char *argv[] );
-extern int enable_notification             ( int argc, char *argv[] );
-extern int disable_notification            ( int argc, char *argv[] );
-extern int add_whitelist                   ( int argc, char *argv[] );
-extern int remove_whitelist                ( int argc, char *argv[] );
-extern int clear_whitelist                 ( int argc, char *argv[] );
-extern int get_whitelist_size              ( int argc, char *argv[] );
-extern int discover_all_services           ( int argc, char *argv[] );
-extern int discover_services_by_uuid       ( int argc, char *argv[] );
-extern int find_included_services          ( int argc, char *argv[] );
-extern int discover_all_chars_in_a_service ( int argc, char *argv[] );
-extern int discover_chars_by_uuid          ( int argc, char *argv[] );
-extern int discover_all_char_descriptors   ( int argc, char *argv[] );
-extern int read_char_descriptor            ( int argc, char *argv[] );
-extern int read_long_char_descriptor       ( int argc, char *argv[] );
-extern int write_char_descriptor           ( int argc, char *argv[] );
-extern int write_long_char_descriptor      ( int argc, char *argv[] );
-extern int read_char_value                 ( int argc, char *argv[] );
-extern int read_long_char_value            ( int argc, char *argv[] );
-extern int read_char_values_by_uuid        ( int argc, char *argv[] );
-extern int write_char_value                ( int argc, char *argv[] );
-extern int write_long_char_value           ( int argc, char *argv[] );
-extern int dump_packet                     ( int argc, char *argv[] );
-extern int stack_trace                     ( int argc, char *argv[] );
-extern int set_tx_power                    ( int argc, char *argv[] );
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 
-static void history_load_line              ( uint32_t line, char* buffer );
-static void history_store_line             ( char* buffer );
-static uint32_t history_get_num_lines      ( void );
-static wiced_bool_t console_process_esc_seq( char c );
-static cmd_err_t console_parse_cmd         ( char* line );
-static void console_load_line              ( uint32_t new_line );
-static void console_insert_char            ( char c );
-static void console_remove_char            ( void );
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 
-/* forward declarations */
-static void console_do_home      ( void );
-static void console_do_end       ( void );
-static void console_do_up        ( void );
-static void console_do_down      ( void );
-static void console_do_left      ( void );
-static void console_do_right     ( void );
-static void console_do_delete    ( void );
-static void console_do_backspace ( void );
-static void console_do_tab       ( void );
-static cmd_err_t console_do_enter( void );
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static void history_load_line                             ( uint32_t line, char* buffer );
+static void history_store_line                            ( char* buffer );
+static uint32_t history_get_num_lines                     ( void );
+static wiced_bool_t console_process_esc_seq               ( char c );
+static cmd_err_t console_parse_cmd                        ( char* line );
+static void console_load_line                             ( uint32_t new_line );
+static void console_insert_char                           ( char c );
+static void console_remove_char                           ( void );
+static void console_do_home                               ( void );
+static void console_do_end                                ( void );
+static void console_do_up                                 ( void );
+static void console_do_down                               ( void );
+static void console_do_left                               ( void );
+static void console_do_right                              ( void );
+static void console_do_delete                             ( void );
+static void console_do_backspace                          ( void );
+static void console_do_tab                                ( void );
+static cmd_err_t console_do_enter                         ( void );
 static cmd_err_t console_do_newline_without_command_repeat( void );
-
-
-static void send_char( char c );
-static void send_str( char* s );
-static void send_charstr( char* s );
-
-/* API Functions */
-/* for general use these are the only things you need to worry about */
-static void console_init(const command_t *command_table, uint32_t line_len, char *buffer, uint32_t history_len, char *history_buffer);
-static cmd_err_t console_process_char(char c);
+static void send_char                                     ( char c );
+static void send_str                                      ( char* s );
+static void send_charstr                                  ( char* s );
+static void console_init                                  (const command_t *command_table, uint32_t line_len, char *buffer, uint32_t history_len, char *history_buffer);
+static cmd_err_t console_process_char                     (char c);
+static int help_command                                   ( int argc, char* argv[] );
 #if 0
-static cmd_err_t console_process_char_with_tab_complete(char c);
+static cmd_err_t console_process_char_with_tab_complete   (char c);
 #endif
-static int help_command( int argc, char* argv[] );
 
-
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 
 const command_t* console_command_table;
 
@@ -229,12 +210,15 @@ static wiced_bool_t in_process_char = WICED_FALSE;
 /* console state */
 static wiced_bool_t console_in_tab_tab = WICED_FALSE;
 
-
 static void (*tab_handling_func)( void ) = console_do_tab;
 static cmd_err_t (*newline_handling_func)( void ) = console_do_newline_without_command_repeat;
 
 
-void app_main( void )
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
+
+void console_app_main( void )
 {
     /* turn off buffers, so IO occurs immediately */
     setvbuf( stdin, NULL, _IONBF, 0 );

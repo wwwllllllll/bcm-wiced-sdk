@@ -3,7 +3,7 @@
  *
  * $Copyright (C) 2008 Broadcom Corporation$
  *
- * $Id: wlu_remote.h 382794 2013-02-04 17:34:08Z ishen $
+ * $Id: wlu_remote.h 403347 2013-05-20 14:05:15Z sudhirbs $
  */
 #ifndef _wlu_remote_h
 #define _wlu_remote_h

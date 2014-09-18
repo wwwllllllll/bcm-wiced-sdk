@@ -25,6 +25,30 @@
 extern "C" {
 #endif
 
+/******************************************************
+ *                     Macros
+ ******************************************************/
+#ifndef WEB_SERVER_NO_PRINT
+#define WEB_SERVER_ERROR_PRINT( x )  WINFO_APP_ERROR( x )
+#define WEB_SERVER_PRINT( x )        WINFO_APP( x )
+#define WEB_SERVER_STACK_SIZE        (4 * 1024)
+#else
+#define WEB_SERVER_ERROR_PRINT( x )  wiced_assert( "", 0!=0 )
+#define WEB_SERVER_PRINT( x )
+#define WEB_SERVER_STACK_SIZE        (1024)
+#endif
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 /**
  * Prototype for URL handler functions which serve a web page data
  *
@@ -37,16 +61,9 @@ extern "C" {
 typedef int (*url_processor_t)( void * socket, char * params, int params_len );
 
 
-/**
- * Prototype for sending web page data from within URL handler
- *
- * @param  socket : the socket to which the data will be sent
- * @param  data   : a pointer to the data to be transmitted
- * @param  length : length in bytes of data buffer
- */
-
-void send_web_data( void * socket, unsigned char * data, unsigned long length );
-
+/******************************************************
+ *                    Structures
+ ******************************************************/
 
 /**
  * Structure of one element of the URL handler list
@@ -59,6 +76,23 @@ typedef struct
     const url_processor_t processor;
 } url_list_elem_t;
 
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+
+/**
+ * Prototype for sending web page data from within URL handler
+ *
+ * @param  socket : the socket to which the data will be sent
+ * @param  data   : a pointer to the data to be transmitted
+ * @param  length : length in bytes of data buffer
+ */
+
+void send_web_data( void * socket, unsigned char * data, unsigned long length );
 
 /**
  * Processes web server requests
@@ -97,17 +131,6 @@ void run_webserver( uint32_t bind_address_in, const url_list_elem_t * server_url
 void start_web_server_thread( uint32_t bind_address_in, const url_list_elem_t * server_url_list_in );
 wiced_bool_t web_server_is_running( void );
 void quit_web_server( void );
-
-
-#ifndef WEB_SERVER_NO_PRINT
-#define WEB_SERVER_ERROR_PRINT( x )  WINFO_APP_ERROR( x )
-#define WEB_SERVER_PRINT( x )        WINFO_APP( x )
-#define WEB_SERVER_STACK_SIZE        (4 * 1024)
-#else
-#define WEB_SERVER_ERROR_PRINT( x )  wiced_assert( "", 0!=0 )
-#define WEB_SERVER_PRINT( x )
-#define WEB_SERVER_STACK_SIZE        (1024)
-#endif
 
 
 #ifdef __cplusplus

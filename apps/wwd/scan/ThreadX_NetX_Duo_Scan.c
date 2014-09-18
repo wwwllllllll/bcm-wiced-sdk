@@ -34,19 +34,9 @@
 #include "wwd_network.h"
 
 /******************************************************
- *        Settable Constants
+ *                      Macros
  ******************************************************/
-
-#define COUNTRY                       WICED_COUNTRY_AUSTRALIA
-#define CIRCULAR_RESULT_BUFF_SIZE     (40)
-#define APP_STACK_SIZE                (2048)
-#define APP_TX_BUFFER_POOL_SIZE       NUM_BUFFERS_POOL_SIZE(2)
-#define APP_RX_BUFFER_POOL_SIZE       NUM_BUFFERS_POOL_SIZE(2)
-
-/******************************************************
- * @cond       Macros
- ******************************************************/
-
+/** @cond */
 /* Macros for comparing MAC addresses */
 #define CMP_MAC( a, b )  (((a[0])==(b[0]))&& \
                           ((a[1])==(b[1]))&& \
@@ -63,12 +53,37 @@
                         ((a[5])==0))
 
 #define NUM_BUFFERS_POOL_SIZE(x)       ((WICED_LINK_MTU+sizeof(NX_PACKET)+1)*(x))
-
 /** @endcond */
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+#define COUNTRY                       WICED_COUNTRY_AUSTRALIA
+#define CIRCULAR_RESULT_BUFF_SIZE     (40)
+#define APP_STACK_SIZE                (2048)
+#define APP_TX_BUFFER_POOL_SIZE       NUM_BUFFERS_POOL_SIZE(2)
+#define APP_RX_BUFFER_POOL_SIZE       NUM_BUFFERS_POOL_SIZE(2)
 
 /******************************************************
- *             Static Variables
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static void scan_results_handler( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status );
+
+/******************************************************
+ *               Variable Definitions
  ******************************************************/
 
 static TX_THREAD               app_main_thread_handle;
@@ -83,10 +98,8 @@ static uint16_t                result_buff_write_pos = 0;
 static uint16_t                result_buff_read_pos  = 0;
 
 /******************************************************
- *             Static Prototypes
+ *               Function Definitions
  ******************************************************/
-
-static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user_data );
 
 /**
  * Main Scan app
@@ -97,10 +110,10 @@ static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user
  */
 static void app_main_thread( ULONG thread_input )
 {
-    int                   record_number;
-    wiced_scan_result_t * record;
-    wiced_scan_result_t * result_ptr = (wiced_scan_result_t *) &result_buff;
-    wwd_result_t        result;
+    int                  record_number;
+    wiced_scan_result_t* record;
+    wiced_scan_result_t* result_ptr = (wiced_scan_result_t *) &result_buff;
+    wwd_result_t         result;
 
     WPRINT_APP_INFO(("\nPlatform " PLATFORM " initialised\n"));
     WPRINT_APP_INFO(("Started ThreadX " ThreadX_VERSION "\n"));
@@ -154,7 +167,7 @@ static void app_main_thread( ULONG thread_input )
         result_buff_read_pos = 0;
         result_buff_write_pos = 0;
 
-        if ( WWD_SUCCESS != wwd_wifi_scan( WICED_SCAN_TYPE_ACTIVE, WICED_BSS_TYPE_ANY, NULL, NULL, NULL, NULL, scan_results_handler, (wiced_scan_result_t **) &result_ptr, NULL ) )
+        if ( WWD_SUCCESS != wwd_wifi_scan( WICED_SCAN_TYPE_ACTIVE, WICED_BSS_TYPE_ANY, NULL, NULL, NULL, NULL, scan_results_handler, (wiced_scan_result_t **) &result_ptr, NULL, WWD_STA_INTERFACE ) )
         {
             WPRINT_APP_ERROR(("Error starting scan\n"));
             return;
@@ -175,9 +188,9 @@ static void app_main_thread( ULONG thread_input )
 
             /* Print SSID */
             WPRINT_APP_INFO(("\n#%03d SSID          : ", record_number ));
-            for ( k = 0; k < record->SSID.len; k++ )
+            for ( k = 0; k < record->SSID.length; k++ )
             {
-                WPRINT_APP_INFO(("%c",record->SSID.val[k]));
+                WPRINT_APP_INFO(("%c",record->SSID.value[k]));
             }
             WPRINT_APP_INFO(("\n" ));
 
@@ -254,7 +267,7 @@ void tx_application_define( void *first_unused_memory )
  *                      can be updated to cause the next result to be put in a new location.
  *  @param user_data : unused
  */
-static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user_data )
+static void scan_results_handler( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status )
 {
     if ( result_ptr == NULL )
     {
@@ -268,9 +281,9 @@ static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user
 
     /* Check the list of BSSID values which have already been printed */
     wiced_mac_t * tmp_mac = bssid_list;
-    while ( !NULL_MAC( tmp_mac->octet ) )
+    while ( NULL_MAC( tmp_mac->octet ) == WICED_FALSE )
     {
-        if ( CMP_MAC( tmp_mac->octet, record->BSSID.octet ) )
+        if ( CMP_MAC( tmp_mac->octet, record->BSSID.octet ) == WICED_TRUE )
         {
             /* already seen this BSSID */
             return;

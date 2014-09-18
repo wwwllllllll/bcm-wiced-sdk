@@ -155,6 +155,27 @@ typedef enum
     I2C_HIGH_SPEED_MODE         /* 400Khz devices */
 } platform_i2c_speed_mode_t;
 
+/**
+ * SPI slave transfer direction
+ */
+typedef enum
+{
+    SPI_SLAVE_TRANSFER_WRITE, /* SPI master writes data to the SPI slave device */
+    SPI_SLAVE_TRANSFER_READ   /* SPI master reads data from the SPI slave device */
+} platform_spi_slave_transfer_direction_t;
+
+typedef enum
+{
+    SPI_SLAVE_TRANSFER_SUCCESS,             /* SPI transfer successful */
+    SPI_SLAVE_TRANSFER_INVALID_COMMAND,     /* Command is invalid */
+    SPI_SLAVE_TRANSFER_ADDRESS_UNAVAILABLE, /* Address specified in the command is unavailable */
+    SPI_SLAVE_TRANSFER_LENGTH_MISMATCH,     /* Length specified in the command doesn't match with the actual data length */
+    SPI_SLAVE_TRANSFER_READ_NOT_ALLOWED,    /* Read operation is not allowed for the address specified */
+    SPI_SLAVE_TRANSFER_WRITE_NOT_ALLOWED,   /* Write operation is not allowed for the address specified */
+    SPI_SLAVE_TRANSFER_HARDWARE_ERROR,      /* Hardware error occurred during transfer */
+    SPI_SLAVE_TRANSFER_STATUS_MAX = 0xff,   /* Denotes maximum value. Not a valid status */
+} platform_spi_slave_transfer_status_t;
+
 /******************************************************
  *                 Type Definitions
  ******************************************************/
@@ -190,6 +211,35 @@ typedef struct
     uint8_t                bits;
     const platform_gpio_t* chip_select;
 } platform_spi_config_t;
+
+#pragma pack(1)
+typedef struct platform_spi_slave_command
+{
+    platform_spi_slave_transfer_direction_t direction;
+    uint16_t                                address;
+    uint16_t                                data_length;
+} platform_spi_slave_command_t;
+
+typedef struct
+{
+    uint16_t                             data_length;
+    platform_spi_slave_transfer_status_t status;
+    uint8_t                              data[1];
+} platform_spi_slave_data_buffer_t;
+
+/**
+ * SPI slave configuration
+ */
+typedef struct platform_spi_slave_config
+{
+    uint32_t speed;
+    uint8_t  mode;
+    uint8_t  bits;
+} platform_spi_slave_config_t;
+
+#pragma pack()
+
+
 
 /**
  * SPI message segment
@@ -421,6 +471,70 @@ platform_result_t platform_spi_deinit( const platform_spi_t* spi );
 platform_result_t platform_spi_transfer( const platform_spi_t* spi, const platform_spi_config_t* config, const platform_spi_message_segment_t* segments, uint16_t number_of_segments );
 
 
+/** Initialises a SPI slave interface
+ *
+ * @param[in]  driver     : the SPI slave driver to be initialised
+ * @param[in]  peripheral : the SPI peripheral interface to be initialised
+ * @param[in]  config     : SPI slave configuration
+ *
+ * @return @ref platform_result_t
+ */
+platform_result_t platform_spi_slave_init( platform_spi_slave_driver_t* driver, const platform_spi_t* peripheral, const platform_spi_slave_config_t* config );
+
+
+/** De-initialises a SPI slave interface
+ *
+ * @param[in]  driver : the SPI slave driver to be de-initialised
+ *
+ * @return @ref platform_result_t
+ */
+
+platform_result_t platform_spi_slave_deinit( platform_spi_slave_driver_t* driver );
+
+
+/** Receive command from the remote SPI master
+ *
+ * @param[in]   driver      : the SPI slave driver
+ * @param[out]  command     : pointer to the variable which will contained the received command
+ * @param[in]   timeout_ms  : timeout in milliseconds
+ *
+ * @return @ref platform_result_t
+ */
+platform_result_t platform_spi_slave_receive_command( platform_spi_slave_driver_t* driver, platform_spi_slave_command_t* command, uint32_t timeout_ms );
+
+
+/** Transfer data to/from the remote SPI master
+ *
+ * @param[in]  driver      : the SPI slave driver
+ * @param[in]  direction   : transfer direction
+ * @param[in]  buffer      : the buffer which contain the data to transfer
+ * @param[in]  timeout_ms  : timeout in milliseconds
+ *
+ * @return @ref platform_result_t
+ */
+platform_result_t platform_spi_slave_transfer_data( platform_spi_slave_driver_t* driver, platform_spi_slave_transfer_direction_t direction, platform_spi_slave_data_buffer_t* buffer, uint32_t timeout_ms );
+
+
+/** Send an error status over the SPI slave interface
+ *
+ * @param[in]  driver       : the SPI slave driver
+ * @param[in]  error_status : SPI slave error status
+ *
+ * @return @ref platform_result_t
+ */
+platform_result_t platform_spi_slave_send_error_status( platform_spi_slave_driver_t* driver, platform_spi_slave_transfer_status_t error_status );
+
+
+/** Generate an interrupt on the SPI slave interface
+ *
+ * @param[in]  driver            : the SPI slave driver
+ * @param[in]  pulse_duration_ms : interrupt pulse duration in milliseconds
+ *
+ * @return @ref platform_result_t
+ */
+platform_result_t platform_spi_slave_generate_interrupt( platform_spi_slave_driver_t* driver, uint32_t pulse_duration_ms );
+
+
 /**
  * Initialise ADC interface
  *
@@ -508,7 +622,7 @@ wiced_bool_t platform_i2c_probe_device( const platform_i2c_t* i2c, const platfor
  *
  * @return @ref platform_result_t
  */
-platform_result_t platform_i2c_init_tx_message( platform_i2c_message_t* message, void* tx_buffer, uint16_t tx_buffer_length, uint16_t retries, wiced_bool_t disable_dma );
+platform_result_t platform_i2c_init_tx_message( platform_i2c_message_t* message, const void* tx_buffer, uint16_t tx_buffer_length, uint16_t retries, wiced_bool_t disable_dma );
 
 
 /**

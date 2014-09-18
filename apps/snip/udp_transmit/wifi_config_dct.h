@@ -35,7 +35,7 @@ extern "C" {
 
 /* This is the soft AP available for normal operation */
 #define SOFT_AP_SSID         "WICED UDP Transmit App"
-#define SOFT_AP_PASSPHRASE   "12345678"
+#define SOFT_AP_PASSPHRASE   "abcd1234"
 #define SOFT_AP_SECURITY     WICED_SECURITY_OPEN  /* WICED_SECURITY_WPA2_AES_PSK */
 #define SOFT_AP_CHANNEL      1
 

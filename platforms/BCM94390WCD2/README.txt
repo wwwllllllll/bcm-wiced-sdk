@@ -6,6 +6,8 @@ Provider    : Broadcom
 Website     : http://broadcom.com/wiced
 Description : Broadcom Internal Dev Board - BCM4390WCD2_1 mounted on a Broadcom BCM9WCD3EVAL1 evaluation board
 
+Schematics & Photos : /platforms/BCM94390WCD2/schematics/
+                      /platforms/evaluation_boards/BCM9WCD3EVAL1/
 Module
   Mfr     : Broadcom
   P/N     : BCM94390WCD2_1  SIP containing WLCSP package of 4390 

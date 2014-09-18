@@ -24,6 +24,14 @@
  *                    Constants
  ******************************************************/
 
+#if defined( WWD_DYNAMIC_NVRAM )
+#define NVRAM_SIZE             dynamic_nvram_size
+#define NVRAM_IMAGE_VARIABLE   dynamic_nvram_image
+#else
+#define NVRAM_SIZE             sizeof( wifi_nvram_image )
+#define NVRAM_IMAGE_VARIABLE   wifi_nvram_image
+#endif
+
 /******************************************************
  *                   Enumerations
  ******************************************************/
@@ -37,12 +45,17 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
+
+#if defined( WWD_DYNAMIC_NVRAM )
+uint32_t dynamic_nvram_size  = sizeof( wifi_nvram_image );
+void*    dynamic_nvram_image = &wifi_nvram_image;
+#endif
 
 /******************************************************
  *               Function Definitions
@@ -56,7 +69,7 @@ wwd_result_t host_platform_resource_size( wwd_resource_t resource, uint32_t* siz
     }
     else
     {
-        *size_out = sizeof( wifi_nvram_image );
+        *size_out = NVRAM_SIZE;
     }
     return WWD_SUCCESS;
 }
@@ -70,7 +83,7 @@ wwd_result_t host_platform_resource_read_direct( wwd_resource_t resource, const 
     }
     else
     {
-        *ptr_out = wifi_nvram_image;
+        *ptr_out = NVRAM_IMAGE_VARIABLE;
     }
     return WWD_SUCCESS;
 }
@@ -83,8 +96,8 @@ wwd_result_t host_platform_resource_read_indirect( wwd_resource_t resource, uint
     }
     else
     {
-        *size_out = MIN( buffer_size, sizeof( wifi_nvram_image ) - offset );
-        memcpy( buffer, &wifi_nvram_image[ offset ], *size_out );
+        *size_out = MIN( buffer_size, NVRAM_SIZE - offset );
+        memcpy( buffer, &NVRAM_IMAGE_VARIABLE[ offset ], *size_out );
         return WWD_SUCCESS;
     }
 }

@@ -77,11 +77,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
-static wiced_result_t send_ping              ( void* arg );
-static int            process_ping           ( const char* url, wiced_tcp_stream_t* socket, void* arg );
+static wiced_result_t send_ping    ( void* arg );
+static int32_t        process_ping ( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_data );
 
 /******************************************************
  *               Variable Definitions
@@ -230,9 +230,10 @@ static wiced_result_t send_ping( void* arg )
 
 
 /* Update the ping webpage with the latest ping results */
-static int process_ping( const char* url, wiced_tcp_stream_t* stream, void* arg )
+static int32_t process_ping( const char* url_parameters, wiced_tcp_stream_t* stream, void* arg, wiced_http_message_body_t* http_data )
 {
     int a;
+    UNUSED_PARAMETER( http_data );
 
     wiced_tcp_stream_write_resource( stream, &resources_apps_DIR_ping_webserver_DIR_table_html );
     wiced_tcp_stream_write( stream, ping_description, strlen( ping_description ) );

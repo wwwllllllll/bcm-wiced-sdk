@@ -34,7 +34,15 @@
 #include "wwd_network_constants.h"
 
 /******************************************************
- *        Settable Constants
+ *                      Macros
+ ******************************************************/
+/** @cond */
+#define MAKE_IPV4_ADDRESS   IP_ADDRESS
+#define NUM_BUFFERS_POOL_SIZE(x)       ((WICED_LINK_MTU+sizeof(NX_PACKET)+1)*(x))
+/** @endcond */
+
+/******************************************************
+ *                    Constants
  ******************************************************/
 
 #define AP_SSID                  "YOUR_AP_SSID"
@@ -63,20 +71,24 @@
 #define IP_STACK_SIZE            (1024*2)
 #define ARP_CACHE_SIZE           (3*52)
 
-
 /******************************************************
- * @cond       Macros
+ *                   Enumerations
  ******************************************************/
 
-#define MAKE_IPV4_ADDRESS   IP_ADDRESS
-
-#define NUM_BUFFERS_POOL_SIZE(x)       ((WICED_LINK_MTU+sizeof(NX_PACKET)+1)*(x))
-
-/** @endcond */
-
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 
 /******************************************************
- *             Static Variables
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
  ******************************************************/
 
 static TX_THREAD      app_main_thread_handle;
@@ -89,6 +101,15 @@ static char           rx_buffer_pool_memory [APP_RX_BUFFER_POOL_SIZE];
 static NX_PACKET_POOL nx_pools[2]; /* 0=TX, 1=RX */
 static NX_DHCP        dhcp_handle;
 
+static const wiced_ssid_t ap_ssid =
+{
+    .length = sizeof(AP_SSID)-1,
+    .value  = AP_SSID,
+};
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 /**
  * Main Ping app
@@ -137,14 +158,14 @@ static void app_main_thread( ULONG thread_input )
     if (AP_SEC == WICED_SECURITY_WEP_PSK)  /* Demonstrates usage of WEP */
     {
         wiced_wep_key_t key[] = WEP_KEY;
-        while ( wwd_wifi_join( AP_SSID, AP_SEC, (uint8_t*) key, sizeof( key ), NULL ) != WWD_SUCCESS )
+        while ( wwd_wifi_join( &ap_ssid, AP_SEC, (uint8_t*) key, sizeof( key ), NULL ) != WWD_SUCCESS )
         {
             WPRINT_APP_INFO(("Failed to join  : " AP_SSID "   .. retrying\n"));
         }
     }
     else
     {
-        while ( wwd_wifi_join( AP_SSID, AP_SEC, (uint8_t*) AP_PASS, sizeof( AP_PASS ) - 1, NULL ) != WWD_SUCCESS )
+        while ( wwd_wifi_join( &ap_ssid, AP_SEC, (uint8_t*) AP_PASS, sizeof( AP_PASS ) - 1, NULL ) != WWD_SUCCESS )
         {
             WPRINT_APP_INFO(("Failed to join  : " AP_SSID "   .. retrying\n"));
         }

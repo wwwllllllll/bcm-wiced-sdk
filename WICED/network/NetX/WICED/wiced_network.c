@@ -124,7 +124,7 @@ static uint32_t     network_suspend_end_time;
 static wiced_bool_t network_is_suspended = WICED_FALSE;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void           ip_address_changed_handler( NX_IP* ip_handle, VOID* additional_info );
@@ -199,14 +199,19 @@ wiced_result_t wiced_network_up(wiced_interface_t interface, wiced_network_confi
                 return retval;
             }
 
-            // Check config DCT is valid
+            /* Check config DCT is valid */
             if ( config_ap->details_valid == CONFIG_VALIDITY_VALUE )
             {
-                result = wiced_start_ap( (char*) config_ap->SSID.val, config_ap->security, config_ap->security_key, config_ap->channel );
+                result = wiced_start_ap( &config_ap->SSID, config_ap->security, config_ap->security_key, config_ap->channel );
             }
             else
             {
-                result = wiced_start_ap( (char*) "Wiced Config", WICED_SECURITY_OPEN, "", 1 );
+                wiced_ssid_t ssid =
+                {
+                    .length =  sizeof("Wiced Config")-1,
+                    .value  = "Wiced Config",
+                };
+                result = wiced_start_ap( &ssid, WICED_SECURITY_OPEN, "", 1 );
             }
             wiced_dct_read_unlock( config_ap, WICED_FALSE );
         }
@@ -218,7 +223,7 @@ wiced_result_t wiced_network_up(wiced_interface_t interface, wiced_network_confi
             {
                 return result;
             }
-            result = wwd_wifi_start_ap( (char*) soft_ap->SSID.val, soft_ap->security, (uint8_t*) soft_ap->security_key, soft_ap->security_key_length, soft_ap->channel );
+            result = wwd_wifi_start_ap( &soft_ap->SSID, soft_ap->security, (uint8_t*) soft_ap->security_key, soft_ap->security_key_length, soft_ap->channel );
             wiced_dct_read_unlock( soft_ap, WICED_FALSE );
         }
         else
@@ -263,7 +268,7 @@ wiced_result_t wiced_ip_up( wiced_interface_t interface, wiced_network_config_t 
         return WICED_ERROR;
     }
 
-    // Enable ARP
+    /* Enable ARP */
     if ( nx_arp_enable( &IP_HANDLE(interface), (void *) wiced_arp_cache, ARP_CACHE_SIZE ) != NX_SUCCESS )
     {
         WPRINT_NETWORK_ERROR( ( "Failed to enable ARP\n" ) );
@@ -563,7 +568,6 @@ void wiced_network_notify_link_up( void )
 void wiced_network_notify_link_down( void )
 {
     IP_HANDLE(WICED_STA_INTERFACE).nx_ip_driver_link_up = NX_FALSE;
-//    tx_event_flags_set(&IP_HANDLE(WICED_STA_INTERFACE).nx_ip_events), NX_IP_DRIVER_DEFERRED_EVENT, TX_OR);
 }
 
 wiced_result_t wiced_network_link_down_handler( void* arg )

@@ -27,6 +27,8 @@ typedef xSemaphoreHandle  /*@only@*/ sys_sem_t;
 typedef xQueueHandle      /*@only@*/ sys_mbox_t;
 typedef xTaskHandle       /*@only@*/ sys_thread_t;
 
+uint16_t sys_rand16( void );
+
 #ifdef __cplusplus
 } /*extern "C" */
 #endif

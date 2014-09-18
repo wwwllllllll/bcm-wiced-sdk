@@ -12,7 +12,8 @@ NAME := App_Bluetooth_Audio
 
 $(NAME)_SOURCES    := bt_audio.c
 
-$(NAME)_COMPONENTS := libraries/bt_audio
+$(NAME)_COMPONENTS := libraries/inputs/button \
+                      libraries/bt_audio
 
 GLOBAL_DEFINES := BUILDCFG \
                   WICED_USE_AUDIO

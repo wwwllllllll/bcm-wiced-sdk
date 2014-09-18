@@ -44,10 +44,12 @@ extern "C" {
  *               Function Declarations
  ******************************************************/
 
-extern wiced_result_t wiced_tls_encrypt_packet( wiced_tls_context_t* context, wiced_packet_t* packet );
-extern wiced_result_t wiced_tls_decrypt_packet( wiced_tls_context_t* context, wiced_packet_t* packet );
-extern wiced_result_t wiced_tls_receive_packet( wiced_tcp_socket_t* socket, wiced_packet_t** packet, uint32_t timeout );
-extern wiced_bool_t   wiced_tls_is_encryption_enabled(wiced_tcp_socket_t* socket);
+wiced_result_t wiced_tls_encrypt_packet        ( wiced_tls_context_t* context, wiced_packet_t* packet );
+wiced_result_t wiced_tls_decrypt_packet        ( wiced_tls_context_t* context, wiced_packet_t* packet );
+wiced_result_t wiced_tls_receive_packet        ( wiced_tcp_socket_t* socket, wiced_packet_t** packet, uint32_t timeout );
+wiced_bool_t   wiced_tls_is_encryption_enabled ( wiced_tcp_socket_t* socket );
+wiced_result_t wiced_tls_close_notify          ( wiced_tcp_socket_t* socket );
+wiced_result_t wiced_tls_calculate_overhead    ( wiced_tls_context_t* context, uint16_t content_length, uint16_t* header, uint16_t* footer );
 
 #ifdef __cplusplus
 } /*extern "C" */

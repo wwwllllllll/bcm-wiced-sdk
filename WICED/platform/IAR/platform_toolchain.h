@@ -10,6 +10,8 @@
 #ifndef INCLUDED_WWD_TOOLCHAIN_H
 #define INCLUDED_WWD_TOOLCHAIN_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -19,7 +21,7 @@ extern "C"
  *                      Macros
  ******************************************************/
 
-#define WEAK
+#define WEAK __weak
 
 /******************************************************
  *                    Constants
@@ -44,6 +46,9 @@ extern "C"
 /******************************************************
  *               Function Declarations
  ******************************************************/
+void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen );
+void *memrchr( const void *s, int c, size_t n );
+void iar_set_msp(void*);
 
 #ifdef __cplusplus
 } /* extern "C" */

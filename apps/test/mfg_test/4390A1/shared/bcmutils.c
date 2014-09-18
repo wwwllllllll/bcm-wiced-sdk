@@ -2,7 +2,7 @@
  * Driver O/S-independent utility routines
  *
  * $Copyright Open Broadcom Corporation$
- * $Id: bcmutils.c 379382 2013-01-17 06:47:10Z cylee $
+ * $Id: bcmutils.c 414615 2013-07-25 14:27:43Z anoops $
  */
 
 #include <bcm_cfg.h>
@@ -72,7 +72,7 @@ static int vars_len = -1;
 
 #if !defined(BCMDONGLEHOST)
 int
-BCMATTACHFN(pktpool_init)(osl_t *osh, pktpool_t *pktp, int *pplen, int plen, bool istx)
+BCMATTACHFN(pktpool_init)(osl_t *osh, pktpool_t *pktp, int *pplen, int plen, bool istx, uint8 type)
 {
 	int i, err = BCME_OK;
 	void *p;
@@ -88,6 +88,7 @@ BCMATTACHFN(pktpool_init)(osl_t *osh, pktpool_t *pktp, int *pplen, int plen, boo
 	pktp->inited = TRUE;
 	pktp->istx = istx ? TRUE : FALSE;
 	pktp->plen = (uint16)plen;
+	pktp->type = type;
 	*pplen = 0;
 
 	pktp->maxlen = PKTPOOL_LEN_MAX;
@@ -95,7 +96,15 @@ BCMATTACHFN(pktpool_init)(osl_t *osh, pktpool_t *pktp, int *pplen, int plen, boo
 		pktplen = pktp->maxlen;
 
 	for (i = 0; i < pktplen; i++) {
-		p = PKTGET(osh, plen, pktp->istx);
+#ifdef BCMLFRAG
+		if (BCMLFRAG_ENAB()) {
+			p = PKTGETLF(osh, plen, pktp->istx, type);
+		} else
+#endif
+		{
+			p = PKTGET(osh, plen, pktp->istx);
+		}
+
 		if (p == NULL) {
 			/* Not able to allocate all requested pkts
 			 * so just return what was actually allocated
@@ -165,7 +174,15 @@ pktpool_fill(osl_t *osh, pktpool_t *pktp, bool minimal)
 	psize = minimal ? (maxlen >> 2) : maxlen;
 	len = pktpool_len(pktp);
 	for (; len < psize; len++) {
-		p = PKTGET(osh, pktpool_plen(pktp), FALSE);
+#ifdef BCMLFRAG
+		if (BCMLFRAG_ENAB()) {
+			p = PKTGETLF(osh, pktpool_plen(pktp), FALSE, pktp->type);
+		} else
+#endif
+		{
+			p = PKTGET(osh, pktpool_plen(pktp), FALSE);
+		}
+
 		if (p == NULL) {
 			err = BCME_NOMEM;
 			break;
@@ -232,7 +249,20 @@ pktpool_enq(pktpool_t *pktp, void *p)
 	pktp->q[pktp->w] = p;
 	pktp->w = next;
 }
+#ifdef BCMSPLITRX
+/* utility for registering host addr fill function called from pciedev */
+int
+BCMATTACHFN(pktpool_hostaddr_fill_register)(pktpool_t *pktp, pktpool_cb_extn_t cb, void *arg)
+{
 
+	ASSERT(cb != NULL);
+
+	ASSERT(pktp->cbext.cb == NULL);
+	pktp->cbext.cb = cb;
+	pktp->cbext.arg = arg;
+	return 0;
+}
+#endif
 int
 BCMATTACHFN(pktpool_avail_register)(pktpool_t *pktp, pktpool_cb_t cb, void *arg)
 {
@@ -500,6 +530,22 @@ pktpool_get(pktpool_t *pktp)
 		p = pktpool_deq(pktp);
 	}
 
+#ifdef BCMSPLITRX
+	int ret = 0;
+	if (BCMSPLITRX_ENAB()) {
+		if (p && (pktp == pktpool_shared_rxlfrag)) {
+			/* If pool is shared rx pool, use call abck fn to populate host address */
+			ASSERT(pktp->cbext.cb != NULL);
+			ret = pktp->cbext.cb(pktp, pktp->cbext.arg, p);
+
+			/* If host address was not available, enque the packet and retrun NULL */
+			if (ret) {
+				pktpool_enq(pktp, p);
+				p = NULL;
+			}
+		}
+	}
+#endif
 	return p;
 }
 
@@ -618,6 +664,7 @@ pktfrombuf(osl_t *osh, void *p, uint offset, int len, uchar *buf)
 {
 	uint n, ret = 0;
 
+
 	/* skip 'offset' bytes */
 	for (; p && offset; p = PKTNEXT(osh, p)) {
 		if (offset < (uint)PKTLEN(osh, p))
@@ -683,6 +730,13 @@ pkttotlen(osl_t *osh, void *p)
 		}
 #endif /* MACOSX */
 		total += len;
+#ifdef BCMLFRAG
+		if (BCMLFRAG_ENAB()) {
+			if (PKTISFRAG(osh, p)) {
+				total += PKTFRAGTOTLEN(osh, p);
+			}
+		}
+#endif
 	}
 
 	return (total);
@@ -704,8 +758,16 @@ pktsegcnt(osl_t *osh, void *p)
 {
 	uint cnt;
 
-	for (cnt = 0; p; p = PKTNEXT(osh, p))
+	for (cnt = 0; p; p = PKTNEXT(osh, p)) {
 		cnt++;
+#ifdef BCMLFRAG
+		if (BCMLFRAG_ENAB()) {
+			if (PKTISFRAG(osh, p)) {
+				cnt += PKTFRAGTOTNUM(osh, p);
+			}
+		}
+#endif
+	}
 
 	return cnt;
 }
@@ -1856,6 +1918,15 @@ getgpiopin(char *vars, char *pin_name, uint def_pin)
 
 #if defined(BCMPERFSTATS) || defined(BCMTSTAMPEDLOGS)
 
+#if defined(__ARM_ARCH_7R__)
+#define BCMLOG_CYCLE_OVERHEAD	54	/* Number of CPU cycle overhead due to bcmlog().
+					 * This is to compensate CPU cycle incurred by
+					 * added bcmlog() function call for profiling.
+					 */
+#else
+#define BCMLOG_CYCLE_OVERHEAD	0
+#endif
+
 #define	LOGSIZE	256			/* should be power of 2 to avoid div below */
 static struct {
 	uint	cycles;
@@ -1867,7 +1938,7 @@ static struct {
 /* last entry logged  */
 static uint logi = 0;
 /* next entry to read */
-static uint readi = 0;
+static uint volatile readi = 0;
 #endif	/* defined(BCMPERFSTATS) || defined(BCMTSTAMPEDLOGS) */
 
 #ifdef BCMPERFSTATS
@@ -1887,18 +1958,34 @@ void
 bcmlog(char *fmt, uint a1, uint a2)
 {
 	static uint last = 0;
-	uint cycles, i;
+	uint cycles, i, elapsed;
 	OSL_GETCYCLES(cycles);
 
 	i = logi;
 
-	logtab[i].cycles = cycles - last;
+	elapsed = cycles - last;
+	if (elapsed > BCMLOG_CYCLE_OVERHEAD)
+		logtab[i].cycles = elapsed - BCMLOG_CYCLE_OVERHEAD;
+	else
+		logtab[i].cycles = 0;
 	logtab[i].fmt = fmt;
 	logtab[i].a1 = a1;
 	logtab[i].a2 = a2;
 
 	logi = (i + 1) % LOGSIZE;
 	last = cycles;
+
+	/* if log buffer is overflowing, readi should be advanced.
+	 * Otherwise logi and readi will become out of sync.
+	 */
+	if (logi == readi) {
+		readi = (readi + 1) % LOGSIZE;
+	} else {
+		/* This redundant else is to make CPU cycles of bcmlog() function to be uniform,
+		 * so that the cycle compensation with BCMLOG_CYCLE_OVERHEAD is more accurate.
+		 */
+		readi = readi % LOGSIZE;
+	}
 }
 
 /* Same as bcmlog but specializes the use of a1 and a2 to
@@ -1935,6 +2022,17 @@ bcmstats(char *fmt)
 	last = cycles;
 	instr_count = instr_count_cur;
 	ic_miss = ic_miss_cur;
+
+	/* if log buffer is overflowing, readi should be advanced.
+	 * Otherwise logi and readi will become out of sync.
+	 */
+	if (logi == readi) {
+		readi = (readi + 1) % LOGSIZE;
+	} else {
+		/* This redundant else is to make CPU cycles of bcmstats() function to be uniform
+		 */
+		readi = readi % LOGSIZE;
+	}
 }
 
 /*
@@ -3567,4 +3665,31 @@ bcm_uint64_divide(uint32* r, uint32 a_high, uint32 a_low, uint32 b)
 
 	r0 += a0 / b;
 	*r = r0;
+}
+
+/* calculate a >> b; and returns only lower 32 bits */
+void
+bcm_uint64_right_shift(uint32* r, uint32 a_high, uint32 a_low, uint32 b)
+{
+	uint32 a1 = a_high, a0 = a_low, r0 = 0;
+
+	if (b == 0) {
+		r0 = a_low;
+		*r = r0;
+		return;
+	}
+
+	if (b < 32) {
+		a0 = a0 >> b;
+		a1 = a1 & ((1 << b) - 1);
+		a1 = a1 << (32 - b);
+		r0 = a0 | a1;
+		*r = r0;
+		return;
+	} else {
+		r0 = a1 >> (b - 32);
+		*r = r0;
+		return;
+	}
+
 }

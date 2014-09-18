@@ -160,7 +160,10 @@ wwd_result_t host_rtos_get_semaphore( host_semaphore_type_t* semaphore, uint32_t
     }
     /*@+infloops@*/
 
+    WICED_DISABLE_INTERRUPTS();
     (*semaphore)--;
+    WICED_ENABLE_INTERRUPTS();
+
     return WWD_SUCCESS;
 }
 
@@ -184,7 +187,10 @@ wwd_result_t host_rtos_set_semaphore( host_semaphore_type_t* semaphore, wiced_bo
 {
     UNUSED_PARAMETER( called_from_ISR );
 
+    WICED_DISABLE_INTERRUPTS();
     (*semaphore)++;
+    WICED_ENABLE_INTERRUPTS();
+
     return WWD_SUCCESS;
 }
 

@@ -127,7 +127,23 @@ typedef struct
 } mclk_lrclk_map_t;
 
 /******************************************************
- *               Variables Definitions
+ *               Static Function Declarations
+ ******************************************************/
+
+static wiced_result_t wm8533_reg_write( wm8533_device_data_t* wm8533, uint8_t reg, uint16_t value );
+static wiced_result_t wm8533_reg_read ( wm8533_device_data_t* wm8533, uint8_t reg, uint16_t* value );
+
+static wiced_result_t wm8533_configure ( void* driver_data, wiced_audio_config_t *config, uint32_t* mclk);
+static wiced_result_t wm8533_init      ( void* driver_data );
+static wiced_result_t wm8533_deinit    ( void* driver_data );
+static wiced_result_t wm8533_start_play( void* driver_data );
+static wiced_result_t wm8533_pause     ( void* driver_data );
+static wiced_result_t wm8533_resume    ( void* driver_data );
+static wiced_result_t wm8533_set_volume( void* driver_data, double decibels );
+static wiced_result_t wm8533_audio_device_port ( void* device_data, wiced_i2s_t* port );
+
+/******************************************************
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_audio_data_provider_t  give_more_samples_callback;
@@ -164,18 +180,19 @@ static const mclk_lrclk_map_t mclk_lrclk_map[] =
     { 36864000, 192000, AIF_SR_192FS  },
 };
 
-/******************************************************
- *               Function Declarations
- ******************************************************/
-
-static wiced_result_t wm8533_reg_write( wm8533_device_data_t* wm8533, uint8_t reg, uint16_t value );
-static wiced_result_t wm8533_reg_read ( wm8533_device_data_t* wm8533, uint8_t reg, uint16_t* value );
-
-static wiced_result_t wm8533_configure ( void* driver_data, wiced_audio_config_t *config, uint32_t* mclk);
-static wiced_result_t wm8533_init      ( void* driver_data );
-static wiced_result_t wm8533_start_play( void* driver_data );
-static wiced_result_t wm8533_pause     ( void* driver_data );
-static wiced_result_t wm8533_resume    ( void* driver_data );
+/* Declare global audio device interface */
+wiced_audio_device_interface_t wm8533_interface =
+{
+    .audio_device_start_streaming = NULL,
+    .audio_device_init            = wm8533_init,
+    .audio_device_deinit          = wm8533_deinit,
+    .audio_device_configure       = wm8533_configure,
+    .audio_device_port            = wm8533_audio_device_port,
+    .audio_device_start_streaming = wm8533_start_play,
+    .audio_device_pause           = wm8533_pause,
+    .audio_device_resume          = wm8533_resume,
+    .audio_device_set_volume      = wm8533_set_volume,
+};
 
 /******************************************************
  *               Function Definitions
@@ -280,12 +297,6 @@ static wiced_result_t wm8533_init ( void* driver_data )
     {
         result = wm8533_reg_write(wm8533, WM8533_REG_CHIP_ID, 0 );
     }
-
-    /* set the format to I2S */
-    //if( WICED_SUCCESS == result )
-    //{
-    //    result = wm8533_reg_write(0x03, ( 0x03 << 0 ) );
-    //}
 
     /* set volume to approximately 8 db = 1b0, to both channels */
     /* where 190h is 0 db, and every 0.25db step is adding extra 1 */
@@ -550,43 +561,6 @@ wiced_result_t wm8533_configure( void *driver_data, wiced_audio_config_t *config
     return result;
 }
 
-#ifdef NOTYET
-wiced_result_t wiced_audio_device_param_set(wiced_audio_device_parameters_t param_id, void* param_data)
-{
-    UNUSED_PARAMETER(param_id);
-    UNUSED_PARAMETER(param_data);
-
-    return WICED_SUCCESS;
-}
-
-
-wiced_result_t wiced_audio_device_param_get(wiced_audio_device_parameters_t param_id, void* param_data)
-{
-    UNUSED_PARAMETER(param_id);
-    UNUSED_PARAMETER(param_data);
-
-    return WICED_SUCCESS;
-}
-
-wiced_result_t wiced_audio_device_reg_write(uint8_t reg, uint8_t value)
-{
-    /* this function is a wrapper for cs43l22_reg_write function */
-    UNUSED_PARAMETER(reg);
-    UNUSED_PARAMETER(value);
-
-    return WICED_SUCCESS;
-}
-
-
-wiced_result_t wiced_audio_device_reg_read(uint8_t reg, uint8_t* value)
-{
-    /* this function is a wrapper for cs43l22_reg_read function */
-    UNUSED_PARAMETER(reg);
-    UNUSED_PARAMETER(value);
-
-    return WICED_SUCCESS;
-}
-#endif /* NOTYET */
 
 wiced_result_t wm8533_start_play ( void* driver_data )
 {
@@ -610,7 +584,7 @@ wiced_result_t wm8533_resume ( void* driver_data )
 }
 
 
-wiced_result_t wm8533_deinit ( void* driver_data )
+static wiced_result_t wm8533_deinit ( void* driver_data )
 {
     wm8533_device_data_t* wm8533 = ( wm8533_device_data_t* )driver_data;
     wiced_result_t result;
@@ -622,9 +596,6 @@ wiced_result_t wm8533_deinit ( void* driver_data )
      */
 
     result = WICED_SUCCESS;
-
-    /* Reset CODEC to initial state. */
-//  result = wm8533_reset();
 
 #ifdef NOTYET
     /* Power off CODEC. */
@@ -659,46 +630,6 @@ static wiced_result_t wm8533_reg_read(wm8533_device_data_t* wm8533, uint8_t addr
 {
     return i2c_reg_read(wm8533->i2c_data, address, reg_data);
 }
-
-#ifdef NOTYET
-static wiced_result_t wm8533_reg_read(wm8533_device_data_t* wm8533, uint8_t address, uint8_t* reg_data)
-{
-    return i2c_reg_read(wm8533->i2c_data, address, reg_data);
-}
-
-static wiced_result_t cs43l22_dac_interface_set(wm8533_device_data_t* wm8533, cs43l22_dac_interface_t type)
-{
-    UNUSED_PARAMETER(wm8533);
-    UNUSED_PARAMETER(type);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    return WICED_SUCCESS;
-}
-
-static wiced_result_t cs43l22_pcm_channel_mute(wm8533_device_data_t* wm8533, cs43l22_pcm_channel_t channel, wiced_bool_t enable_disable)
-{
-    UNUSED_PARAMETER(wm8533);
-    UNUSED_PARAMETER(channel);
-    UNUSED_PARAMETER(enable_disable);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    return WICED_SUCCESS;
-}
-
-static wiced_result_t cs43l22_pcm_channel_volume(wm8533_device_data_t* wm8533, cs43l22_pcm_channel_t channel, uint8_t volume)
-{
-    UNUSED_PARAMETER(wm8533);
-    UNUSED_PARAMETER(channel);
-    UNUSED_PARAMETER(volume);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-
-    return WICED_SUCCESS;
-}
-#endif /* NOTYET */
 
 static wiced_result_t wm8533_set_volume( void* driver_data, double decibels )
 {
@@ -741,157 +672,6 @@ static wiced_result_t wm8533_set_volume( void* driver_data, double decibels )
     return result;
 }
 
-#ifdef NOTYET
-wiced_result_t cs43l22_analog_input_enable(wiced_bool_t enable, cs43l22_analog_in_channel_t achannel)
-{
-    UNUSED_PARAMETER(enable);
-    UNUSED_PARAMETER(achannel);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    return WICED_SUCCESS;
-}
-
-wiced_result_t cs43l22_analog_input_volume(cs43l22_analog_in_channel_t achannel, uint8_t percentage)
-{
-    UNUSED_PARAMETER(achannel);
-    UNUSED_PARAMETER(percentage);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    return WICED_SUCCESS;
-}
-
-/* beep control api */
-wiced_result_t cs43l22_beep_config(cs43l22_beep_params_t* bparam)
-{
-    UNUSED_PARAMETER(bparam);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    return WICED_SUCCESS;
-}
-
-wiced_result_t cs43l22_beep_enable(wiced_bool_t enable_or_disable)
-{
-    UNUSED_PARAMETER(enable_or_disable);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    return WICED_SUCCESS;
-}
-
-/* eq api, it will enable the equalizer module as soon as one of the eq APIs gets called */
-wiced_result_t cs43l22_eq_bass_set(uint8_t gain, bass_corner_freq_t corner)
-{
-    UNUSED_PARAMETER(gain);
-    UNUSED_PARAMETER(corner);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    return WICED_SUCCESS;
-}
-wiced_result_t cs43l22_eq_trebble_set(uint8_t gain, trebble_corner_freq_t corner)
-{
-    UNUSED_PARAMETER(gain);
-    UNUSED_PARAMETER(corner);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    return WICED_SUCCESS;
-}
-
-wiced_result_t cs43l22_hadphone_volume_set(uint8_t percent)
-{
-    UNUSED_PARAMETER(percent);
-
-    /* this function will call generic cs43l22 register write and read functions */
-
-    /* we will convert the percents to db internally */
-
-    return WICED_SUCCESS;
-}
-
-wiced_result_t cs43l22_speaker_volume_set(uint8_t percent)
-{
-    UNUSED_PARAMETER(percent);
-
-    /* this function will call generic cs43l22 register write and read functions */
-    /* we will convert the percents to db internally */
-
-
-    return WICED_SUCCESS;
-}
-
-/* limiter configuration */
-wiced_result_t cs43l22_limiter_config(cs43l22_limiter_config_t* config)
-{
-#ifdef NOTYET
-    wiced_result_t result;
-    uint8_t tmp=0;
-
-    switch(config->threshold)
-    {
-    case TH_0DB:
-        tmp |= (uint8_t)0<<5;   /* 000 */
-        break;
-    case TH_M3DB:
-        tmp |= (uint8_t)1<<5;   /* 001 */
-        break;
-    case TH_M6DB:
-        tmp |= (uint8_t)2<<5;   /* 010 */
-        break;
-    case TH_M9DB:
-        tmp |= (uint8_t)3<<5;   /* 011 */
-        break;
-    case TH_M12DB:
-        tmp |= (uint8_t)4<<5;   /* 100 */
-        break;
-    case TH_M18DB:
-        tmp |= (uint8_t)5<<5;   /* 101 */
-        break;
-    case TH_M24DB:
-        tmp |= (uint8_t)6<<5;   /* 110 */
-        break;
-    default:
-        result = WICED_BADARG;
-    }
-#endif
-
-    return WICED_SUCCESS;
-}
-
-/* battery compensation parameters */
-wiced_result_t cs43l22_battery_compensation_config( wiced_device_t* device, cs43l22_battery_t*config )
-{
-    UNUSED_PARAMETER(config);
-
-    /* this function will call generic cs43l22 register write and read functions */
-    /* we will convert the percents to db internally */
-
-    return WICED_SUCCESS;
-}
-
-wiced_result_t cs43l22_battery_compensation_disable(void)
-{
-    /* this function will call generic cs43l22 register write and read functions */
-    /* we will convert the percents to db internally */
-
-    return WICED_SUCCESS;
-}
-
-/* status read */
-wiced_result_t cs43l22_read_status(cs43l22_status_t* status)
-{
-    UNUSED_PARAMETER(status);
-    /* this function will call generic cs43l22 register write and read functions */
-    /* we will convert the percents to db internally */
-
-    return WICED_SUCCESS;
-}
-#endif /* NOTYET */
-
-
 static wiced_result_t wm8533_audio_device_port ( void* device_data, wiced_i2s_t* port )
 {
     wm8533_device_data_t* wm8533 = ( wm8533_device_data_t* )device_data;
@@ -901,21 +681,4 @@ static wiced_result_t wm8533_audio_device_port ( void* device_data, wiced_i2s_t*
     return WICED_SUCCESS;
 }
 
-
-/* Declare global audio device interface */
-
-wiced_audio_device_interface_t wm8533_interface =
-{
-        .audio_device_start_streaming = NULL,
-        .audio_device_init          = wm8533_init,
-        .audio_device_deinit        = wm8533_deinit,
-        .audio_device_configure     = wm8533_configure,
-        .audio_device_port          = wm8533_audio_device_port,
-        .audio_device_start_streaming          = wm8533_start_play,
-        .audio_device_pause         = wm8533_pause,
-        .audio_device_resume        = wm8533_resume,
-        .audio_device_set_volume    = wm8533_set_volume,
-        //.audio_device_set_trebble   = wm8533_set_trebble,
-        //.audio_device_set_bass      = wm8533_set_bass,
-};
 

@@ -50,7 +50,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern wiced_result_t bt_mfgtest_transport_driver_bus_read_handler        ( bt_packet_t** packet );
@@ -58,7 +58,7 @@ static wiced_result_t bt_mfgtest_transport_driver_event_handler           ( bt_t
 static wiced_result_t bt_mfgtest_transport_thread_received_packet_handler ( bt_packet_t* packet );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_ring_buffer_t pc_uart_ring_buffer;

@@ -26,12 +26,15 @@
 #include <stdlib.h>
 #include "wwd_assert.h"
 #include "appliance.h"
-
 #include "internal/wwd_sdpcm.h"
 #include "wwd_wlioctl.h"
 
 /******************************************************
- *             Defines
+ *                      Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
  ******************************************************/
 #define SSID_FIELD_NAME            "ssid"
 #define SECURITY_FIELD_NAME        "sec"
@@ -40,13 +43,17 @@
 #define PASSPHRASE_FIELD_NAME      "pwd"
 #define PIN_FIELD_NAME             "pin"
 
-/* Signal strength defines */
-
-
 /******************************************************
- *             Structures
+ *                   Enumerations
  ******************************************************/
 
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
 typedef struct
 {
     uint8_t scan_done;
@@ -54,15 +61,13 @@ typedef struct
     wiced_scan_result_t* result_buff;
 } scan_cb_t;
 
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static int  process_top           ( void* socket, char * params, int params_len );
 
 /******************************************************
- *             Static Function Prototypes
- ******************************************************/
-extern int  process_favicon       ( void* socket, char * params, int params_len );
-extern int  process_brcmlogo      ( void* socket, char * params, int params_len );
-static int  process_top           ( void* socket, char * params, int params_len );
-/******************************************************
- *             Global variables
+ *               Variable Definitions
  ******************************************************/
 
 /**
@@ -76,11 +81,6 @@ const url_list_elem_t config_STA_url_list[] = {
                                      { NULL, NULL, NULL }
                                    };
 
-
-
-/******************************************************
- *             Static variables
- ******************************************************/
 
 /**
  * HTML data for main sensor web page
@@ -120,7 +120,9 @@ static const char top_web_page_top[] =
     "</html>\n";
 
 
-
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 /**
  * URL handler for serving web buttons / UART demo

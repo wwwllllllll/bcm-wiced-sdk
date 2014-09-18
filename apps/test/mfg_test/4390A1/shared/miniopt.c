@@ -2,7 +2,7 @@
  * Description.
  *
  * $Copyright Open Broadcom Corporation$
- * $Id: miniopt.c 300516 2011-12-04 17:39:44Z rnuti $
+ * $Id: miniopt.c 403154 2013-05-18 00:14:57Z myungkim $
  */
 
 /* ---- Include Files ---------------------------------------------------- */

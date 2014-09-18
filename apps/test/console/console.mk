@@ -54,18 +54,13 @@ endif
 #==============================================================================
 # WPS inclusion
 #==============================================================================
-ifneq ($(PLATFORM), BCM94319WICED1)
-ifneq ($(PLATFORM), BCM94319WICED3)
-ifneq ($(PLATFORM), BCM943362WCD2)
 CONSOLE_ENABLE_WPS := 1
 $(NAME)_DEFINES += CONSOLE_ENABLE_WPS
 $(NAME)_SOURCES += wps/wps.c
 CONSOLE_ENABLE_P2P := 1
 $(NAME)_DEFINES += CONSOLE_ENABLE_P2P
 $(NAME)_SOURCES += p2p/p2p.c
-endif
-endif
-endif
+
 
 #==============================================================================
 # Network stack-specific inclusion

@@ -65,6 +65,8 @@ wwd_result_t host_rtos_create_thread_with_arg( /*@out@*/ host_thread_type_t* thr
 
     result = xTaskCreate( (pdTASK_CODE)entry_function, (const signed char * )name, (unsigned short)(stack_size / sizeof( portSTACK_TYPE )), (void*)arg, (unsigned portBASE_TYPE) priority, thread );
 
+    taskYIELD();
+
     return ( result == (signed portBASE_TYPE) pdPASS ) ? WWD_SUCCESS : WWD_THREAD_CREATE_FAILED;
 }
 

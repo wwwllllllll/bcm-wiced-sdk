@@ -220,6 +220,12 @@ netconn_connect(struct netconn *conn, ip_addr_t *addr, u16_t port, u16_t timeout
   /* This is the only function which need to not block tcpip_thread */
   err = tcpip_apimsg(&msg);
 
+  if ( err == ERR_TIMEOUT )
+  {
+      conn->state = NETCONN_NONE;  /* Connection timed out - mark it as so */
+      conn->current_msg = NULL;
+  }
+
   NETCONN_SET_SAFE_ERR(conn, err);
   return err;
 }

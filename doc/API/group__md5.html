@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
-<title>Broadcom WICED API Reference Guide: MD5</title>
+<title>Broadcom WICED API Reference Guide: Poly1305</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -31,7 +31,7 @@
         <td style="width:117px"><img src="brcmlogo.png" alt="Broadcom Logo" /></td>
         <td style="width:20px;background-image:url('brcmlogo_line.png');"></td>
         <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('brcmlogo_line.png');">
-        WICED&trade; v3.0.1 - API Reference Guide
+        WICED&trade; v3.1.0 - API Reference Guide
         </td>
         <td style="width:20px"></td>
         <td style="width:1px"><img src="wiced_logo.png" alt="WICED Logo" /></td>
@@ -100,54 +100,67 @@ $(document).ready(function(){initNavTree('group__md5.html','');});
   <div class="summary">
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
-<div class="title">MD5<div class="ingroups"><a class="el" href="group__crypto.html">Crypto functions</a></div></div>  </div>
+<div class="title">Poly1305<div class="ingroups"><a class="el" href="group__crypto.html">Crypto functions</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>MD5 functions.  
+<p>Poly1305 Message-Authentication Code (MAC) functions.  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:gadb175a5eb51aa977a29b2a785a94133b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gadb175a5eb51aa977a29b2a785a94133b">poly1305_auth</a> (unsigned char mac[16], const unsigned char *message_data, size_t bytes, const unsigned char key[32])</td></tr>
+<tr class="memdesc:gadb175a5eb51aa977a29b2a785a94133b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the poly1305 Message-Authentication code for a buffer of message data The Key MUST ONLY BE USED ONCE ONLY The sender MUST NOT use poly1305_auth to authenticate more than one message under the same key.  <a href="#gadb175a5eb51aa977a29b2a785a94133b">More...</a><br/></td></tr>
+<tr class="separator:gadb175a5eb51aa977a29b2a785a94133b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6ca964edd174ee2aa325da83ad77de31"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga6ca964edd174ee2aa325da83ad77de31">poly1305_init</a> (poly1305_context *context, const unsigned char key[32])</td></tr>
+<tr class="memdesc:ga6ca964edd174ee2aa325da83ad77de31"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise a poly1305 session with a key.  <a href="#ga6ca964edd174ee2aa325da83ad77de31">More...</a><br/></td></tr>
+<tr class="separator:ga6ca964edd174ee2aa325da83ad77de31"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5c8f63b69d2a631c172fef4dbb4222cd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga5c8f63b69d2a631c172fef4dbb4222cd">poly1305_update</a> (poly1305_context *context, const unsigned char *message_data, size_t bytes)</td></tr>
+<tr class="memdesc:ga5c8f63b69d2a631c172fef4dbb4222cd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process message data through poly1305 authenticator.  <a href="#ga5c8f63b69d2a631c172fef4dbb4222cd">More...</a><br/></td></tr>
+<tr class="separator:ga5c8f63b69d2a631c172fef4dbb4222cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacab4e95c76ace4fcbb069768b55ebd75"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gacab4e95c76ace4fcbb069768b55ebd75">poly1305_finish</a> (poly1305_context *context, unsigned char mac[16])</td></tr>
+<tr class="memdesc:gacab4e95c76ace4fcbb069768b55ebd75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finish processing a poly1305 authenticator session.  <a href="#gacab4e95c76ace4fcbb069768b55ebd75">More...</a><br/></td></tr>
+<tr class="separator:gacab4e95c76ace4fcbb069768b55ebd75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga38347d3af3913463cfe5403488f6b654"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga38347d3af3913463cfe5403488f6b654">poly1305_verify</a> (const unsigned char mac1[16], const unsigned char mac2[16])</td></tr>
+<tr class="memdesc:ga38347d3af3913463cfe5403488f6b654"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that two Message-Authentication Codes match.  <a href="#ga38347d3af3913463cfe5403488f6b654">More...</a><br/></td></tr>
+<tr class="separator:ga38347d3af3913463cfe5403488f6b654"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac6e9fda1d8fda7d51fd1c0c036f87cfe"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gac6e9fda1d8fda7d51fd1c0c036f87cfe">md5_starts</a> (md5_context *ctx)</td></tr>
 <tr class="memdesc:gac6e9fda1d8fda7d51fd1c0c036f87cfe"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 context setup.  <a href="#gac6e9fda1d8fda7d51fd1c0c036f87cfe">More...</a><br/></td></tr>
 <tr class="separator:gac6e9fda1d8fda7d51fd1c0c036f87cfe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga95bdd25cfc0627809aca6f492840e9aa"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga95bdd25cfc0627809aca6f492840e9aa">md5_update</a> (md5_context *ctx, unsigned char *input, int32_t ilen)</td></tr>
-<tr class="memdesc:ga95bdd25cfc0627809aca6f492840e9aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 process buffer.  <a href="#ga95bdd25cfc0627809aca6f492840e9aa">More...</a><br/></td></tr>
-<tr class="separator:ga95bdd25cfc0627809aca6f492840e9aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaba2f69cf403347df173738555dd47b2e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gaba2f69cf403347df173738555dd47b2e">md5_update</a> (md5_context *ctx, const unsigned char *input, int32_t ilen)</td></tr>
+<tr class="memdesc:gaba2f69cf403347df173738555dd47b2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 process buffer.  <a href="#gaba2f69cf403347df173738555dd47b2e">More...</a><br/></td></tr>
+<tr class="separator:gaba2f69cf403347df173738555dd47b2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9f91661d81cffc55facccc8e0fbf50a0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga9f91661d81cffc55facccc8e0fbf50a0">md5_finish</a> (md5_context *ctx, unsigned char output[16])</td></tr>
 <tr class="memdesc:ga9f91661d81cffc55facccc8e0fbf50a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 final digest.  <a href="#ga9f91661d81cffc55facccc8e0fbf50a0">More...</a><br/></td></tr>
 <tr class="separator:ga9f91661d81cffc55facccc8e0fbf50a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga867b311a6210ab84406080c68342caa7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga867b311a6210ab84406080c68342caa7">md5</a> (unsigned char *input, int32_t ilen, unsigned char output[16])</td></tr>
-<tr class="memdesc:ga867b311a6210ab84406080c68342caa7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = MD5( input buffer )  <a href="#ga867b311a6210ab84406080c68342caa7">More...</a><br/></td></tr>
-<tr class="separator:ga867b311a6210ab84406080c68342caa7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga119bf25b936c0fc34c29733f53462f7d"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga119bf25b936c0fc34c29733f53462f7d">md5_file</a> (char *path, unsigned char output[16])</td></tr>
-<tr class="memdesc:ga119bf25b936c0fc34c29733f53462f7d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = MD5( file contents )  <a href="#ga119bf25b936c0fc34c29733f53462f7d">More...</a><br/></td></tr>
-<tr class="separator:ga119bf25b936c0fc34c29733f53462f7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga6ea0fa1e35463f2891b8bcbe034df361"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga6ea0fa1e35463f2891b8bcbe034df361">md5_hmac_starts</a> (md5_context *ctx, unsigned char *key, int32_t keylen)</td></tr>
-<tr class="memdesc:ga6ea0fa1e35463f2891b8bcbe034df361"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC context setup.  <a href="#ga6ea0fa1e35463f2891b8bcbe034df361">More...</a><br/></td></tr>
-<tr class="separator:ga6ea0fa1e35463f2891b8bcbe034df361"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa9498653d161d04ed64de9e70cd5875e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gaa9498653d161d04ed64de9e70cd5875e">md5_hmac_update</a> (md5_context *ctx, unsigned char *input, int32_t ilen)</td></tr>
-<tr class="memdesc:gaa9498653d161d04ed64de9e70cd5875e"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC process buffer.  <a href="#gaa9498653d161d04ed64de9e70cd5875e">More...</a><br/></td></tr>
-<tr class="separator:gaa9498653d161d04ed64de9e70cd5875e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabd54148cb2a6530d72adf33a05daf45a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gabd54148cb2a6530d72adf33a05daf45a">md5</a> (const unsigned char *input, int32_t ilen, unsigned char output[16])</td></tr>
+<tr class="memdesc:gabd54148cb2a6530d72adf33a05daf45a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = MD5( input buffer )  <a href="#gabd54148cb2a6530d72adf33a05daf45a">More...</a><br/></td></tr>
+<tr class="separator:gabd54148cb2a6530d72adf33a05daf45a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8daaf0556288630055a66ee07a37b3da"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga8daaf0556288630055a66ee07a37b3da">md5_hmac_starts</a> (md5_context *ctx, const unsigned char *key, uint32_t keylen)</td></tr>
+<tr class="memdesc:ga8daaf0556288630055a66ee07a37b3da"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC context setup.  <a href="#ga8daaf0556288630055a66ee07a37b3da">More...</a><br/></td></tr>
+<tr class="separator:ga8daaf0556288630055a66ee07a37b3da"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8dcc7990090403a195ce8fff836fe920"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga8dcc7990090403a195ce8fff836fe920">md5_hmac_update</a> (md5_context *ctx, const unsigned char *input, uint32_t ilen)</td></tr>
+<tr class="memdesc:ga8dcc7990090403a195ce8fff836fe920"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC process buffer.  <a href="#ga8dcc7990090403a195ce8fff836fe920">More...</a><br/></td></tr>
+<tr class="separator:ga8dcc7990090403a195ce8fff836fe920"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0d6858d863b6e4409000b08bceafbd98"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#ga0d6858d863b6e4409000b08bceafbd98">md5_hmac_finish</a> (md5_context *ctx, unsigned char output[16])</td></tr>
 <tr class="memdesc:ga0d6858d863b6e4409000b08bceafbd98"><td class="mdescLeft">&#160;</td><td class="mdescRight">MD5 HMAC final digest.  <a href="#ga0d6858d863b6e4409000b08bceafbd98">More...</a><br/></td></tr>
 <tr class="separator:ga0d6858d863b6e4409000b08bceafbd98"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaf6a943835f3c4dbf993190cc1d673c14"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gaf6a943835f3c4dbf993190cc1d673c14">md5_hmac</a> (unsigned char *key, int32_t keylen, unsigned char *input, int32_t ilen, unsigned char output[16])</td></tr>
-<tr class="memdesc:gaf6a943835f3c4dbf993190cc1d673c14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = HMAC-MD5( hmac key, input buffer )  <a href="#gaf6a943835f3c4dbf993190cc1d673c14">More...</a><br/></td></tr>
-<tr class="separator:gaf6a943835f3c4dbf993190cc1d673c14"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad3f4c47545d8cc205d4bc3a966486707"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__md5.html#gad3f4c47545d8cc205d4bc3a966486707">md5_hmac</a> (const unsigned char *key, int32_t keylen, const unsigned char *input, int32_t ilen, unsigned char output[16])</td></tr>
+<tr class="memdesc:gad3f4c47545d8cc205d4bc3a966486707"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output = HMAC-MD5( hmac key, input buffer )  <a href="#gad3f4c47545d8cc205d4bc3a966486707">More...</a><br/></td></tr>
+<tr class="separator:gad3f4c47545d8cc205d4bc3a966486707"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<p>MD5 functions. </p>
+<p>Poly1305 Message-Authentication Code (MAC) functions. </p>
+<p>MD5 functions.</p>
 <h2 class="groupheader">Function Documentation</h2>
-<a class="anchor" id="ga867b311a6210ab84406080c68342caa7"></a>
+<a class="anchor" id="gabd54148cb2a6530d72adf33a05daf45a"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">void md5 </td>
           <td>(</td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
         </tr>
         <tr>
@@ -179,42 +192,6 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-
-</div>
-</div>
-<a class="anchor" id="ga119bf25b936c0fc34c29733f53462f7d"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int32_t md5_file </td>
-          <td>(</td>
-          <td class="paramtype">char *&#160;</td>
-          <td class="paramname"><em>path</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">unsigned char&#160;</td>
-          <td class="paramname"><em>output</em>[16]&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Output = MD5( file contents ) </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">path</td><td>input file name </td></tr>
-    <tr><td class="paramname">output</td><td>MD5 checksum result</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>0 if successful, 1 if fopen failed, or 2 if fread failed </dd></dl>
 
 </div>
 </div>
@@ -253,14 +230,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="gaf6a943835f3c4dbf993190cc1d673c14"></a>
+<a class="anchor" id="gad3f4c47545d8cc205d4bc3a966486707"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">void md5_hmac </td>
           <td>(</td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>key</em>, </td>
         </tr>
         <tr>
@@ -272,7 +249,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
         </tr>
         <tr>
@@ -344,7 +321,7 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ga6ea0fa1e35463f2891b8bcbe034df361"></a>
+<a class="anchor" id="ga8daaf0556288630055a66ee07a37b3da"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -357,13 +334,13 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>key</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">int32_t&#160;</td>
+          <td class="paramtype">uint32_t&#160;</td>
           <td class="paramname"><em>keylen</em>&#160;</td>
         </tr>
         <tr>
@@ -386,7 +363,7 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="gaa9498653d161d04ed64de9e70cd5875e"></a>
+<a class="anchor" id="ga8dcc7990090403a195ce8fff836fe920"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -399,13 +376,13 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">int32_t&#160;</td>
+          <td class="paramtype">uint32_t&#160;</td>
           <td class="paramname"><em>ilen</em>&#160;</td>
         </tr>
         <tr>
@@ -452,7 +429,7 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ga95bdd25cfc0627809aca6f492840e9aa"></a>
+<a class="anchor" id="gaba2f69cf403347df173738555dd47b2e"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -465,7 +442,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
         </tr>
         <tr>
@@ -491,6 +468,205 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a class="anchor" id="gadb175a5eb51aa977a29b2a785a94133b"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void poly1305_auth </td>
+          <td>(</td>
+          <td class="paramtype">unsigned char&#160;</td>
+          <td class="paramname"><em>mac</em>[16], </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const unsigned char *&#160;</td>
+          <td class="paramname"><em>message_data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>bytes</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const unsigned char&#160;</td>
+          <td class="paramname"><em>key</em>[32]&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the poly1305 Message-Authentication code for a buffer of message data The Key MUST ONLY BE USED ONCE ONLY The sender MUST NOT use poly1305_auth to authenticate more than one message under the same key. </p>
+<p>Authenticators for two messages under the same key should be expected to reveal enough information to allow forgeries of authenticators on other messages.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mac</td><td>the output message-authentication code </td></tr>
+    <tr><td class="paramname">message_data</td><td>the message data to be processed through the authenticator </td></tr>
+    <tr><td class="paramname">bytes</td><td>number of bytes of message data to read </td></tr>
+    <tr><td class="paramname">key</td><td>the UNIQUE 32 byte key to be used for this session </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="gacab4e95c76ace4fcbb069768b55ebd75"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void poly1305_finish </td>
+          <td>(</td>
+          <td class="paramtype">poly1305_context *&#160;</td>
+          <td class="paramname"><em>context</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned char&#160;</td>
+          <td class="paramname"><em>mac</em>[16]&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Finish processing a poly1305 authenticator session. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">context</td><td>a poly1305_context which has been filled via poly1305_init and poly1305_update. Will not be be used subsequently. </td></tr>
+    <tr><td class="paramname">mac</td><td>the output message-authentication code </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga6ca964edd174ee2aa325da83ad77de31"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void poly1305_init </td>
+          <td>(</td>
+          <td class="paramtype">poly1305_context *&#160;</td>
+          <td class="paramname"><em>context</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const unsigned char&#160;</td>
+          <td class="paramname"><em>key</em>[32]&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Initialise a poly1305 session with a key. </p>
+<p>The Key MUST ONLY BE USED ONCE ONLY The sender MUST NOT use poly1305_auth to authenticate more than one message under the same key. Authenticators for two messages under the same key should be expected to reveal enough information to allow forgeries of authenticators on other messages.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">context</td><td>a poly1305_context which will be used for scratch space until poly1305_finish is called </td></tr>
+    <tr><td class="paramname">key</td><td>the UNIQUE 32 byte key to be used for this session </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga5c8f63b69d2a631c172fef4dbb4222cd"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void poly1305_update </td>
+          <td>(</td>
+          <td class="paramtype">poly1305_context *&#160;</td>
+          <td class="paramname"><em>context</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const unsigned char *&#160;</td>
+          <td class="paramname"><em>message_data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>bytes</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Process message data through poly1305 authenticator. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">context</td><td>a poly1305_context which has been initialised with poly1305_init and will be used for scratch space until poly1305_finish is called </td></tr>
+    <tr><td class="paramname">message_data</td><td>the message data to be processed through the authenticator </td></tr>
+    <tr><td class="paramname">bytes</td><td>number of bytes of message data to read </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga38347d3af3913463cfe5403488f6b654"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int poly1305_verify </td>
+          <td>(</td>
+          <td class="paramtype">const unsigned char&#160;</td>
+          <td class="paramname"><em>mac1</em>[16], </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const unsigned char&#160;</td>
+          <td class="paramname"><em>mac2</em>[16]&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Verify that two Message-Authentication Codes match. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mac1</td><td>the second message-authentication code </td></tr>
+    <tr><td class="paramname">mac2</td><td>the second message-authentication code</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>1 if mac1 matches mac2, 0 otherwise </dd></dl>
 
 </div>
 </div>

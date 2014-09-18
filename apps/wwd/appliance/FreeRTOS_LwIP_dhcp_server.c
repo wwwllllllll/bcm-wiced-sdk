@@ -22,13 +22,17 @@
 #include "lwip/sockets.h"  /* equivalent of <sys/socket.h> */
 #include <string.h>
 #include <stdint.h>
+#include "appliance.h"
 #include "network/wwd_network_constants.h"
 #include "RTOS/wwd_rtos_interface.h"
 
 /******************************************************
- *        DEFINES
+ *                      Macros
  ******************************************************/
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define DHCP_STACK_SIZE               (800)
 
 /* BOOTP operations */
@@ -52,8 +56,18 @@
 /* DHCP socket timeout value in milliseconds. Modify this to make thread exiting more responsive */
 #define DHCP_SOCKET_TIMEOUT     500
 
+
+
 /******************************************************
- *        Structures
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
  ******************************************************/
 
 /* DHCP data structure */
@@ -77,11 +91,15 @@ typedef struct
     /* as of RFC2131 it is variable length */
 } dhcp_header_t;
 
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static unsigned char * find_option( dhcp_header_t* request, unsigned char option_num );
+static void dhcp_thread( void * thread_input );
 
 /******************************************************
- *        Static Variables
+ *               Variable Definitions
  ******************************************************/
-
 static char             new_ip_addr[4]                = { 192, 168, 0, 0 };
 static uint16_t         next_available_ip_addr        = ( 1 << 8 ) + 100;
 static char             subnet_option_buff[]          = { 1, 4, 255, 255, 0, 0 };
@@ -98,16 +116,7 @@ static xTaskHandle      dhcp_thread_handle;
 static dhcp_header_t    dhcp_header_buff;
 
 /******************************************************
- *        Function Prototypes
- ******************************************************/
-
-static unsigned char * find_option( dhcp_header_t* request, unsigned char option_num );
-static void dhcp_thread( void * thread_input );
-void start_dhcp_server( uint32_t local_addr );
-void quit_dhcp_server( void );
-
-/******************************************************
- *        Function Definitions
+ *               Function Definitions
  ******************************************************/
 
 void start_dhcp_server( uint32_t local_addr )

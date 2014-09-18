@@ -19,6 +19,7 @@
 #include "wwd_bus_protocol_interface.h"
 #include "../wwd_internal.h"   /* TODO: fix include dependency */
 #include "chip_constants.h"
+#include "platform_toolchain.h"
 
 #define INDIRECT_BUFFER_SIZE (512)
 
@@ -31,6 +32,7 @@
 #endif /* ifdef WWD_DIRECT_RESOURCES */
 
 static uint32_t backplane_window_current_base_address;
+static wwd_result_t download_resource( wwd_resource_t resource, uint32_t address );
 
 void wwd_bus_init_backplane_window( void )
 {
@@ -38,14 +40,12 @@ void wwd_bus_init_backplane_window( void )
 }
 
 
-static wwd_result_t download_resource( wwd_resource_t resource, uint32_t address );
-
-wwd_result_t wwd_bus_write_wifi_firmware_image( void )
+WEAK wwd_result_t wwd_bus_write_wifi_firmware_image( void )
 {
     return download_resource( WWD_RESOURCE_WLAN_FIRMWARE, 0 );
 }
 
-wwd_result_t wwd_bus_write_wifi_nvram_image( void )
+WEAK wwd_result_t wwd_bus_write_wifi_nvram_image( void )
 {
     wwd_result_t result;
     uint32_t image_size;
@@ -187,7 +187,7 @@ static wwd_result_t download_resource( wwd_resource_t resource, uint32_t address
 /*
  * Update the backplane window registers
  */
-wwd_result_t wwd_bus_set_backplane_window( uint32_t addr )
+WEAK wwd_result_t wwd_bus_set_backplane_window( uint32_t addr )
 {
     wwd_result_t result = WWD_BUS_WRITE_REGISTER_ERROR;
     uint32_t base = addr & ( (uint32_t) ~BACKPLANE_ADDRESS_MASK );

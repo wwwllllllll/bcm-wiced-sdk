@@ -250,6 +250,10 @@ sub process_section( $area, $section, $size, $modulefn, $decaddress, $hexaddress
     {
         $module = "Wi-Fi Firmware";
     }
+    elsif ( $section =~ m/^rodata.resources/sgi )
+    {
+        $module = "resources";
+    }
     elsif ( $modulefn =~ m/\/App_\S+\.a/sgi )
     {
         $module = "App";
@@ -424,6 +428,10 @@ sub process_section( $area, $section, $size, $modulefn, $decaddress, $hexaddress
     elsif ( $modulefn =~ m/\/resources\.a/sgi )
     {
         $module = "Resources";
+    }
+    elsif ( $modulefn =~ m/\/Nfc\.a/sgi )
+    {
+        $module = "NFC";
     }
     #else
     #{

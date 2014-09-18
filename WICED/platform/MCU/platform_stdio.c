@@ -39,11 +39,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 #ifndef WICED_DISABLE_STDIO
@@ -83,9 +83,12 @@ void platform_stdio_write( const char* str, uint32_t len )
 {
     /* This function is called by newlib _write function */
 #ifndef WICED_DISABLE_STDIO
-    host_rtos_get_semaphore( &stdio_tx_mutex, NEVER_TIMEOUT, WICED_FALSE );
-    platform_uart_transmit_bytes( stdio_driver, (const uint8_t*) str, len );
-    host_rtos_set_semaphore( &stdio_tx_mutex, WICED_FALSE );
+    if ( stdio_driver != NULL )
+    {
+        host_rtos_get_semaphore( &stdio_tx_mutex, NEVER_TIMEOUT, WICED_FALSE );
+        platform_uart_transmit_bytes( stdio_driver, (const uint8_t*) str, len );
+        host_rtos_set_semaphore( &stdio_tx_mutex, WICED_FALSE );
+    }
 #else
     UNUSED_PARAMETER( str );
     UNUSED_PARAMETER( len );
@@ -96,9 +99,12 @@ void platform_stdio_read( char* str, uint32_t len )
 {
     /* This function is called by newlib _read function */
 #ifndef WICED_DISABLE_STDIO
-    host_rtos_get_semaphore( &stdio_rx_mutex, NEVER_TIMEOUT, WICED_FALSE );
-    platform_uart_receive_bytes( stdio_driver, (uint8_t*) str, len, NEVER_TIMEOUT );
-    host_rtos_set_semaphore( &stdio_rx_mutex, WICED_FALSE );
+    if ( stdio_driver != NULL )
+    {
+        host_rtos_get_semaphore( &stdio_rx_mutex, NEVER_TIMEOUT, WICED_FALSE );
+        platform_uart_receive_bytes( stdio_driver, (uint8_t*) str, len, NEVER_TIMEOUT );
+        host_rtos_set_semaphore( &stdio_rx_mutex, WICED_FALSE );
+    }
 #else
     UNUSED_PARAMETER( str );
     UNUSED_PARAMETER( len );

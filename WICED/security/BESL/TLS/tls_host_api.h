@@ -56,19 +56,20 @@ extern tls_result_t tls_host_set_packet_start( tls_packet_t* packet, uint8_t* st
  */
 extern tls_result_t tls_host_receive_packet( void* context, tls_packet_t** packet, uint32_t timeout );
 
-extern time_t tls_host_get_time( void );
+extern uint64_t tls_host_get_time_ms( void );
 
-extern void* tls_host_malloc( char* name, uint32_t size );
+extern void* tls_host_malloc( const char* name, uint32_t size );
 extern void  tls_host_free  ( void* p );
 
 extern void* tls_host_get_defragmentation_buffer ( uint16_t size );
 extern void  tls_host_free_defragmentation_buffer( void* buffer );
+extern tls_result_t ssl_flush_output( ssl_context *ssl, uint8_t* buffer, uint32_t length );
 
 /******************************************************
  *           Host -> TLS Function Declarations
  ******************************************************/
 
-extern tls_result_t tls_get_next_record( ssl_context* ssl, tls_record_t** record, uint32_t timeout );
+extern tls_result_t tls_get_next_record( ssl_context* ssl, tls_record_t** record, uint32_t timeout, tls_packet_receive_option_t packet_receive_option );
 extern int32_t      ssl_cleanup_record(wiced_tls_context_t* ssl, tls_record_t* record);
 extern void         tls_cleanup_current_record(ssl_context* ssl);
 extern tls_result_t tls_skip_current_record( ssl_context* ssl );

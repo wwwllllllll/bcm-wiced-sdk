@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: wlm.c 387222 2013-02-25 01:44:48Z xwei $
+ * $Id: wlm.c 417926 2013-08-13 05:02:42Z jwang $
  */
 
 #if defined(WIN32)
@@ -85,6 +85,7 @@ static void * irh;
 static char interfaceName[MAX_INTERFACE_NAME_LENGTH + 1] = {0};
 #endif
 static WLM_BAND curBand = WLM_BAND_AUTO;
+static int curPhyType = PHY_TYPE_NULL;
 static int ioctl_version;
 
 #if (defined( RWL_WIFI ) || defined( RWL_LOCAL ) ) && (!defined(WIN32))
@@ -115,9 +116,7 @@ extern int wlu_iovar_setbuf(void *wl, const char *iovar, void *param, int paraml
 extern int wlu_var_getbuf(void *wl, const char *iovar, void *param, int param_len, void **bufptr);
 extern int wlu_var_setbuf(void *wl, const char *iovar, void *param, int param_len);
 extern int wlu_var_getbuf_med(void *wl, const char *iovar, void *param, int parmlen, void **bufptr);
-extern int wlu_var_setbuf_med(void *wl, const char *iovar, void *param, int param_len);
 extern int wlu_var_getbuf_sm(void *wl, const char *iovar, void *param, int parmlen, void **bufptr);
-extern int wlu_var_setbuf_sm(void *wl, const char *iovar, void *param, int param_len);
 
 extern int wl_seq_batch_in_client(bool enable);
 extern int wl_seq_start(void *wl, cmd_t *cmd, char **argv);
@@ -157,11 +156,10 @@ wlmLastError(void)
 	}
 
 	if (bcmerror > 0 || bcmerror < BCME_LAST) {
-		sprintf(errorString, "%s", "Undefined error");
-		return errorString;
+		sprintf(errorString, "Undefined error (%d)", bcmerror);
+	} else {
+		sprintf(errorString, "%s (%d)", bcmerrorstrtable[-bcmerror], bcmerror);
 	}
-
-	sprintf(errorString, "%s (%d)", bcmerrorstrtable[-bcmerror], bcmerror);
 
 	return errorString;
 }
@@ -947,7 +945,7 @@ int wlmPaParametersSet(WLM_BANDRANGE bandrange,
 	inpa[i++] = b1;
 	inpa[i++] = a1;
 
-	if (wlu_var_setbuf_sm(irh, "pavars", inpa, WL_PHY_PAVARS_LEN * sizeof(uint16))) {
+	if (wlu_var_setbuf(irh, "pavars", inpa, WL_PHY_PAVARS_LEN * sizeof(uint16))) {
 		printf("wlmPaParametersSet: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -1011,7 +1009,7 @@ int wlmMIMOPaParametersSet(WLM_BANDRANGE bandrange, int chain,
 	inpa[i++] = b0;
 	inpa[i++] = b1;
 
-	if (wlu_var_setbuf_sm(irh, "pavars", inpa, WL_PHY_PAVARS_LEN * sizeof(uint16))) {
+	if (wlu_var_setbuf(irh, "pavars", inpa, WL_PHY_PAVARS_LEN * sizeof(uint16))) {
 		printf("wlmMIMOPaParametersSet: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -1138,7 +1136,7 @@ int wlmACPaParametersSet(WLM_BANDRANGE bandrange, int modetype,
 	}
 
 
-	if (wlu_var_setbuf_sm(irh, "pavars", inpa, WL_PHY_PAVARS_LEN * sizeof(uint16))) {
+	if (wlu_var_setbuf(irh, "pavars", inpa, WL_PHY_PAVARS_LEN * sizeof(uint16))) {
 		printf("wlmACPaParametersSet: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -1246,7 +1244,7 @@ int wlmTxPacketStart(unsigned int interPacketDelay,
 	pkteng.seqno = 0;			/* not used */
 	pkteng.src = ether_null;	/* implies current ether addr */
 
-	if (wlu_var_setbuf_sm(irh, "pkteng", &pkteng, sizeof(pkteng))) {
+	if (wlu_var_setbuf(irh, "pkteng", &pkteng, sizeof(pkteng))) {
 		printf("wlmTxPacketStart: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -1261,7 +1259,7 @@ int wlmTxPacketStop(void)
 	memset(&pkteng, 0, sizeof(pkteng));
 	pkteng.flags = WL_PKTENG_PER_TX_STOP;
 
-	if (wlu_var_setbuf_sm(irh, "pkteng", &pkteng, sizeof(pkteng)) < 0) {
+	if (wlu_var_setbuf(irh, "pkteng", &pkteng, sizeof(pkteng)) < 0) {
 		printf("wlmTxPacketStop: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -1291,7 +1289,7 @@ int wlmRxPacketStart(const char* srcMac, int withAck,
 
 	pkteng.length = 0;
 
-	if (wlu_var_setbuf_sm(irh, "pkteng", &pkteng, sizeof(pkteng))) {
+	if (wlu_var_setbuf(irh, "pkteng", &pkteng, sizeof(pkteng))) {
 		printf("wlmRxPacketStart: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -1306,7 +1304,7 @@ int wlmRxPacketStop(void)
 	memset(&pkteng, 0, sizeof(pkteng));
 	pkteng.flags = WL_PKTENG_PER_RX_STOP;
 
-	if (wlu_var_setbuf_sm(irh, "pkteng", &pkteng, sizeof(pkteng)) < 0) {
+	if (wlu_var_setbuf(irh, "pkteng", &pkteng, sizeof(pkteng)) < 0) {
 		printf("wlmRxPacketStop: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -1902,7 +1900,7 @@ int wlmCountryCodeSet(const char * country_name)
 
 int wlmFullCal(void)
 {
-	if (wlu_var_setbuf_sm(irh, "lpphy_fullcal", NULL, 0)) {
+	if (wlu_var_setbuf(irh, "lpphy_fullcal", NULL, 0)) {
 		printf("wlmLPPY_FULLCAL: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -2474,10 +2472,43 @@ int wlmTemperatureSensorEnable(void)
 	return TRUE;
 }
 
-int wlmTransmitCoreSet(int val)
-{	val = htod32(val);
+int wlmTransmitCoreSet(int core, int streams)
+{
+	uint32 coremask[2] = {0, 0};
+	uint8 mcs_mask[4] = {0, 0, 0, 0}; /* pre-initialize # of streams {core:4 | stream:4} */
+	uint8 idx;
+	uint8 cck_mask = 0;
+	uint8 ofdm_mask = 0;
 
-	if (wlu_iovar_setint(irh, "txcore", val) < 0) {
+	core = htod32(core);
+
+	core = core & 0x0f;
+	cck_mask = ofdm_mask = core;  /* assume cck, ofdm and mcs core mask are the same */
+	core = core << 4;
+	if (core == 0) {
+		printf("wlmTransitcorSet, %1d-stream core cannot be zero\n",  streams);
+		return TRUE;
+	}
+
+	streams = (streams & 0x0f);
+	if (streams > 4)  {
+		printf("wlmTransmitCoreSet: Nsts > 4\n");
+		return FALSE;
+	}
+
+	idx = streams - 1;
+	mcs_mask[idx] = (uint8)(core|streams);
+
+	coremask[0] |= mcs_mask[0] << 0;
+	coremask[0] |= mcs_mask[1] << 8;
+	coremask[0] |= mcs_mask[2] << 16;
+	coremask[0] |= mcs_mask[3] << 24;
+
+	coremask[1] |= cck_mask;
+
+	coremask[1] |= ofdm_mask << 8;
+
+	if (wlu_var_setbuf(irh, "txcore", coremask, sizeof(uint32) * 2) < 0) {
 		printf("wlmTransmitCoreSet: %s\n", wlmLastError());
 		return FALSE;
 	}
@@ -2820,66 +2851,6 @@ int wlmRxChainSet(int val)
 	return TRUE;
 }
 
-#if 0
-int wlmRxIQEstGet(float *val, int sampleCount, int ant)
-{
-	uint32 rxiq;
-	int sample_count = sampleCount;  /* [0, 16], default: maximum 15 sample counts */
-	int antenna = ant ;       /* [0, 3], default: antenna 0 */
-	int err;
-	uint8 resolution = 1;     /* resolution default to 0.25dB */
-	float x, y;
-
-	/* default: resolution 1 (coarse), samples = 1024 (2^10) and antenna 3 */
-
-	rxiq = (10 << 8) | 3;
-	if ((sample_count < 0) || (sample_count > 16)) {
-		printf("wlmRxIQGet: SampleCount out of range of [0, 15].\n");
-		return FALSE;
-	} else {
-		rxiq = (((sample_count & 0xff) << 8) | (rxiq & 0xff));
-	}
-
-	if ((antenna < 0) || (antenna > 3)) {
-		printf("wlmRxIQGet: Antenna out of range of [0, 3].\n");
-		return FALSE;
-	} else {
-		rxiq = ((rxiq & 0xff00) | (antenna & 0xff));
-	}
-
-	if ((err = wlu_iovar_setint(irh, "phy_rxiqest", (int) rxiq)) < 0) {
-		printf("wlmRxIQGet: %s\n", wlmLastError());
-		return FALSE;
-	}
-
-	if ((err = wlu_iovar_getint(irh, "phy_rxiqest", (int*)&rxiq)) < 0) {
-		printf("wlmRxIQGet: %s\n", wlmLastError());
-		return FALSE;
-	}
-
-	if (resolution == 1) {
-		/* fine resolutin power reporting (0.25dB resolution) */
-		if (rxiq >> 20) {
-		} else if (rxiq >> 10) {
-		} else {
-			/* 1-chain specific */
-			int16 tmp;
-			tmp = (rxiq & 0x3ff);
-			tmp = ((int16)(tmp << 6)) >> 6; /* sing extension */
-			if (tmp < 0) {
-				tmp = -1 * tmp;
-			}
-
-			x = (float)(tmp >> 2);
-			y = (float)(tmp & 0x3);
-
-			*val = (x + y * 25 /100) * (-1);
-		}
-	}
-	return TRUE;
-}
-#endif /* worked on x17c, 4329 */
-
 int wlmRxIQEstGet(float *val, int sampleCount, int ant)
 {
 	uint32 rxiq;
@@ -2888,72 +2859,102 @@ int wlmRxIQEstGet(float *val, int sampleCount, int ant)
 	uint8 resolution = 1;     /* resolution default to 0.25dB */
 	uint8 lpf_hpc = 1;
 	uint8 gain_correct = 0;
+	uint8 elna = 0;
 	float x, y;
+
 	/* DEFAULT:
 	 * gain_correct = 0 (disable gain correction),
 	 * lpf_hpc = 1 (sets lpf hpc to lowest value),
+	 * elna (shared LSB with lpf_hpc) = 1
 	 * resolution = 0 (coarse),
 	 * samples = 1024 (2^10) and antenna = 3
-	 * antenna = 0;
+	 * index = 0x78
 	 */
-	antenna = 0;  /* for signle core chip, core # should always be 0 */
+	/* XXX Currently the lpf_hpc override option applies only for HTPHY */
+	/* BitMap:
+	   7:0 Antenna for all phy's except lcn/lcn40
+	   6:0 Antenna for Lcn40
+	   7   Gain Index Valid for Lcn/Lcn40
+	   15:8 Samples
+	   19:16 Resolution
+	   23:20 lpf_hpc
+	   20: Elna On/off for Lcn/Lcn40
+	   23:21 Index[2:0] for Lcn/Lcn40
+	   27:24 gain_correct
+	   31:28 Index[6:3] for Lcn/Lcn40
+	*/
 
 	/* XXX Currently the lpf_hpc override option applies only for HTPHY */
-	rxiq = (gain_correct << 24) | (lpf_hpc << 20) | (resolution << 16) | (10 << 8) | 3;
+	rxiq = (0xF << 28) | (gain_correct << 24) | (lpf_hpc << 20) |
+		(resolution << 16) | (10 << 8) | 3;
+	/* printf("wlmRxIQGet: initial rxiq = 0x%x\n.", rxiq); */
+
 	if (gain_correct > 1) {
-		printf("wlmRxIQGet: invalid gain-correction select [0|1]\n");
+		printf("wlmRxIQEstGet: invalid gain-correction select [0|1]\n");
 		return FALSE;
 	} else {
 		gain_correct = gain_correct & 0xf;
-		rxiq = ((gain_correct << 24) | (rxiq & 0xffffff));
+		rxiq = ((gain_correct << 24) | (rxiq & 0xf0ffffff));
 	}
+	/* printf("wlmRxIQGet: rxiq after gain_correct = 0x%x\n.", rxiq); */
 
 	if (lpf_hpc > 1) {
-		printf("wlmRXIQGet: invalid lpf-hpc override select [0|1].\n");
+		printf("wlmRXIQEstGet: invalid lpf-hpc override select [0|1].\n");
 		return FALSE;
 	} else {
 		lpf_hpc = lpf_hpc & 0xf;
-		rxiq = ((lpf_hpc << 20) | (rxiq & 0xf0fffff));
+		rxiq = ((lpf_hpc << 20) | (rxiq & 0xff0fffff));
 	}
 
+	if (elna > 1) {
+		printf("wlmRXIQEstGet: invalid elna on/off select [0|1].\n");
+		return FALSE;
+	} else {
+		elna = elna & 0x1;
+		rxiq = ((elna << 20) | (rxiq & 0xffefffff));
+	}
+	/* printf("wlmRxIQGet: rxiq after lpf-hpc = 0x%x\n.", rxiq); */
+
 	if (resolution > 1) {
-		printf("wlmRxIQGet: invalid resolution [0|1].\n");
+		printf("wlmRxIQEstGet: invalid resolution [0|1].\n");
 		return FALSE;
 	} else {
 		resolution = resolution & 0xf;
-		rxiq = ((resolution << 16) | (rxiq & 0xff0ffff));
+		rxiq = ((resolution << 16) | (rxiq & 0xfff0ffff));
 	}
+	/* printf("wlmRxIQGet: rxiq after resolution = 0x%x\n.", rxiq); */
 
-	if ((sample_count < 0) || (sample_count > 16)) {
-		printf("wlmRxIQGet: SampleCount out of range of [0, 15].\n");
+	if ((sample_count < 0) || (sample_count > 15)) {
+		printf("wlmRxIQEstGet: SampleCount out of range of [0, 15].\n");
 		return FALSE;
 	} else {
-		/* change for 4330 */
-		rxiq = (((sample_count & 0xff) << 8) | (rxiq & 0xfff00ff));
+		/* printf("wlmRxIQEstGet: SampleCount %d\n", sample_count); */
+		rxiq = (((sample_count & 0xff) << 8) | (rxiq & 0xffff00ff));
 	}
+	/* printf("wlmRxIQGet: rxiq after sample count = 0x%x\n.", rxiq); */
 
 	if ((antenna < 0) || (antenna > 3)) {
-		printf("wlmRxIQGet: Antenna out of range of [0, 3].\n");
+		printf("wlmRxIQEstGet: Antenna out of range of [0, 3].\n");
 		return FALSE;
 	} else {
-		rxiq = ((rxiq & 0xfffff00) | (antenna & 0xff));
+		rxiq = ((rxiq & 0xffffff00) | (antenna & 0xff));
 	}
 
 	/*
-	  printf("wlmRxIQGet: rxiq = 0x%x before wlu_iovar_setint().\n", rxiq);
+	printf("wlmRxIQGet: rxiq after antenna = 0x%x\n.", rxiq);
+	printf("wlmRxIQGet: rxiq = 0x%x before wlu_iovar_setint().\n", rxiq);
 	*/
 	if ((wlu_iovar_setint(irh, "phy_rxiqest", (int) rxiq) < 0)) {
-		printf("wlmRxIQGet: %s\n", wlmLastError());
+		printf("wlmRxIQEstGet: %s\n", wlmLastError());
 		return FALSE;
 	}
 
 	if ((wlu_iovar_getint(irh, "phy_rxiqest", (int*)&rxiq) < 0)) {
-		printf("wlmRxIQGet: %s\n", wlmLastError());
+		printf("wlmRxIQEstGet: %s\n", wlmLastError());
 		return FALSE;
 	}
-	/*
-	  printf("wlmRxIQGet: rxiq = 0x%x after wlu_iovar_getint\n.", rxiq);
-	*/
+
+	/* printf("wlmRxIQGet: rxiq = 0x%x after wlu_iovar_getint\n.", rxiq); */
 	if (resolution == 1) {
 		/* fine resolutin power reporting (0.25dB resolution) */
 		uint8 core;
@@ -2981,20 +2982,185 @@ int wlmRxIQEstGet(float *val, int sampleCount, int ant)
 			}
 		} else {
 			/* 1-chain specific */
-			int16 tmp;
 			tmp = (rxiq & 0x3ff);
 			tmp = ((int16)(tmp << 6)) >> 6; /* signed extension */
 			/*
 			  printf("wlmRxIQGet: single core, tmp 0x%x\n", tmp);
 			  printf("wlmRxIQGet: tmp before processing 0x%x\n", tmp);
 			*/
-			if (tmp < 0) {
-				tmp = -1 * tmp;
-			}
-			x = (float) (tmp >> 2);
-			y = (float) (tmp & 0x3);
-			*val = (float)(x + (y * 25) /100) * (-1);
 		}
+
+		if (tmp < 0) {
+			tmp = -1 * tmp;
+		}
+		x = (float) (tmp >> 2);
+		y = (float) (tmp & 0x3);
+		*val = (float)(x + (y * 25) /100) * (-1);
+	} else {
+		/* return the core matches the antenna number */
+		*val = (float)((rxiq >> (8 *antenna)) & 0xff);
+	}
+
+	return TRUE;
+}
+
+int wlmRxIQEstExtGet(float *val, int sampleCount, int ant, int elna, int gi)
+{
+	uint32 rxiq = 0;
+	int sample_count = sampleCount;  /* [0, 16], default: maximum 15 sample counts */
+	int antenna = ant ;       /* [0, 3], default: antenna 0 */
+	uint8 resolution = 1;     /* resolution default to 0.25dB */
+	uint8 lpf_hpc = 1;
+	uint8 dig_lpf = 1;
+	uint8 gain_correct = 0;
+	uint8 extra_gain_3dBsteps = 0;
+	uint8 force_gain_type = 0;
+	float x, y;
+
+	/* DEFAULT:
+	 * gain_correct = 0 (disable gain correction),
+	 * lpf_hpc = 1 (sets lpf hpc to lowest value),
+	 * dig_lpf = 1; (sets to ltrn_lpf mode)
+	 * resolution = 0 (coarse),
+	 * samples = 1024 (2^10) and antenna = 3
+	 * force_gain_type = 0 (init gain mode)
+	 */
+
+	/* XXX Currently the lpf_hpc override option applies only for HTPHY */
+	rxiq = (extra_gain_3dBsteps << 28) | (gain_correct << 24) | (dig_lpf << 22)
+		| (lpf_hpc << 20) | (resolution << 16) | (10 << 8) | (force_gain_type << 4)
+		| ant;
+	/* printf("wlmRxIQGet: initial rxiq = 0x%x\n.", rxiq); */
+
+	if (gain_correct > 1) {
+		printf("wlmRxIQEstExtGet: invalid gain-correction select [0|1]\n");
+		return FALSE;
+	} else {
+		gain_correct = gain_correct & 0xf;
+		rxiq = ((gain_correct << 24) | (rxiq & 0xf0ffffff));
+	}
+	/* printf("wlmRxIQGet: rxiq after gain_correct = 0x%x\n.", rxiq); */
+
+	if (lpf_hpc > 1) {
+		printf("wlmRXIQEstExtGet: invalid lpf-hpc override select [0|1].\n");
+		return FALSE;
+	} else {
+		lpf_hpc = lpf_hpc & 0xf;
+		rxiq = ((lpf_hpc << 20) | (rxiq & 0xff0fffff));
+	}
+	/* printf("wlmRxIQGet: rxiq after lpf_hpc = 0x%x\n.", rxiq); */
+
+	if (dig_lpf > 2) {
+		printf("wlmRXIQEstExtGet: invalid dig_lpf override select [0|1].\n");
+		return FALSE;
+	} else {
+		dig_lpf = dig_lpf & 0x3;
+		rxiq = ((dig_lpf << 22) | (rxiq & 0xff3fffff));
+	}
+	/* printf("wlmRxIQGet: rxiq after dig_lpf = 0x%x\n.", rxiq); */
+
+	if (resolution > 1) {
+		printf("wlmRxIQEstExtGet: invalid resolution [0|1].\n");
+		return FALSE;
+	} else {
+		resolution = resolution & 0xf;
+		rxiq = ((resolution << 16) | (rxiq & 0xfff0ffff));
+	}
+	/* printf("wlmRxIQGet: rxiq after resolution = 0x%x\n.", rxiq); */
+
+	if ((sample_count < 0) || (sample_count > 16)) {
+		printf("wlmRxIQEstExtGet: SampleCount out of range of [0, 15].\n");
+		return FALSE;
+	} else {
+		/* printf("wlmRxIQGet: sample_count %d\n.", sample_count); */
+		rxiq = (((sample_count & 0xff) << 8) | (rxiq & 0xffff00ff));
+	}
+	/* printf("wlmRxIQGet: rxiq after sample count = 0x%x\n.", rxiq); */
+
+	if ((antenna < 0) || (antenna > 3)) {
+		printf("wlmRxIQEstExtGet: Antenna out of range of [0, 3].\n");
+		return FALSE;
+	} else {
+		rxiq = ((rxiq & 0xfffffff0) | (antenna & 0xf));
+	}
+	/* printf("wlmRxIQGet: rxiq after antenna = 0x%x\n.", rxiq); */
+
+	if ((extra_gain_3dBsteps > 24) || (extra_gain_3dBsteps % 3 != 0)) {
+		printf("wlmRXIQESTExtGet: invalid extra INITgain, should be {0, 3, .., 21, 24}\n");
+		return FALSE;
+	} else {
+		rxiq = ((((extra_gain_3dBsteps /3) & 0xf) << 28) | (rxiq & 0x0fffffff));
+	}
+
+	if (elna > 1) {
+		printf("wlmRXIQEstExtGet: invalid elna on/off select [0|1].\n");
+		return FALSE;
+	} else {
+		elna = elna & 0x1;
+		rxiq = ((elna << 20) | (rxiq & 0xffefffff));
+	}
+	/* printf("wlmRxIQGet: rxiq after elna = 0x%x\n.", rxiq); */
+
+
+	if ((gi != 0) && (gi != 1) && (gi != 4)) {
+		printf("wlmRXIQEstExtGet: gain index option {0,1, 4}\n");
+		return FALSE;
+	} else {
+		rxiq = ((rxiq & 0xffffff0f) | ((gi << 4) & 0xf0));
+	}
+
+
+	/* printf("wlmRxIQGet: rxiq before set gain index = 0x%x\n.", rxiq); */
+	if ((wlu_iovar_setint(irh, "phy_rxiqest", (int) rxiq) < 0)) {
+		printf("wlmRxIQEstExtGet: %s\n", wlmLastError());
+		return FALSE;
+	}
+
+	if ((wlu_iovar_getint(irh, "phy_rxiqest", (int*)&rxiq) < 0)) {
+		printf("wlmRxIQEstExtGet: %s\n", wlmLastError());
+		return FALSE;
+	}
+
+	/* printf("wlmRxIQGet: after getint 0x%x\n.", rxiq); */
+
+	if (resolution == 1) {
+		/* fine resolutin power reporting (0.25dB resolution) */
+		uint8 core;
+		int16 tmp;
+
+		/* printf("wlmRxIQGet: inside resulution == 1 block, rxiq = 0x%x\n", rxiq); */
+
+		if (rxiq >> 20) {
+			/* Three chains: return the core matches the antenna number */
+			for (core = 0; core < 3; core++) {
+				if (core == antenna) {
+					tmp = (rxiq >>(10*core)) & 0x3ff;
+					tmp = ((int16)(tmp << 6)) >> 6;  /* sign extension */
+					break;
+				}
+			}
+		} else if (rxiq >> 10) {
+			/* Two chains: return the core matches the antenna number */
+			for (core = 0; core < 2; core++) {
+				if (core == antenna) {
+					tmp = (rxiq >>(10*core)) & 0x3ff;
+					tmp = ((int16)(tmp << 6)) >> 6;  /* sign extension */
+					break;
+				}
+			}
+		} else {
+			/* 1-chain specific */
+			tmp = (rxiq & 0x3ff);
+			tmp = ((int16)(tmp << 6)) >> 6; /* signed extension */
+		}
+
+		/* printf("wlmRxIQGet: core %d, tmp 0x%x\n", core, tmp); */
+		if (tmp < 0) {
+			tmp = -1 * tmp;
+		}
+		x = (float) (tmp >> 2);
+		y = (float) (tmp & 0x3);
+		*val = (float)(x + (y * 25) /100) * (-1);
 	} else {
 		/* return the core matches the antenna number */
 		*val = (float)((rxiq >> (8 *antenna)) & 0xff);
@@ -3064,7 +3230,7 @@ int wlmPHYTxPowerIndexSet(unsigned int val, const char *chipid)
 			txpwridx[2] = (int8) ((power_index >> 16) & 0xff);
 			txpwridx[3] = (int8) ((power_index >> 24) & 0xff);
 
-			if (wlu_var_setbuf_sm(irh,
+			if (wlu_var_setbuf(irh,
 				"phy_txpwrindex", txpwridx, 4*sizeof(uint32)) < 0) {
 				printf("wlmPHYTxPowerIndexSet: %s\n", wlmLastError());
 				return FALSE;
@@ -3553,7 +3719,8 @@ wlm_find_cmd(char *name, int ap_mode, int remote_os_type)
 }
 #endif /* defined(WIN32) */
 
-int wlmGpioOut(unsigned int mask, unsigned int val)
+int
+wlmGpioOut(unsigned int mask, unsigned int val)
 {
 	uint32 *int_ptr;
 	char buf[32] = "\0";
@@ -3578,3 +3745,242 @@ int wlmGpioOut(unsigned int mask, unsigned int val)
 	} else
 		return TRUE;
 }
+
+int
+wlmPhyRssiGainDelta2gGet(char *varname, int *deltaValues, int core)
+{
+	int i;
+	int8 vals[18];
+	uint32 phytype;
+	uint8 N = 5;
+
+	if (curPhyType == PHY_TYPE_NULL)
+		phytype = wlmPhyTypeGet();
+	else
+		phytype = curPhyType;
+
+	if (phytype != WLC_PHY_TYPE_AC) {
+		printf("wlmPhyRssiGainDelta2gGet: phy type %d is not suppprted\n", phytype);
+		return FALSE;
+	} else {
+		memset(vals, 0, sizeof(vals));
+		if (wlu_iovar_get(irh, varname, vals, sizeof(vals)) < 0) {
+			printf("wlmPhyRssiGainDelta2gGet: failed to get delta values.\n");
+			return FALSE;
+		}
+
+		memset(deltaValues, 0, N * sizeof(int));
+		for (i = 0; i < N * 3; i++) {
+			if (i == core * N) {
+				core = (int)vals[i++];
+				deltaValues[0] = (int)vals[i++];
+				deltaValues[1] = (int)vals[i++];
+				deltaValues[2] = (int)vals[i++];
+				deltaValues[3] = (int)vals[i++];
+				break;
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+int
+wlmPhyRssiGainDelta2gSet(char *varname, int *deltaValues, int core)
+{
+	int i;
+	int8 vals[18];
+	uint32 phytype;
+	uint8 N = 5;
+
+	if (curPhyType == PHY_TYPE_NULL)
+		phytype = wlmPhyTypeGet();
+	else
+		phytype = curPhyType;
+
+	if (phytype != WLC_PHY_TYPE_AC) {
+		printf("wlmPhyRssiGainDelta2gSet: phy type %d is not suppprted\n", phytype);
+		return FALSE;
+	} else {
+		memset(vals, 0, sizeof(vals));
+		vals[0] = core;
+		for (i = 1; i < N; i++) {
+			if (deltaValues[i-1] > 63 || deltaValues[i-1] < -64) {
+				printf("wlmPhyRssiGainDelta2gSet:"
+				       "deltaValues[%d] out of range (-64,63) \n", i);
+				return FALSE;
+			}
+			vals[i] = (int8)htod32(deltaValues[i-1]);
+		}
+
+		if (wlu_var_setbuf(irh, varname, vals, sizeof(vals)) < 0) {
+			printf("wlmPhyRssiGainDelta2gSet: failed to set delta values.\n");
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+int
+wlmPhyRssiGainDelta5gGet(char *varname, int *deltaValues, int core)
+{
+	int i;
+	int8 vals[28];
+	uint32 phytype;
+	uint8 N = 7;
+
+	if (curPhyType == PHY_TYPE_NULL)
+		phytype = wlmPhyTypeGet();
+	else
+		phytype = curPhyType;
+
+	if (phytype != WLC_PHY_TYPE_AC) {
+		printf("wlmPhyRssiGainDelta5gGet: phy type %d is not suppprted\n", phytype);
+		return FALSE;
+	} else {
+		memset(vals, 0, sizeof(vals));
+		if (wlu_iovar_get(irh, varname, vals, sizeof(vals)) < 0) {
+			printf("wlmPhyRssiGainDelta5gGet: failed to get delta value.\n");
+			return FALSE;
+		}
+
+		memset(deltaValues, 0, N * sizeof(int));
+		for (i = 0; i < N * 3; i++) {
+			if (i == core * N) {
+				core = (int)vals[i++];
+				deltaValues[0] = (int)vals[i++];
+				deltaValues[1] = (int)vals[i++];
+				deltaValues[2] = (int)vals[i++];
+				deltaValues[3] = (int)vals[i++];
+				deltaValues[4] = (int)vals[i++];
+				deltaValues[5] = (int)vals[i++];
+				break;
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+int
+wlmPhyRssiGainDelta5gSet(char *varname, int *deltaValues, int core)
+{
+	int i;
+	int8 vals[28];
+	uint32 phytype;
+	uint8 N = 7;
+
+	if (curPhyType == PHY_TYPE_NULL)
+		phytype = wlmPhyTypeGet();
+	else
+		phytype = curPhyType;
+
+	if (phytype != WLC_PHY_TYPE_AC) {
+		printf("wlmPhyRssiGainDelta5gSet: phy type %d is not suppprted\n", phytype);
+		return FALSE;
+	} else {
+		memset(vals, 0, sizeof(vals));
+		vals[0] = core;
+		for (i = 1; i < N;  i++) {
+			if (deltaValues[i-1] > 63 || deltaValues[i-1] < -64) {
+				printf("wlmPhyRssiGainDelta5gSet:"
+				       "deltaValues[%d] out of range (-64,63) \n", i);
+				return FALSE;
+			}
+			vals[i] = (int8)htod32(deltaValues[i-1]);
+		}
+
+		if (wlu_var_setbuf(irh, varname, vals, sizeof(vals)) < 0) {
+			printf("wlmPhyRssiGainDelta5gSet: failed to set delta value.\n");
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+int
+wlmVHTFeaturesSet(int val)
+{
+	val = htod32(val);
+
+	if (wlu_iovar_setint(irh, "vht_features", val) < 0) {
+		printf("wlmVHTFeaturesSet: %s\n", wlmLastError());
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+int
+wlmTxBFEnable(void)
+{
+	if (wlu_iovar_setint(irh, "txbf", 1) < 0) {
+		printf("wlmTxBFEnable: %s\n", wlmLastError());
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+int
+wlmTxBFDisable(void)
+{
+	if (wlu_iovar_setint(irh, "txbf", 0) < 0) {
+		printf("wlmTxBFDisable: %s\n", wlmLastError());
+		return FALSE;
+	}
+	return TRUE;
+}
+
+int
+wlmSpectModeSet(int val)
+{
+	val = htod32(val);
+
+	if (wlu_iovar_setint(irh, "spect", val) < 0) {
+		printf("wlmSpectEnable: %s\n", wlmLastError());
+		return FALSE;
+	}
+	return TRUE;
+}
+
+int
+wlmIBSSGmodeEnable(void)
+{
+	/* check parameter -1 here */
+	if (wlu_iovar_setint(irh, "ibss_gmode", -1) < 0) {
+		printf("wlmIBSSGmodeEnable: %s\n", wlmLastError());
+		return FALSE;
+	}
+	return TRUE;
+}
+
+int
+wlmIBSSGmodeDisable(void)
+{
+	/* check parameter 0 here */
+	if (wlu_iovar_setint(irh, "ibss_gmode", 0) < 0) {
+		printf("wlmIBSSGmodeDisable: %s\n", wlmLastError());
+		return FALSE;
+	}
+	return TRUE;
+}
+
+#if defined(MACOSX)
+int
+wlmSetBaudRate(int speed)
+{
+	if (rwl_get_remote_type() != REMOTE_SERIAL) {
+		printf("wlmSetBaudRate: remote type has to be serial mode\n");
+		return FALSE;
+	}
+
+	if (rwl_set_baud_rate(irh, speed) < 0) {
+		printf("wlmSetBaudRate: failed to set baud rate to %d\n", speed);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+#endif /* MACOSX */

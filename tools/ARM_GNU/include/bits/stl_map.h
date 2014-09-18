@@ -1,6 +1,6 @@
 // Map implementation -*- C++ -*-
 
-// Copyright (C) 2001-2013 Free Software Foundation, Inc.
+// Copyright (C) 2001-2014 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -128,8 +128,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
     private:
       /// This turns a red-black tree into a [multi]map. 
-      typedef typename _Alloc::template rebind<value_type>::other 
-        _Pair_alloc_type;
+      typedef typename __gnu_cxx::__alloc_traits<_Alloc>::template
+	rebind<value_type>::other _Pair_alloc_type;
 
       typedef _Rb_tree<key_type, value_type, _Select1st<value_type>,
 		       key_compare, _Pair_alloc_type> _Rep_type;
@@ -137,13 +137,15 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       /// The actual tree structure.
       _Rep_type _M_t;
 
+      typedef __gnu_cxx::__alloc_traits<_Pair_alloc_type> _Alloc_traits;
+
     public:
       // many of these are specified differently in ISO, but the following are
       // "functionally equivalent"
-      typedef typename _Pair_alloc_type::pointer         pointer;
-      typedef typename _Pair_alloc_type::const_pointer   const_pointer;
-      typedef typename _Pair_alloc_type::reference       reference;
-      typedef typename _Pair_alloc_type::const_reference const_reference;
+      typedef typename _Alloc_traits::pointer            pointer;
+      typedef typename _Alloc_traits::const_pointer      const_pointer;
+      typedef typename _Alloc_traits::reference          reference;
+      typedef typename _Alloc_traits::const_reference    const_reference;
       typedef typename _Rep_type::iterator               iterator;
       typedef typename _Rep_type::const_iterator         const_iterator;
       typedef typename _Rep_type::size_type              size_type;
@@ -152,8 +154,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       typedef typename _Rep_type::const_reverse_iterator const_reverse_iterator;
 
       // [23.3.1.1] construct/copy/destroy
-      // (get_allocator() is normally listed in this section, but seems to have
-      // been accidentally omitted in the printed standard)
+      // (get_allocator() is also listed in this section)
+
       /**
        *  @brief  Default constructor creates no elements.
        */
@@ -208,6 +210,33 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  const allocator_type& __a = allocator_type())
       : _M_t(__comp, _Pair_alloc_type(__a))
       { _M_t._M_insert_unique(__l.begin(), __l.end()); }
+
+      /// Allocator-extended default constructor.
+      explicit
+      map(const allocator_type& __a)
+      : _M_t(_Compare(), _Pair_alloc_type(__a)) { }
+
+      /// Allocator-extended copy constructor.
+      map(const map& __m, const allocator_type& __a)
+      : _M_t(__m._M_t, _Pair_alloc_type(__a)) { }
+
+      /// Allocator-extended move constructor.
+      map(map&& __m, const allocator_type& __a)
+      noexcept(is_nothrow_copy_constructible<_Compare>::value
+	       && _Alloc_traits::_S_always_equal())
+      : _M_t(std::move(__m._M_t), _Pair_alloc_type(__a)) { }
+
+      /// Allocator-extended initialier-list constructor.
+      map(initializer_list<value_type> __l, const allocator_type& __a)
+      : _M_t(_Compare(), _Pair_alloc_type(__a))
+      { _M_t._M_insert_unique(__l.begin(), __l.end()); }
+
+      /// Allocator-extended range constructor.
+      template<typename _InputIterator>
+        map(_InputIterator __first, _InputIterator __last,
+	    const allocator_type& __a)
+	: _M_t(_Compare(), _Pair_alloc_type(__a))
+        { _M_t._M_insert_unique(__first, __last); }
 #endif
 
       /**
@@ -272,16 +301,22 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  @brief  %Map move assignment operator.
        *  @param  __x  A %map of identical element and allocator types.
        *
-       *  The contents of @a __x are moved into this map (without copying).
-       *  @a __x is a valid, but unspecified %map.
+       *  The contents of @a __x are moved into this map (without copying
+       *  if the allocators compare equal or get moved on assignment).
+       *  Afterwards @a __x is in a valid, but unspecified state.
        */
       map&
-      operator=(map&& __x)
+      operator=(map&& __x) noexcept(_Alloc_traits::_S_nothrow_move())
       {
-	// NB: DR 1204.
-	// NB: DR 675.
-	this->clear();
-	this->swap(__x);
+	if (!_M_t._M_move_assign(__x._M_t))
+	  {
+	    // The rvalue's allocator cannot be moved and is not equal,
+	    // so we need to individually move each element.
+	    clear();
+	    insert(std::__make_move_if_noexcept_iterator(__x.begin()),
+		   std::__make_move_if_noexcept_iterator(__x.end()));
+	    __x.clear();
+	  }
 	return *this;
       }
 
@@ -776,6 +811,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        */
       void
       swap(map& __x)
+#if __cplusplus >= 201103L
+      noexcept(_Alloc_traits::_S_nothrow_swap())
+#endif
       { _M_t.swap(__x._M_t); }
 
       /**

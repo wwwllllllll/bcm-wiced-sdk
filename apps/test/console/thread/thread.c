@@ -21,8 +21,6 @@
  *                      Macros
  ******************************************************/
 
-#define test_print( a ) { printf a; }
-
 /******************************************************
  *                    Constants
  ******************************************************/
@@ -54,18 +52,17 @@ typedef struct
 } thread_details_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void thread_wrapper( uint32_t arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
-extern const command_t* console_command_table;
-wiced_bool_t threads_inited = WICED_FALSE;
-thread_details_t* spawned_threads[MAX_SPAWNED_THREADS] = {0};
+static wiced_bool_t threads_inited = WICED_FALSE;
+static thread_details_t* spawned_threads[MAX_SPAWNED_THREADS] = {0};
 
 /******************************************************
  *               Function Definitions
@@ -197,11 +194,11 @@ static void thread_wrapper( uint32_t arg )
 {
     thread_details_t *detail = (thread_details_t*) arg;
 
-    test_print( ( "Started thread %p (\"%s\")\r\n", &detail->thread, detail->command_name ) );
+    printf( "Started thread %p (\"%s\")\r\n", &detail->thread, detail->command_name );
 
     /* Execute the command and fetch the return value */
     detail->return_value = detail->command_function( detail->argc, detail->argv );
-    test_print( ( "Thread %p (""%s"") exited with return value %d\r\n", &detail->thread, detail->command_name, detail->return_value ) );
+    printf( "Thread %p (""%s"") exited with return value %d\r\n", &detail->thread, detail->command_name, detail->return_value );
     detail->thread_running = WICED_FALSE;
 
     WICED_END_OF_CURRENT_THREAD( );

@@ -1,11 +1,11 @@
 /*
- * $Copyright 2014, Broadcom Corporation
+ * Copyright 2014, Broadcom Corporation
  * All Rights Reserved.
  *
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
  * the contents of this file may not be disclosed to third parties, copied
  * or duplicated in any form, in whole or in part, without the prior
- * written permission of Broadcom Corporation.$
+ * written permission of Broadcom Corporation.
  */
 
 /** @file
@@ -36,6 +36,30 @@
 
 #define PROMPT1    "Enter your name (up to 20 characters) \n"
 #define PROMPT2    "type any digit from 0 to 9\n"
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 void application_start( )
 {

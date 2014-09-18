@@ -1,7 +1,6 @@
 var searchData=
 [
   ['scan_5factive_5fdwell_5ftime_5fper_5fchannel_5fms',['scan_active_dwell_time_per_channel_ms',['../structwiced__scan__extended__params__t.html#addbd186dd08b75e5de298a3d8dbb76a1',1,'wiced_scan_extended_params_t']]],
-  ['scan_5fcomplete',['scan_complete',['../structwiced__scan__handler__result__t.html#a23f2b2da8026f43e27a6bbf41936e5ec',1,'wiced_scan_handler_result_t']]],
   ['scan_5fhome_5fchannel_5fdwell_5ftime_5fbetween_5fchannels_5fms',['scan_home_channel_dwell_time_between_channels_ms',['../structwiced__scan__extended__params__t.html#a325bae58ff955b428047edab0a2f0799',1,'wiced_scan_extended_params_t']]],
   ['scan_5fpassive_5fdwell_5ftime_5fper_5fchannel_5fms',['scan_passive_dwell_time_per_channel_ms',['../structwiced__scan__extended__params__t.html#afe48c256e4f4f14eb202d51dd8348818',1,'wiced_scan_extended_params_t']]],
   ['second',['second',['../structwiced__iso8601__time__t.html#aa4cb190a90cae7bc9b1ccd57512befe3',1,'wiced_iso8601_time_t']]],
@@ -17,7 +16,7 @@ var searchData=
   ['slave_5fkey_5fdistribution',['slave_key_distribution',['../structwiced__bt__smart__security__settings__t.html#a10e1b65cf3a2957baec6757dab73d71e',1,'wiced_bt_smart_security_settings_t']]],
   ['slave_5flatency',['slave_latency',['../structattr__val__periph__preferred__conn__params__t.html#a39219ac00a0e8ed843ee32b9df8be11e',1,'attr_val_periph_preferred_conn_params_t']]],
   ['specification_5fid',['specification_id',['../structwiced__bt__did__mandatory__attributes__t.html#a6d82f20842f9ff3be3c0252708b8a6b2',1,'wiced_bt_did_mandatory_attributes_t']]],
-  ['ssid',['SSID',['../structwiced__ap__info.html#a8f82d46f91997542f97a3a20a7157c09',1,'wiced_ap_info::SSID()'],['../structwiced__scan__result.html#a8f82d46f91997542f97a3a20a7157c09',1,'wiced_scan_result::SSID()'],['../structwiced__wps__credential__t.html#a865b8b1cc9fd5adb5e77ab43b30cac1f',1,'wiced_wps_credential_t::ssid()']]],
+  ['ssid',['ssid',['../structwiced__wps__credential__t.html#a865b8b1cc9fd5adb5e77ab43b30cac1f',1,'wiced_wps_credential_t::ssid()'],['../structwiced__ap__info.html#a8f82d46f91997542f97a3a20a7157c09',1,'wiced_ap_info::SSID()'],['../structwiced__scan__result.html#a8f82d46f91997542f97a3a20a7157c09',1,'wiced_scan_result::SSID()']]],
   ['start_5fhandle',['start_handle',['../structattr__val__service__t.html#a2cd982e3af3a66504335e09ea7495bbc',1,'attr_val_service_t']]],
   ['state',['state',['../structwiced__bt__smartbridge__socket.html#a0b57aa10271a66f3dc936bba1d2f3830',1,'wiced_bt_smartbridge_socket']]],
   ['string',['string',['../structattr__val__user__description__t.html#a3d4e66c2067ac2d83b7f65a222e5ab54',1,'attr_val_user_description_t']]],

@@ -15,9 +15,11 @@
 extern "C" {
 #endif
 
-#ifdef CONSOLE_ENABLE_REBOOT
+/******************************************************
+ *                     Macros
+ ******************************************************/
 
-extern int reboot( int argc, char* argv[] );
+#ifdef CONSOLE_ENABLE_REBOOT
 
 #define REBOOT_COMMANDS \
     { "reboot",         reboot,       0, DELIMIT, NULL, NULL, "Reboot the device"},
@@ -26,8 +28,33 @@ extern int reboot( int argc, char* argv[] );
 #define REBOOT_COMMANDS
 #endif /* ifdef CONSOLE_ENABLE_REBOOT */
 
-#endif /* ifndef INCLUDED_REBOOT_H_ */
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+int reboot( int argc, char* argv[] );
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+
+#endif /* ifndef INCLUDED_REBOOT_H_ */

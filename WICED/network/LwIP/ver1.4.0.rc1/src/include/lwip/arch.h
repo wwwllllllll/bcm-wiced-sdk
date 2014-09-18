@@ -110,11 +110,13 @@ extern "C" {
 #define  EPIPE        32  /* Broken pipe */
 #define  EDOM         33  /* Math argument out of domain of func */
 #define  ERANGE       34  /* Math result not representable */
+#ifndef  EDEADLK     /* These are defined by Windows headers - prevent duplication */
 #define  EDEADLK      35  /* Resource deadlock would occur */
 #define  ENAMETOOLONG 36  /* File name too long */
 #define  ENOLCK       37  /* No record locks available */
 #define  ENOSYS       38  /* Function not implemented */
 #define  ENOTEMPTY    39  /* Directory not empty */
+#endif /* ifndef EDEADLK */
 #define  ELOOP        40  /* Too many symbolic links encountered */
 #define  EWOULDBLOCK  EAGAIN  /* Operation would block */
 #define  ENOMSG       42  /* No message of desired type */
@@ -134,7 +136,9 @@ extern "C" {
 #define  EBADRQC      56  /* Invalid request code */
 #define  EBADSLT      57  /* Invalid slot */
 
+#ifndef  EDEADLOCK     /* This is defined by Windows headers - prevent duplication */
 #define  EDEADLOCK    EDEADLK
+#endif /* ifndef  EDEADLOCK */
 
 #define  EBFONT       59  /* Bad font file format */
 #define  ENOSTR       60  /* Device not a stream */
@@ -161,7 +165,9 @@ extern "C" {
 #define  ELIBSCN      81  /* .lib section in a.out corrupted */
 #define  ELIBMAX      82  /* Attempting to link in too many shared libraries */
 #define  ELIBEXEC     83  /* Cannot exec a shared library directly */
+#ifndef  EILSEQ     /* This is defined by Windows headers - prevent duplication */
 #define  EILSEQ       84  /* Illegal byte sequence */
+#endif /* ifndef  EILSEQ */
 #define  ERESTART     85  /* Interrupted system call should be restarted */
 #define  ESTRPIPE     86  /* Streams pipe error */
 #define  EUSERS       87  /* Too many users */

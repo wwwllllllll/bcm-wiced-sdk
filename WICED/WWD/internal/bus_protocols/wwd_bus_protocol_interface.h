@@ -83,6 +83,10 @@ extern wwd_result_t wwd_bus_write_wifi_nvram_image     ( void );
 extern void         wwd_bus_init_backplane_window      ( void );
 extern wwd_result_t wwd_bus_set_backplane_window       ( uint32_t addr );
 
+#ifdef MFG_TEST_ALTERNATE_WLAN_DOWNLOAD
+extern wwd_result_t external_write_wifi_firmware_and_nvram_image  ( void );
+#endif /* ifdef MFG_TEST_ALTERNATE_WLAN_DOWNLOAD */
+
 /******************************************************
  *             Global variables
  ******************************************************/

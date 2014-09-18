@@ -21,6 +21,8 @@
 
 #include <stdio.h>
 #include "wiced.h"
+#include "mfg_test.h"
+#include "internal/wwd_internal.h"
 
 /******************************************************
  *                      Macros
@@ -43,10 +45,8 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
-
-extern int remote_server_exec(int argc, char **argv, void *ifr);
 
 /******************************************************
  *               Variable Definitions
@@ -55,10 +55,11 @@ extern int remote_server_exec(int argc, char **argv, void *ifr);
 /******************************************************
  *               Function Definitions
  ******************************************************/
-#include "internal/wwd_internal.h"
-extern wwd_wlan_status_t wwd_wlan_status;
 void application_start( )
 {
+   int argc = 2;
+   char *argv[] = { "", "" };
+
    wiced_init( );
 
    /* Run the main application function
@@ -68,9 +69,10 @@ void application_start( )
    setvbuf(stdout, NULL, _IONBF, 0);
    setvbuf(stderr, NULL, _IONBF, 0);
 
-   ++wwd_wlan_status.keep_wlan_awake;
-   int argc = 2;
-   char *argv[] = { "", "" };
+   wiced_platform_mcu_enable_powersave( );
+
+   WWD_WLAN_KEEP_AWAKE( );
+
    /* Main server process for all transport types */
    remote_server_exec(argc, argv, NULL);
 

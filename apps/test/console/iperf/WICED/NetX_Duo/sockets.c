@@ -78,11 +78,11 @@ typedef struct
 } bsd_socket_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 extern NX_IP          wiced_ip_handle[2]; /* 0=STA, 1=AP */

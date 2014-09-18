@@ -31,7 +31,7 @@
         <td style="width:117px"><img src="brcmlogo.png" alt="Broadcom Logo" /></td>
         <td style="width:20px;background-image:url('brcmlogo_line.png');"></td>
         <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('brcmlogo_line.png');">
-        WICED&trade; v3.0.1 - API Reference Guide
+        WICED&trade; v3.1.0 - API Reference Guide
         </td>
         <td style="width:20px"></td>
         <td style="width:1px"><img src="wiced_logo.png" alt="WICED Logo" /></td>
@@ -100,7 +100,7 @@ $(document).ready(function(){initNavTree('group__udp.html','');});
   <div class="summary">
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
-<div class="title">UDP<div class="ingroups"><a class="el" href="group__ipcoms.html">IP Communication</a></div></div>  </div>
+<div class="title">UDP<div class="ingroups"><a class="el" href="group__tcp.html">TCP</a> &#124; <a class="el" href="group__ipcoms.html">IP Communication</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -130,6 +130,9 @@ Functions</h2></td></tr>
 <tr class="memitem:gaa6c42cd0081710602aecfcbc6aadba57"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__udp.html#gaa6c42cd0081710602aecfcbc6aadba57">wiced_udp_register_callbacks</a> (wiced_udp_socket_t *socket, wiced_socket_callback_t receive_callback)</td></tr>
 <tr class="memdesc:gaa6c42cd0081710602aecfcbc6aadba57"><td class="mdescLeft">&#160;</td><td class="mdescRight">Registers a callback function with the indicated UDP socket.  <a href="#gaa6c42cd0081710602aecfcbc6aadba57">More...</a><br/></td></tr>
 <tr class="separator:gaa6c42cd0081710602aecfcbc6aadba57"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafa88e1a07129c9a687bfb33c5f042de0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__udp.html#gafa88e1a07129c9a687bfb33c5f042de0">wiced_udp_unregister_callbacks</a> (wiced_udp_socket_t *socket)</td></tr>
+<tr class="memdesc:gafa88e1a07129c9a687bfb33c5f042de0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Un-registers all callback functions associated with the indicated UDP socket.  <a href="#gafa88e1a07129c9a687bfb33c5f042de0">More...</a><br/></td></tr>
+<tr class="separator:gafa88e1a07129c9a687bfb33c5f042de0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Communication functions for UDP (User Datagram Protocol) </p>
@@ -319,7 +322,7 @@ Functions</h2></td></tr>
 <p>Registers a callback function with the indicated UDP socket. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">socket</td><td>: A pointer to a TCP socket handle that has been previously created with <a class="el" href="group__tcp.html#ga7e872af55b2a7a3bdf84bf0dfcae19d2">wiced_tcp_create_socket</a> </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">socket</td><td>: A pointer to a TCP socket handle that has been previously created with <a class="el" href="group__udp.html#ga91f141d16dd4371c738ec6d4e056b90e">wiced_udp_create_socket</a> </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">receive_callback</td><td>: The callback function that will be called when a UDP packet is received</td></tr>
   </table>
   </dd>
@@ -416,6 +419,31 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">address</td><td>: The IP address of the remote host </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">port</td><td>: The UDP port number on the remote host </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">packet</td><td>: A pointer to the packet to be sent.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="gafa88e1a07129c9a687bfb33c5f042de0"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a> wiced_udp_unregister_callbacks </td>
+          <td>(</td>
+          <td class="paramtype">wiced_udp_socket_t *&#160;</td>
+          <td class="paramname"><em>socket</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Un-registers all callback functions associated with the indicated UDP socket. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">socket</td><td>: A pointer to a UDP socket handle that has been previously created with <a class="el" href="group__udp.html#ga91f141d16dd4371c738ec6d4e056b90e">wiced_udp_create_socket</a></td></tr>
   </table>
   </dd>
 </dl>

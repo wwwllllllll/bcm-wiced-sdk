@@ -32,11 +32,16 @@
 #define NX_HTTP_NO_FILEX
 #define NX_TFTP_NO_FILEX
 #define NX_DISABLE_RESET_DISCONNECT
-
+#define NX_ARP_DISABLE_AUTO_ARP_ENTRY
 #define NX_DHCP_CLIENT_RESTORE_STATE
+
+#define NX_TCP_ENABLE_KEEPALIVE
+
+#define NX_TCP_MAX_OUT_OF_ORDER_PACKETS
 
 #define PACKET_RELEASE_NOTIFY
 extern void packet_release_notify( void* pool );
+extern UINT nx_rand16( void );
 
 
 /* Disable parameter checking when building non-debug */
@@ -66,7 +71,7 @@ extern unsigned long host_rtos_get_tickrate( void );
 
 #define NX_IP_PERIODIC_RATE ( host_rtos_get_tickrate( ) )
 
-
+#define NX_RANDOM_INITIAL_TCP_PORT
 
 
 /* These are all the defines that are used in NetX-Duo #if statements
@@ -115,7 +120,6 @@ extern unsigned long host_rtos_get_tickrate( void );
 #undef TESTOUTPUT
 
 #undef USE_SHA
-#undef NX_ARP_DISABLE_AUTO_ARP_ENTRY
 #undef NX_ARP_EXPIRATION_RATE
 #undef NX_ARP_MAX_QUEUE_DEPTH
 #undef NX_ARP_MAXIMUM_RETRIES
@@ -599,7 +603,6 @@ extern unsigned long host_rtos_get_tickrate( void );
 #undef NX_TCP_ACK_EVERY_N_PACKETS
 #undef NX_TCP_ACK_TIMER_RATE
 #undef NX_TCP_ENABLE_DEBUG_LOG
-#undef NX_TCP_ENABLE_KEEPALIVE
 #undef NX_TCP_ENABLE_WINDOW_SCALING
 #undef NX_TCP_ENABLE_WINDOW_SCALING
 #undef NX_TCP_FAST_TIMER_RATE

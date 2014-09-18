@@ -4,7 +4,7 @@
  * software that might want wifi things as it grows.
  *
  * $Copyright Open Broadcom Corporation$
- * $Id: bcm_app_utils.c 315348 2012-02-16 07:32:51Z dboyce $
+ * $Id: bcm_app_utils.c 403154 2013-05-18 00:14:57Z myungkim $
  */
 
 #include <typedefs.h>

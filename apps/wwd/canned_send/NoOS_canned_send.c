@@ -53,9 +53,12 @@
 
 
 /******************************************************
- *        Settable Constants
+ *                      Macros
  ******************************************************/
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define AP_SSID             "YOUR_AP_SSID"
 #define AP_PASS             "YOUR_AP_PASSPHRASE"
 #define AP_SEC              WICED_SECURITY_WPA2_MIXED_PSK
@@ -75,37 +78,57 @@
 #endif
 
 
-/******************************************************
- * @cond       Static variables
- ******************************************************/
-
-static wiced_mac_t     my_mac             = { {   0,   0,   0,   0,   0,   0} };
-static wiced_mac_t     broadcast_mac      = { {0xff,0xff,0xff,0xff,0xff,0xff} };
-
-static uint8_t       arp_complete       = 0;
-static wiced_mac_t *   arp_mac_buffer_ptr = 0;
-static uint32_t      arp_dest_ip_addr   = 0;
-
-static uint32_t      my_ip_addr         = IP_ADDR;
-
-static char          pkt_buffer[ ((MAX( PACKET_SIZE, MIN_IOCTL_BUFFER_SIZE )+63)&(~63))+4 ];
 
 /******************************************************
- *        Static function prototypes
+ *                   Enumerations
  ******************************************************/
 
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+/** @cond */
 static void  resolve_dest_mac   ( uint32_t dest_ip_addr, wiced_mac_t * MAC_buffer );
 static void  send_canned_packet ( char* pkt, uint16_t payload_len );
 static char* setup_canned_packet( char *        pkt,
                                   uint16_t      pkt_len,
                                   uint32_t      my_ip_addr,
-                                  wiced_mac_t *   my_MAC,
+                                  wiced_mac_t * my_MAC,
                                   uint32_t      dest_ip_addr,
-                                  wiced_mac_t *   dest_MAC,
+                                  wiced_mac_t * dest_MAC,
                                   uint16_t      src_udp_port,
                                   uint16_t      dest_udp_port );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+
+static wiced_mac_t   my_mac             = { {   0,   0,   0,   0,   0,   0} };
+static wiced_mac_t   broadcast_mac      = { {0xff,0xff,0xff,0xff,0xff,0xff} };
+static uint8_t       arp_complete       = 0;
+static wiced_mac_t*  arp_mac_buffer_ptr = 0;
+static uint32_t      arp_dest_ip_addr   = 0;
+static uint32_t      my_ip_addr         = IP_ADDR;
+static char          pkt_buffer[ ((MAX( PACKET_SIZE, MIN_IOCTL_BUFFER_SIZE )+63)&(~63))+4 ];
+static const wiced_ssid_t ap_ssid =
+{
+    .length = sizeof(AP_SSID)-1,
+    .value  = AP_SSID,
+};
+
 /** @endcond */
 
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 /**
  * Main function of canned UDP packet send application
@@ -136,11 +159,11 @@ int main( void )
 
     /* Get MAC address - this needs to be done before joining a network, so that */
     /* we can check the address of any incoming packets against our MAC */
-    wwd_wifi_get_mac_address( &my_mac );
+    wwd_wifi_get_mac_address( &my_mac, WWD_STA_INTERFACE );
 
     /* Attempt to join the Wi-Fi network */
     WPRINT_APP_INFO(("Joining : " AP_SSID "\n"));
-    while ( wwd_wifi_join( AP_SSID, AP_SEC, (uint8_t*) AP_PASS, sizeof( AP_PASS ) - 1, NULL ) != WWD_SUCCESS )
+    while ( wwd_wifi_join( &ap_ssid, AP_SEC, (uint8_t*) AP_PASS, sizeof( AP_PASS ) - 1, NULL ) != WWD_SUCCESS )
     {
         WPRINT_APP_INFO(("Failed to join  : " AP_SSID "   .. retrying\n"));
     }

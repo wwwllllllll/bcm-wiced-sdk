@@ -68,6 +68,7 @@ typedef enum
     WICED_GPIO_38,
     WICED_GPIO_39,
     WICED_GPIO_40,
+    WICED_GPIO_41,
     WICED_GPIO_MAX, /* Denotes the total number of GPIO port aliases. Not a valid GPIO alias */
     WICED_GPIO_32BIT = 0x7FFFFFFF,
 } wiced_gpio_t;

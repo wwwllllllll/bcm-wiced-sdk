@@ -15,6 +15,8 @@
 #SOURCE_ROOT : ../../../    (needs trailing slash)
 #DEBUG       : 1
 
+all: stripped_lib
+
 $(info $(filter wipe_source_for_test,$(MAKECMDGOALS)))
 ifeq ($(filter wipe_source_for_test,$(MAKECMDGOALS)),)
 
@@ -122,8 +124,6 @@ CFLAGS += -I$(SOURCE_ROOT)WICED/RTOS/$(RTOS)/WWD/ARM_CM3
 endif
 
 OBJS := $(addprefix $(SOURCE_ROOT)build/$(NAME)/,$(filter %.o,$(SOURCES:.cpp=.o) $(SOURCES:.c=.o) $(SOURCES:.S=.o)))
-
-all: stripped_lib
 
 $(SOURCE_ROOT)build/$(NAME)/$(LIBRARY_NAME).a: $(OBJS)
 	$(QUIET)$(RM) $@

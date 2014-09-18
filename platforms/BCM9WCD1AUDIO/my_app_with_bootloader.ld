@@ -37,6 +37,9 @@ SECTIONS
     .external :
     {
         *(.external_ram)
+        *(*.gki_cb )
+        *(*.l2cb )
+        *(*.sdp_cb )
     }> EXTERNAL_RAM
 
     .text :

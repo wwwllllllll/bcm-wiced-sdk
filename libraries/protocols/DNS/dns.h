@@ -88,7 +88,7 @@ typedef enum
 typedef struct
 {
     uint8_t* start_of_name;
-    uint8_t* start_of_packet; // Used for compressed names;
+    uint8_t* start_of_packet; /* Used for compressed names; */
 } dns_name_t;
 
 typedef struct
@@ -103,7 +103,7 @@ typedef struct
 
 typedef struct
 {
-    dns_message_header_t* header; // Also used as start of packet for compressed names
+    dns_message_header_t* header; /* Also used as start of packet for compressed names */
     uint8_t*              iter;
     uint16_t              max_size;
 } dns_message_iterator_t;
@@ -134,7 +134,7 @@ typedef struct
     uint16_t  priority;
     uint16_t  weight;
     uint16_t  port;
-    char      target[1]; // Target name which will be larger than 1 byte
+    char      target[1]; /* Target name which will be larger than 1 byte */
 } dns_srv_data_t;
 
 typedef struct
@@ -193,7 +193,7 @@ void     dns_write_bytes   ( dns_message_iterator_t* iter, const uint8_t* data, 
 /* Functions to aid processing received queries */
 uint16_t     dns_read_uint16           ( const uint8_t* data );
 uint32_t     dns_read_uint32           ( const uint8_t* data );
-char*        dns_read_name             ( const uint8_t* data, const dns_message_header_t* start_of_packet ); // Note: This function returns a dynamically allocated string
+char*        dns_read_name             ( const uint8_t* data, const dns_message_header_t* start_of_packet ); /* Note: This function returns a dynamically allocated string */
 void         dns_get_next_question     ( dns_message_iterator_t* iter, dns_question_t* q, dns_name_t* name );
 void         dns_get_next_record       ( dns_message_iterator_t* iter, dns_record_t* r,   dns_name_t* name );
 wiced_bool_t dns_compare_name_to_string( const dns_name_t* name, const char* string );

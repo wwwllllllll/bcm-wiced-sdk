@@ -611,8 +611,20 @@ tcp_new_port(void)
 #define TCP_LOCAL_PORT_RANGE_START 4096
 #define TCP_LOCAL_PORT_RANGE_END   0x7fff
 #endif
-  static u16_t port = TCP_LOCAL_PORT_RANGE_START;
+
+#ifdef LWIP_RANDOM_INITIAL_TCP_PORT
+  static u16_t port = 0;
   
+  if ( port == 0 )
+  {
+      port = sys_rand16( );
+      port = port % ( TCP_LOCAL_PORT_RANGE_END - TCP_LOCAL_PORT_RANGE_START );
+      port += TCP_LOCAL_PORT_RANGE_START;
+  }
+#else
+  static u16_t port = TCP_LOCAL_PORT_RANGE_START;
+#endif /* ifdef LWIP_RANDOM_INITIAL_TCP_PORT */
+
  again:
   if (++port > TCP_LOCAL_PORT_RANGE_END) {
     port = TCP_LOCAL_PORT_RANGE_START;

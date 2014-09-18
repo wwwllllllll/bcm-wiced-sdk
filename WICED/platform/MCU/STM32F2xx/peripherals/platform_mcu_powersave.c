@@ -52,7 +52,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 #ifndef WICED_DISABLE_MCU_POWERSAVE
@@ -63,7 +63,7 @@ static unsigned long  idle_power_down_hook( unsigned long sleep_ms );
 #endif
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 #ifndef WICED_DISABLE_MCU_POWERSAVE
@@ -294,11 +294,9 @@ uint32_t platform_power_down_hook( uint32_t sleep_ms )
 #ifdef WICED_DISABLE_MCU_POWERSAVE
     /* If MCU powersave feature is disabled, enter idle mode when powerdown hook is called by the RTOS */
     return idle_power_down_hook( sleep_ms );
-
 #else
     /* If MCU powersave feature is enabled, enter STOP mode when powerdown hook is called by the RTOS */
     return stop_mode_power_down_hook( sleep_ms );
-
 #endif
 }
 

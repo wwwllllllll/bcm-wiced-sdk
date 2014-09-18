@@ -26,7 +26,7 @@ extern "C"
 
 typedef enum
 {
-    // Note : If changing this, core_base_address must be changed also
+    /* Note : If changing this, core_base_address must be changed also */
     ARM_CORE    = 0,
     SOCRAM_CORE = 1,
     SDIOD_CORE  = 2
@@ -49,11 +49,15 @@ typedef struct
     uint32_t             keep_wlan_awake;
 } wwd_wlan_status_t;
 
+#define WWD_WLAN_KEEP_AWAKE( )  do { wwd_wlan_status.keep_wlan_awake++; } while (0)
+#define WWD_WLAN_LET_SLEEP( )   do { wwd_wlan_status.keep_wlan_awake--; } while (0)
+
 /******************************************************
  *             Function declarations
  ******************************************************/
 
-extern wiced_bool_t                   wwd_wifi_ap_is_up;
+extern wiced_bool_t wwd_wifi_ap_is_up;
+extern uint8_t      wwd_tos_map[8];
 
 
 /* Device core control functions */
@@ -61,7 +65,7 @@ extern wwd_result_t wwd_disable_device_core    ( device_core_t core_id );
 extern wwd_result_t wwd_reset_device_core      ( device_core_t core_id );
 extern wwd_result_t wwd_device_core_is_up      ( device_core_t core_id );
 extern wwd_result_t wwd_wifi_set_down          ( wwd_interface_t interface );
-extern void           wwd_set_country            ( wiced_country_code_t code );
+extern void         wwd_set_country            ( wiced_country_code_t code );
 
 /******************************************************
  *             Global variables

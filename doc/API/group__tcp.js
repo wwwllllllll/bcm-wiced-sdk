@@ -3,6 +3,13 @@ var group__tcp =
     [ "TCP packet comms", "group__tcppkt.html", "group__tcppkt" ],
     [ "TCP buffer comms", "group__tcpbfr.html", "group__tcpbfr" ],
     [ "TCP stream comms", "group__tcpstream.html", "group__tcpstream" ],
+    [ "TCP server comms", "group__tcpserver.html", "group__tcpserver" ],
+    [ "UDP", "group__udp.html", "group__udp" ],
+    [ "ICMP ping", "group__icmp.html", "group__icmp" ],
+    [ "DNS lookup", "group__dns.html", "group__dns" ],
+    [ "IGMP multicast", "group__igmp.html", "group__igmp" ],
+    [ "Packet management", "group__pktmgmt.html", "group__pktmgmt" ],
+    [ "Raw IP", "group__rawip.html", "group__rawip" ],
     [ "wiced_tcp_accept", "group__tcp.html#gaf0328a5cb53fde8d32ec0341271b3ef6", null ],
     [ "wiced_tcp_bind", "group__tcp.html#gaca7d00f4aad7cf2c47cf32996803def1", null ],
     [ "wiced_tcp_connect", "group__tcp.html#ga51aa9df02b62a94edad1643e635e42a3", null ],
@@ -13,5 +20,7 @@ var group__tcp =
     [ "wiced_tcp_listen", "group__tcp.html#ga6954d52ed68db6db3df9872926ff301c", null ],
     [ "wiced_tcp_register_callbacks", "group__tcp.html#gad59ccebd26e3ff2e7deb656a1710a821", null ],
     [ "wiced_tcp_server_peer", "group__tcp.html#ga77cc2a7ed9597cba008cdf178b9703df", null ],
-    [ "wiced_tcp_start_tls", "group__tcp.html#gae25065d3b56d32fef81c175babc2274a", null ]
+    [ "wiced_tcp_start_tls", "group__tcp.html#gae25065d3b56d32fef81c175babc2274a", null ],
+    [ "wiced_tcp_start_tls_with_ciphers", "group__tcp.html#ga3700fd5881cf08ac8f750bc349862864", null ],
+    [ "wiced_tcp_unregister_callbacks", "group__tcp.html#ga08122f98b9c9d2d9ccb0e41d6f067e05", null ]
 ];

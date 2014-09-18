@@ -10,10 +10,11 @@
 
 NAME := common_IAR
 
-$(NAME)_SOURCES = stdio_IAR.c
+$(NAME)_SOURCES = stdio_IAR.c \
+                  mem_IAR.c
 
 # These need to be forced into the final ELF since they are not referenced otherwise
 $(NAME)_LINK_FILES := stdio_IAR.o
 
-
+GLOBAL_INCLUDES += .
 

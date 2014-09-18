@@ -32,21 +32,42 @@
 #include "console.h"
 #include "wiced.h"
 
+/******************************************************
+ *                      Macros
+ ******************************************************/
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define PING_RCV_TIMEO           (1000)    /** ping receive timeout - in milliseconds */
 #define PING_MAX_PAYLOAD_SIZE ( 10000 ) /* ping max size */
 #define ENABLE_LONG_PING /* Long ping enabled by default */
 
-extern NX_IP* ip_handle_default;
-extern NX_DNS dns_handle;
-extern NX_PACKET_POOL wiced_packet_pools[2]; /* 0=TX, 1=RX */
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 
-UINT  my_nx_icmp_ping(NX_IP *ip_ptr, ULONG ip_address, CHAR *data_ptr, ULONG data_size, NX_PACKET **response_ptr, ULONG wait_option);
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 
+/******************************************************
+ *                    Structures
+ ******************************************************/
 
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static UINT  my_nx_icmp_ping(NX_IP *ip_ptr, ULONG ip_address, CHAR *data_ptr, ULONG data_size, NX_PACKET **response_ptr, ULONG wait_option);
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 static const uint8_t const long_ping_payload[PING_MAX_PAYLOAD_SIZE] = { 0 };
 
-
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 int ping( int argc, char *argv[] )
 {
     wiced_ip_address_t ping_target;
@@ -469,7 +490,7 @@ int ping( int argc, char *argv[] )
 //}
 
 
-UINT  my_nx_icmp_ping(NX_IP *ip_ptr, ULONG ip_address,
+static UINT  my_nx_icmp_ping(NX_IP *ip_ptr, ULONG ip_address,
                     CHAR *data_ptr, ULONG data_size,
                     NX_PACKET **response_ptr, ULONG wait_option)
 {

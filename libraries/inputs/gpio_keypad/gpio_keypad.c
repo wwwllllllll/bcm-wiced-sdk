@@ -58,7 +58,7 @@ typedef struct gpio_keypad_internal
 }gpio_keypad_internal_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void           gpio_interrupt_key_handler( void* arg );
@@ -68,7 +68,7 @@ static wiced_result_t key_held_event_handler    ( void* arg );
 static wiced_result_t key_released_event_handler( void* arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************

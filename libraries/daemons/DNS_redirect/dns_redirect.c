@@ -103,26 +103,25 @@ typedef struct
     uint32_t ttl;
     uint16_t data_length;
     /* Note: Actual IPv4 address needs to be inserted after this */
-//    uint32_t  ipv4_address;
 } dns_a_record_t;
 
 typedef struct
 {
-    const char*    query;
-    uint8_t  length;
+    const char* query;
+    uint8_t     length;
 } dns_query_table_entry_t;
 
 #pragma pack()
 
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void dns_thread_main( uint32_t thread_input );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const dns_a_record_t a_record_template =

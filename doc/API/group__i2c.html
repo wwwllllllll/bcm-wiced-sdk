@@ -31,7 +31,7 @@
         <td style="width:117px"><img src="brcmlogo.png" alt="Broadcom Logo" /></td>
         <td style="width:20px;background-image:url('brcmlogo_line.png');"></td>
         <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('brcmlogo_line.png');">
-        WICED&trade; v3.0.1 - API Reference Guide
+        WICED&trade; v3.1.0 - API Reference Guide
         </td>
         <td style="width:20px"></td>
         <td style="width:1px"><img src="wiced_logo.png" alt="WICED Logo" /></td>
@@ -115,9 +115,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga41be352ac0d458f8f72a571b82bb82d5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wwd__constants_8h.html#a548729288c3d79af8f70f00e429d725d">wiced_bool_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__i2c.html#ga41be352ac0d458f8f72a571b82bb82d5">wiced_i2c_probe_device</a> (wiced_i2c_device_t *device, int retries)</td></tr>
 <tr class="memdesc:ga41be352ac0d458f8f72a571b82bb82d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks whether the device is available on a bus or not.  <a href="#ga41be352ac0d458f8f72a571b82bb82d5">More...</a><br/></td></tr>
 <tr class="separator:ga41be352ac0d458f8f72a571b82bb82d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab449ad3b839f0ef38cac18c2ca8ea879"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__i2c.html#gab449ad3b839f0ef38cac18c2ca8ea879">wiced_i2c_init_tx_message</a> (wiced_i2c_message_t *message, void *tx_buffer, uint16_t tx_buffer_length, uint16_t retries, <a class="el" href="wwd__constants_8h.html#a548729288c3d79af8f70f00e429d725d">wiced_bool_t</a> disable_dma)</td></tr>
-<tr class="memdesc:gab449ad3b839f0ef38cac18c2ca8ea879"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the wiced_i2c_message_t structure for i2c tx transaction.  <a href="#gab449ad3b839f0ef38cac18c2ca8ea879">More...</a><br/></td></tr>
-<tr class="separator:gab449ad3b839f0ef38cac18c2ca8ea879"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9f676926390ac2dd6d6b4cb354ba9e86"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__i2c.html#ga9f676926390ac2dd6d6b4cb354ba9e86">wiced_i2c_init_tx_message</a> (wiced_i2c_message_t *message, const void *tx_buffer, uint16_t tx_buffer_length, uint16_t retries, <a class="el" href="wwd__constants_8h.html#a548729288c3d79af8f70f00e429d725d">wiced_bool_t</a> disable_dma)</td></tr>
+<tr class="memdesc:ga9f676926390ac2dd6d6b4cb354ba9e86"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the wiced_i2c_message_t structure for i2c tx transaction.  <a href="#ga9f676926390ac2dd6d6b4cb354ba9e86">More...</a><br/></td></tr>
+<tr class="separator:ga9f676926390ac2dd6d6b4cb354ba9e86"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga2bd4747bc05e6ac9f4cf44ec062155cd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="wiced__result_8h.html#acfc32ead8a827d53416f01b19eb58310">wiced_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__i2c.html#ga2bd4747bc05e6ac9f4cf44ec062155cd">wiced_i2c_init_rx_message</a> (wiced_i2c_message_t *message, void *rx_buffer, uint16_t rx_buffer_length, uint16_t retries, <a class="el" href="wwd__constants_8h.html#a548729288c3d79af8f70f00e429d725d">wiced_bool_t</a> disable_dma)</td></tr>
 <tr class="memdesc:ga2bd4747bc05e6ac9f4cf44ec062155cd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the wiced_i2c_message_t structure for i2c rx transaction.  <a href="#ga2bd4747bc05e6ac9f4cf44ec062155cd">More...</a><br/></td></tr>
 <tr class="separator:ga2bd4747bc05e6ac9f4cf44ec062155cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -321,7 +321,7 @@ WICED_BADARG: one of the arguments is given incorrectly </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="gab449ad3b839f0ef38cac18c2ca8ea879"></a>
+<a class="anchor" id="ga9f676926390ac2dd6d6b4cb354ba9e86"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -334,7 +334,7 @@ WICED_BADARG: one of the arguments is given incorrectly </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">void *&#160;</td>
+          <td class="paramtype">const void *&#160;</td>
           <td class="paramname"><em>tx_buffer</em>, </td>
         </tr>
         <tr>

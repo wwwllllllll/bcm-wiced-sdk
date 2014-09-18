@@ -72,7 +72,7 @@ extern wiced_result_t wiced_network_init  ( void );
 extern wiced_result_t wiced_network_deinit( void );
 extern wiced_result_t wiced_join_ap       ( void );
 extern wiced_result_t wiced_leave_ap      ( void );
-extern wiced_result_t wiced_start_ap      ( char* ssid, wiced_security_t security, const char* key, uint8_t channel);
+extern wiced_result_t wiced_start_ap      ( wiced_ssid_t* ssid, wiced_security_t security, const char* key, uint8_t channel);
 extern wiced_result_t wiced_stop_ap       ( void );
 extern wiced_result_t wiced_ip_up         ( wiced_interface_t interface, wiced_network_config_t config, const wiced_ip_setting_t* ip_settings );
 extern wiced_result_t wiced_ip_down       ( wiced_interface_t interface );

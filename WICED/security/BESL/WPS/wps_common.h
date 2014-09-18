@@ -17,6 +17,18 @@ extern "C" {
  *                      Macros
  ******************************************************/
 
+#ifdef DEBUG
+#define BESL_LIBRARY_INFO(x)   BESL_INFO(x)
+#define BESL_LIBRARY_DEBUG(x)  BESL_DEBUG(x)
+#define BESL_LIBRARY_ERROR(x)  BESL_ERROR(x)
+#define BESL_LIBRARY_ASSERT(string, x) BESL_ASSERT(string, x)
+#else
+#define BESL_LIBRARY_INFO(x)
+#define BESL_LIBRARY_DEBUG(x)
+#define BESL_LIBRARY_ERROR(x)
+#define BESL_LIBRARY_ASSERT(string, x)
+#endif
+
 /******************************************************
  *                    Constants
  ******************************************************/

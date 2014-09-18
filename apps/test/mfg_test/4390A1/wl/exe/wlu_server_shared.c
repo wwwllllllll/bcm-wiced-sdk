@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 #ifdef TARGETOS_symbian
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -95,6 +96,10 @@ static const char* dongleset = "dongleset";
 extern void store_old_interface(void *wl, char *old_intf_name);
 extern int wl_check(void *wl);
 #endif /* defined(LINUX) || defined(vxworks) */
+
+extern void start_download( void );
+extern void finish_download( void );
+extern void membytes_write( uint32_t address, uint8_t* buf, uint32_t length );
 
 extern void handle_ctrlc(int unused);
 /* Function: rwl_transport_setup
@@ -669,8 +674,6 @@ remote_server_exec(int argc, char **argv, void *wl)
 	char *async_cmd_flag = NULL;
 	int skip;
 	int download_flag = 0;
-	FILE *fp = NULL;
-	char *fn = "dwnldfile.bin";
 #if defined(LINUX) || defined(vxworks) || defined(OLYMPIC_RWL)
 	char old_intf_name[IFNAMSIZ];
 #endif
@@ -979,26 +982,26 @@ remote_server_exec(int argc, char **argv, void *wl)
 					download_flag =  download_flag? 0: 1;
 					if (download_flag) {
 						DPRINT_INFO(OUTPUT, "download started\n");
-						if (!(fp = fopen(fn, "wb"))) {
-							DPRINT_ERR(ERR, "Failed to open file\n");
-							err = -2;
-						}
+						start_download( );
 					} else {
 						DPRINT_INFO(OUTPUT, "download completed\n");
-						if (fp != NULL)
-							fclose(fp);
+						finish_download( );
 					}
 					err = 0;
 				} else if (g_rem_ptr->msg.cmd == WLC_SET_VAR && buf_ptr &&
 				   !strncmp((const char *)buf_ptr,
 					    "membytes", g_rem_ptr->msg.len)) {
 					DPRINT_INFO(OUTPUT, "REC : membytes command\n");
-					skip = strlen("membytes ") + 8;
-					if (fp != NULL)
-						fwrite(buf_ptr + skip, 1,
-						       g_rem_ptr->msg.len - skip, fp);
-					else
-						DPRINT_ERR(ERR, "Download file has been closed.\n");
+					skip = strlen("membytes ");
+					uint32_t address = *((uint32_t*)(buf_ptr + skip));
+					skip += sizeof(uint32_t);
+                    uint32_t len = *((uint32_t*)(buf_ptr + skip));
+                    skip += sizeof(uint32_t);
+                    if ( len != g_rem_ptr->msg.len - skip )
+                    {
+                        DPRINT_ERR(ERR, "Length does not match\n");
+                    }
+					membytes_write( address, buf_ptr + skip, g_rem_ptr->msg.len - skip );
 					err = 0;
 				} else {
 					err = wl_ioctl(wl, g_rem_ptr->msg.cmd,

@@ -8,10 +8,6 @@
  * written permission of Broadcom Corporation.
  */
 
-/**************************************************************************************************************
- * INCLUDES
- **************************************************************************************************************/
-
 #include "dns.h"
 #include "string.h"
 #include "wiced_network.h"
@@ -20,10 +16,13 @@
 #include <wiced_utilities.h>
 #include "wiced_time.h"
 
-/**************************************************************************************************************
- * CONSTANTS
- **************************************************************************************************************/
+/******************************************************
+ *                      Macros
+ ******************************************************/
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define DNS_PORT    (53)
 
 #ifndef WICED_MAXIMUM_STORED_DNS_SERVERS
@@ -33,24 +32,32 @@
 /* Change to 1 to turn debug trace */
 #define WICED_DNS_DEBUG   (0)
 
-/**************************************************************************************************************
- * STRUCTURES
- **************************************************************************************************************/
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 
-/**************************************************************************************************************
- * FUNCTION DECLARATIONS
- **************************************************************************************************************/
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 
-/**************************************************************************************************************
- * VARIABLES
- **************************************************************************************************************/
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 
 static wiced_ip_address_t dns_server_address_array[WICED_MAXIMUM_STORED_DNS_SERVERS];
 static uint32_t           dns_server_address_count = 0;
 
-/**************************************************************************************************************
- * FUNCTION DEFINITIONS
- **************************************************************************************************************/
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 wiced_result_t dns_client_add_server_address( wiced_ip_address_t address )
 {
@@ -189,7 +196,6 @@ wiced_result_t dns_client_hostname_lookup( const char* hostname, wiced_ip_addres
                         {
                             case RR_TYPE_CNAME:
                                 /* Received an alias for our queried name. Restart DNS query for the new name */
-                                //
                                 if ( temp_hostname != hostname )
                                 {
                                     /* Only free if we're certain we've malloc'd it*/
@@ -340,7 +346,7 @@ wiced_result_t dns_client_hostname_lookup( const char* hostname, wiced_ip_addres
  */
 void dns_write_question(dns_message_iterator_t* iter, const char* target, uint16_t class, uint16_t type)
 {
-    // Write target name, type and class
+    /* Write target name, type and class */
     iter->iter = dns_write_name(iter->iter, target);
     dns_write_uint16(iter, type);
     dns_write_uint16(iter, class);
@@ -348,7 +354,7 @@ void dns_write_question(dns_message_iterator_t* iter, const char* target, uint16
 
 void dns_write_uint16(dns_message_iterator_t* iter, uint16_t data)
 {
-    // We cannot assume the uint8_t alignment of iter->iter so we can't just type cast and assign
+    /* We cannot assume the uint8_t alignment of iter->iter so we can't just type cast and assign */
     iter->iter[0] = (uint8_t) ( data >> 8 );
     iter->iter[1] = (uint8_t) ( data & 0xFF );
     iter->iter += 2;
@@ -378,12 +384,12 @@ void dns_write_bytes(dns_message_iterator_t* iter, const uint8_t* data, uint16_t
  */
 void dns_get_next_question(dns_message_iterator_t* iter, dns_question_t* q, dns_name_t* name)
 {
-    // Set the name pointers and then skip it
+    /* Set the name pointers and then skip it */
     name->start_of_name   = (uint8_t*) iter->iter;
     name->start_of_packet = (uint8_t*) iter->header;
     dns_skip_name(iter);
 
-    // Read the type and class
+    /* Read the type and class */
     q->type  = dns_read_uint16(&iter->iter[0]);
     q->class = dns_read_uint16(&iter->iter[2]);
     iter->iter += 4;
@@ -391,12 +397,12 @@ void dns_get_next_question(dns_message_iterator_t* iter, dns_question_t* q, dns_
 
 void dns_get_next_record(dns_message_iterator_t* iter, dns_record_t* r, dns_name_t* name)
 {
-    // Set the name pointers and then skip it
+    /* Set the name pointers and then skip it */
     name->start_of_name   = (uint8_t*) iter->iter;
     name->start_of_packet = (uint8_t*) iter->header;
     dns_skip_name(iter);
 
-    // Set the record values and the rdata pointer
+    /* Set the record values and the rdata pointer */
     r->type      = dns_read_uint16(&iter->iter[0]);
     r->class     = dns_read_uint16(&iter->iter[2]);
     r->ttl       = dns_read_uint32(&iter->iter[4]);
@@ -404,7 +410,7 @@ void dns_get_next_record(dns_message_iterator_t* iter, dns_record_t* r, dns_name
     iter->iter += 10;
     r->rdata     = iter->iter;
 
-    // Skip the rdata
+    /* Skip the rdata */
     iter->iter += r->rd_length;
 }
 
@@ -428,7 +434,7 @@ wiced_bool_t dns_compare_name_to_string( const dns_name_t* name, const char* str
         uint8_t sectionLength;
         int a;
 
-        // Check if the name is compressed. If so, find the uncompressed version
+        /* Check if the name is compressed. If so, find the uncompressed version */
         while (*buffer & 0xC0)
         {
             uint16_t offset = (uint16_t) ( (*buffer++) << 8 );
@@ -437,7 +443,7 @@ wiced_bool_t dns_compare_name_to_string( const dns_name_t* name, const char* str
             buffer = name->start_of_packet + offset;
         }
 
-        // Compare section
+        /* Compare section */
         sectionLength = *(buffer++);
         for (a=sectionLength; a != 0; --a)
         {
@@ -459,11 +465,11 @@ wiced_bool_t dns_compare_name_to_string( const dns_name_t* name, const char* str
             }
         }
 
-        // Check if we've finished comparing
+        /* Check if we've finished comparing */
         if (finished == WICED_FALSE && (*buffer == 0 || *string == 0))
         {
             finished = WICED_TRUE;
-            // Check if one of the strings has more data
+            /* Check if one of the strings has more data */
             if (*buffer != 0 || *string != 0)
             {
                 result = WICED_FALSE;
@@ -471,7 +477,7 @@ wiced_bool_t dns_compare_name_to_string( const dns_name_t* name, const char* str
         }
         else
         {
-            // Skip '.'
+            /* Skip '.' */
             ++string;
         }
     }
@@ -483,10 +489,10 @@ void dns_skip_name(dns_message_iterator_t* iter)
 {
     while (*iter->iter != 0)
     {
-        // Check if the name is compressed
+        /* Check if the name is compressed */
         if (*iter->iter & 0xC0)
         {
-            iter->iter += 1; // Normally this should be 2, but we have a ++ outside the while loop
+            iter->iter += 1; /* Normally this should be 2, but we have a ++ outside the while loop */
             break;
         }
         else
@@ -494,7 +500,7 @@ void dns_skip_name(dns_message_iterator_t* iter)
             iter->iter += (uint32_t) *iter->iter + 1;
         }
     }
-    // Skip the null byte
+    /* Skip the null byte */
     ++iter->iter;
 }
 
@@ -505,10 +511,10 @@ char* dns_read_name( const uint8_t* data, const dns_message_header_t* start_of_p
     char*          string;
     char*          stringIter;
 
-    // Find out how long the string is
+    /* Find out how long the string is */
     while (*buffer != 0)
     {
-        // Check if the name is compressed
+        /* Check if the name is compressed */
         if (*buffer & 0xC0)
         {
             uint16_t offset = (uint16_t) ( (*buffer++) << 8 );
@@ -518,7 +524,7 @@ char* dns_read_name( const uint8_t* data, const dns_message_header_t* start_of_p
         }
         else
         {
-            length = (uint16_t) ( length + *buffer + 1 ); // +1 for the '.', unless its the last section in which case its the ending null character
+            length = (uint16_t) ( length + *buffer + 1 ); /* +1 for the '.', unless its the last section in which case its the ending null character */
             buffer += *buffer + 1;
         }
     }
@@ -527,7 +533,7 @@ char* dns_read_name( const uint8_t* data, const dns_message_header_t* start_of_p
         return NULL;
     }
 
-    // Allocate memory for the string
+    /* Allocate memory for the string */
     string = malloc_named("dns", length);
     stringIter = string;
 
@@ -536,10 +542,10 @@ char* dns_read_name( const uint8_t* data, const dns_message_header_t* start_of_p
     {
         uint8_t sectionLength;
 
-        // Check if the name is compressed. If so, find the uncompressed version
+        /* Check if the name is compressed. If so, find the uncompressed version */
         if (*buffer & 0xC0)
         {
-            // Follow the offsets to an uncompressed name
+            /* Follow the offsets to an uncompressed name */
             while (*buffer & 0xC0)
             {
                 uint16_t offset = (uint16_t) ( (*buffer++) << 8 );
@@ -549,13 +555,13 @@ char* dns_read_name( const uint8_t* data, const dns_message_header_t* start_of_p
             }
         }
 
-        // Copy the section of the name
+        /* Copy the section of the name */
         sectionLength = *(buffer++);
         memcpy(stringIter, buffer, sectionLength);
         stringIter += sectionLength;
         buffer += sectionLength;
 
-        // Add a '.' if the next section is valid, otherwise terminate the string
+        /* Add a '.' if the next section is valid, otherwise terminate the string */
         if (*buffer != 0)
         {
             *stringIter++ = '.';
@@ -645,7 +651,7 @@ void dns_write_record(dns_message_iterator_t* iter, const char* name, uint16_t c
             break;
     }
 
-    // Write the rdata length
+    /* Write the rdata length */
     rd_length[0] = (uint8_t) ( (iter->iter - tempPtr) >> 8 );
     rd_length[1] = (uint8_t) ( (iter->iter - tempPtr) & 0xFF );
 }

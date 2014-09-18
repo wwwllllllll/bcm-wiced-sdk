@@ -54,14 +54,14 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t bt_management_read_device_address    ( void );
 static wiced_result_t bt_management_override_device_address( void );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static char                              bt_device_name[BT_DEVICE_NAME_MAX_LENGTH + 1] = { 0 };

@@ -7,6 +7,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  */
+#pragma once
 
 /** @file
  *  Defines the SPI part of the WICED Platform Interface.
@@ -14,10 +15,6 @@
  *  Provides constants and prototypes for functions that
  *  enable WICED to use a SPI bus on a particular hardware platform.
  */
-
-
-#ifndef INCLUDED_WWD_SPI_INTERFACE_H_
-#define INCLUDED_WWD_SPI_INTERFACE_H_
 
 #include <stdint.h>
 #include "wiced_utilities.h"
@@ -75,4 +72,3 @@ extern void exti_irq( void );
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-#endif /* ifndef INCLUDED_WWD_SPI_INTERFACE_H_ */

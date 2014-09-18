@@ -80,40 +80,46 @@ extern "C" {
 #define TLS_RESULT_LIST( prefix ) \
     RESULT_ENUM( prefix, SUCCESS,                                0 ),   /**<   */ \
     RESULT_ENUM( prefix, TIMEOUT,                                2 ),   /**<   */ \
-    RESULT_ENUM( prefix, RECEIVE_FAILED,                      4001 ),   /**<   */ \
-    RESULT_ENUM( prefix, ALERT_NO_CERTIFICATE,                4002 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_OUT_OF_MEMORY,                 4003 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_FEATURE_UNAVAILABLE,           4004 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_INPUT_DATA,                4005 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_INVALID_MAC,                   4006 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_INVALID_RECORD,                4007 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_INVALID_MODULUS_SIZE,          4008 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_UNKNOWN_CIPHER,                4009 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_NO_CIPHER_CHOSEN,              4010 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_NO_SESSION_FOUND,              4011 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_NO_CLIENT_CERTIFICATE,         4012 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_CERTIFICATE_TOO_LARGE,         4013 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_CERTIFICATE_REQUIRED,          4014 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_PRIVATE_KEY_REQUIRED,          4015 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_CA_CHAIN_REQUIRED,             4016 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_UNEXPECTED_MESSAGE,            4017 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_FATAL_ALERT_MESSAGE,           4018 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_PEER_VERIFY_FAILED,            4019 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_PEER_CLOSE_NOTIFY,             4020 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_CLIENT_HELLO,           4021 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_SERVER_HELLO,           4022 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_CERTIFICATE,            4023 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_CERTIFICATE_REQUEST,    4024 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_SERVER_KEY_EXCHANGE,    4025 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_SERVER_HELLO_DONE,      4026 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_CLIENT_KEY_EXCHANGE,    4027 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_CERTIFICATE_VERIFY,     4028 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_CHANGE_CIPHER_SPEC,     4029 ),   /**<   */ \
-    RESULT_ENUM( prefix, ERROR_BAD_HS_FINISHED,               4030 ),   /**<   */ \
-    RESULT_ENUM( prefix, HANDSHAKE_TIMEOUT,                   4031 ),   /**<   */ \
-    RESULT_ENUM( prefix, HANDSHAKE_ERROR,                     4032 ),   /**<   */ \
-    RESULT_ENUM( prefix, INIT_FAIL,                           4033 ),   /**<   */ \
-    RESULT_ENUM( prefix, BAD_MESSAGE,                         4034 ),   /**<   */
+    RESULT_ENUM( prefix, RECEIVE_FAILED,                      5001 ),   /**<   */ \
+    RESULT_ENUM( prefix, ALERT_NO_CERTIFICATE,                5002 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_OUT_OF_MEMORY,                 5003 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_FEATURE_UNAVAILABLE,           5004 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_INPUT_DATA,                5005 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_INVALID_MAC,                   5006 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_INVALID_RECORD,                5007 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_INVALID_MODULUS_SIZE,          5008 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_UNKNOWN_CIPHER,                5009 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_NO_CIPHER_CHOSEN,              5010 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_NO_SESSION_FOUND,              5011 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_NO_CLIENT_CERTIFICATE,         5012 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_CERTIFICATE_TOO_LARGE,         5013 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_CERTIFICATE_REQUIRED,          5014 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_PRIVATE_KEY_REQUIRED,          5015 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_CA_CHAIN_REQUIRED,             5016 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_UNEXPECTED_MESSAGE,            5017 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_FATAL_ALERT_MESSAGE,           5018 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_PEER_VERIFY_FAILED,            5019 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_PEER_CLOSE_NOTIFY,             5020 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_CLIENT_HELLO,           5021 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_SERVER_HELLO,           5022 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_CERTIFICATE,            5023 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_CERTIFICATE_REQUEST,    5024 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_SERVER_KEY_EXCHANGE,    5025 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_SERVER_HELLO_DONE,      5026 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_CLIENT_KEY_EXCHANGE,    5027 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_CERTIFICATE_VERIFY,     5028 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_CHANGE_CIPHER_SPEC,     5029 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_BAD_HS_FINISHED,               5030 ),   /**<   */ \
+    RESULT_ENUM( prefix, HANDSHAKE_TIMEOUT,                   5031 ),   /**<   */ \
+    RESULT_ENUM( prefix, HANDSHAKE_ERROR,                     5032 ),   /**<   */ \
+    RESULT_ENUM( prefix, INIT_FAIL,                           5033 ),   /**<   */ \
+    RESULT_ENUM( prefix, BAD_MESSAGE,                         5034 ),   /**<   */ \
+    RESULT_ENUM( prefix, UNTRUSTED_CERTIFICATE,               5035 ),   /**<   */ \
+    RESULT_ENUM( prefix, EXPIRED_CERTIFICATE,                 5036 ),   /**<   */ \
+    RESULT_ENUM( prefix, CERTIFICATE_NAME_MISMATCH,           5037 ),   /**<   */ \
+    RESULT_ENUM( prefix, CERTIFICATE_REVOKED,                 5038 ),   /**<   */ \
+    RESULT_ENUM( prefix, NO_DATA,                             5039 ),   /**<   */ \
+    RESULT_ENUM( prefix, ERROR_UNSUPPORTED_EXTENSION,         5040 ),   /**<   */
 
 
 

@@ -49,11 +49,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static DMA_InitTypeDef i2c_dma_init; /* Should investigate why this is global */
@@ -809,7 +809,7 @@ static platform_result_t i2c_transfer_message_no_dma( const platform_i2c_t* i2c,
 
 }
 
-platform_result_t platform_i2c_init_tx_message( platform_i2c_message_t* message, void* tx_buffer, uint16_t tx_buffer_length, uint16_t retries, wiced_bool_t disable_dma )
+platform_result_t platform_i2c_init_tx_message( platform_i2c_message_t* message, const void* tx_buffer, uint16_t tx_buffer_length, uint16_t retries, wiced_bool_t disable_dma )
 {
     wiced_assert( "bad argument", ( message != NULL ) && ( tx_buffer != NULL ) && ( tx_buffer_length != 0 ) );
 

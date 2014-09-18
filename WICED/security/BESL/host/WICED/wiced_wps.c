@@ -124,7 +124,7 @@ static const wwd_event_num_t        wps_events[]         = { WLC_E_PROBREQ_MSG, 
  ******************************************************/
 
 static void          wiced_wps_thread             ( uint32_t arg );
-static void          scan_result_handler          ( wiced_scan_result_t** result_ptr, void* user_data );
+static void          scan_result_handler          ( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status );
 static void*         wps_softap_event_handler     ( const wwd_event_header_t* event_header, const uint8_t* event_data, /*@returned@*/ void* handler_user_data );
 static void          wps_update_pbc_overlap_array ( const besl_mac_t* mac );
 static besl_result_t besl_wps_pbc_overlap_check   ( const besl_mac_t* mac );
@@ -184,7 +184,7 @@ besl_result_t besl_wps_management_set_event_handler( wps_agent_t* workspace, wic
 {
     wwd_result_t        result;
 
-    // Add WPS event handler
+    /* Add WPS event handler */
     if ( enable == WICED_TRUE )
     {
         result = wwd_management_set_event_handler( wps_events, wps_softap_event_handler, workspace, WWD_AP_INTERFACE );
@@ -373,12 +373,12 @@ void wiced_wps_thread_main( uint32_t arg )
 
     workspace->wps_result = WPS_IN_PROGRESS;
 
-    // Now that our queue is initialized we can flag the workspace as active
+    /* Now that our queue is initialized we can flag the workspace as active */
     IF_TO_WORKSPACE( workspace->interface ) = workspace;
 
     wps_prepare_workspace_crypto( workspace );
 
-    // Start 120 second timer
+    /* Start 120 second timer */
     workspace->start_time = host_rtos_get_time( );
 
     if ( workspace->agent_type == WPS_REGISTRAR_AGENT )
@@ -468,6 +468,7 @@ void wiced_wps_thread_main( uint32_t arg )
     if ( workspace->wps_result == WPS_COMPLETE )
     {
         WPS_INFO(( "WPS completed successfully\n" ));
+        workspace->wps_result = WPS_SUCCESS;
     }
     else if ( workspace->wps_result == WPS_PBC_OVERLAP )
     {
@@ -577,7 +578,7 @@ void wps_host_send_packet(void* workspace, wps_eapol_packet_t packet, uint16_t s
 
 wps_result_t wps_host_leave( void )
 {
-    wwd_wifi_leave( );
+    wwd_wifi_leave( WWD_STA_INTERFACE );
     return WPS_SUCCESS;
 }
 
@@ -585,7 +586,7 @@ wps_result_t wps_host_join( void* workspace, wps_ap_t* ap )
 {
     wps_host_workspace_t* host = (wps_host_workspace_t*) workspace;
 
-    WPS_INFO( ("Joining '%.*s'\n", ap->SSID.len, ap->SSID.val) );
+    WPS_INFO( ("Joining '%.*s'\n", ap->SSID.length, ap->SSID.value) );
 
     uint8_t attempts = 0;
     besl_result_t ret;
@@ -594,7 +595,7 @@ wps_result_t wps_host_join( void* workspace, wps_ap_t* ap )
     do
     {
         ++attempts;
-        ret = wwd_wifi_join_specific( ap, NULL, 0, &semaphore );
+        ret = wwd_wifi_join_specific( ap, NULL, 0, &semaphore, WWD_STA_INTERFACE );
         if (ret != BESL_SUCCESS)
         {
             continue;
@@ -642,7 +643,7 @@ wps_ap_t* wps_host_store_ap( void* workspace, wl_escan_result_t* scan_result )
         int a;
         wps_ap_t* ap;
 
-        // Check if this AP has already been added
+        /* Check if this AP has already been added */
         for (a = 0; a < host->stuff.enrollee.ap_list_counter; ++a)
         {
             ap = &host->stuff.enrollee.ap_list[a];
@@ -652,12 +653,12 @@ wps_ap_t* wps_host_store_ap( void* workspace, wl_escan_result_t* scan_result )
             }
         }
 
-        // Add to AP list
+        /* Add to AP list */
         ap = &host->stuff.enrollee.ap_list[host->stuff.enrollee.ap_list_counter++];
 
-        // Save SSID, BSSID, channel, security and band
-        ap->SSID.len = scan_result->bss_info[0].SSID_len;
-        memcpy( ap->SSID.val, scan_result->bss_info[0].SSID, scan_result->bss_info[0].SSID_len );
+        /* Save SSID, BSSID, channel, security and band */
+        ap->SSID.length = scan_result->bss_info[0].SSID_len;
+        memcpy( ap->SSID.value, scan_result->bss_info[0].SSID, scan_result->bss_info[0].SSID_len );
         memcpy( &ap->BSSID, &scan_result->bss_info[0].BSSID, sizeof(wiced_mac_t) );
         ap->channel  = scan_result->bss_info[0].chanspec & WL_CHANSPEC_CHAN_MASK;
         ap->security = WICED_SECURITY_WPS_SECURE;
@@ -691,7 +692,7 @@ void wps_host_store_credential( void* workspace, wps_credential_t* credential )
     wps_host_workspace_t* host = (wps_host_workspace_t*)workspace;
     besl_wps_credential_t* temp;
 
-    // Store credentials if we have room
+    /* Store credentials if we have room */
     if ( host->stuff.enrollee.stored_credential_count < host->stuff.enrollee.enrollee_output_length)
     {
         temp = &host->stuff.enrollee.enrollee_output[host->stuff.enrollee.stored_credential_count];
@@ -701,8 +702,8 @@ void wps_host_store_credential( void* workspace, wps_credential_t* credential )
         memset( temp, 0, sizeof(besl_wps_credential_t) );
         temp->passphrase_length = credential->network_key_length;
         memcpy( temp->passphrase, credential->network_key, credential->network_key_length );
-        temp->ssid.len = credential->ssid_length;
-        memcpy( temp->ssid.val, credential->ssid, credential->ssid_length );
+        temp->ssid.length = credential->ssid_length;
+        memcpy( temp->ssid.value, credential->ssid, credential->ssid_length );
 
         switch ( credential->encryption_type )
         {
@@ -747,8 +748,8 @@ void wps_host_retrieve_credential( void* workspace, wps_credential_t* credential
     wps_host_workspace_t*  host       = (wps_host_workspace_t*) workspace;
     const besl_wps_credential_t* ap_details = host->stuff.registrar.ap_details;
 
-    credential->ssid_length = ap_details->ssid.len;
-    memcpy( credential->ssid, ap_details->ssid.val, sizeof( credential->ssid ) );
+    credential->ssid_length = ap_details->ssid.length;
+    memcpy( credential->ssid, ap_details->ssid.value, sizeof( credential->ssid ) );
     credential->network_key_length = ap_details->passphrase_length;
     memcpy( credential->network_key, ap_details->passphrase, sizeof( credential->network_key ) );
 
@@ -799,7 +800,7 @@ void wps_host_stop_timer( void* workspace )
     host->timer_timeout = 0;
 }
 
-static void scan_result_handler( wiced_scan_result_t** result_ptr, void* user_data )
+static void scan_result_handler( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status )
 {
     uint8_t a;
 
@@ -842,7 +843,7 @@ void wps_host_scan( wps_agent_t* workspace, wps_scan_handler_t result_handler )
     do
     {
         ++attempts;
-        ret = wwd_wifi_scan( WICED_SCAN_TYPE_ACTIVE, WICED_BSS_TYPE_INFRASTRUCTURE, 0, 0, chlist, &extparam, scan_result_handler, 0, workspace );
+        ret = wwd_wifi_scan( WICED_SCAN_TYPE_ACTIVE, WICED_BSS_TYPE_INFRASTRUCTURE, 0, 0, chlist, &extparam, scan_result_handler, 0, workspace, WWD_STA_INTERFACE );
     } while ( ret != BESL_SUCCESS && attempts < 5 );
 
     if (ret != BESL_SUCCESS)
@@ -879,7 +880,7 @@ static void* wps_softap_event_handler( const wwd_event_header_t* event_header, c
     {
         return handler_user_data;
     }
-    length -= 24; // XXX length of management frame MAC header
+    length -= 24; /* XXX length of management frame MAC header */
     data = event_data + 24;
 
     switch ( event_header->event_type )
@@ -951,12 +952,12 @@ static void wps_update_pbc_overlap_array(const besl_mac_t* mac )
     }
 
     /* If this is a new MAC address replace oldest existing entry with this MAC address */
-    if ( pbc_overlap_array[0].probe_request_rx_time == 0 ) // Initial condition for array record 0
+    if ( pbc_overlap_array[0].probe_request_rx_time == 0 ) /* Initial condition for array record 0 */
     {
         memcpy((char*)&pbc_overlap_array[0].probe_request_mac, mac, sizeof(besl_mac_t));
         pbc_overlap_array[0].probe_request_rx_time = rx_time;
     }
-    else if ( pbc_overlap_array[1].probe_request_rx_time == 0 ) // Initial condition for array record 1
+    else if ( pbc_overlap_array[1].probe_request_rx_time == 0 ) /* Initial condition for array record 1 */
     {
         memcpy((char*)&pbc_overlap_array[1].probe_request_mac, mac, sizeof(besl_mac_t));
         pbc_overlap_array[1].probe_request_rx_time = rx_time;

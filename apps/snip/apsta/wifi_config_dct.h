@@ -39,7 +39,6 @@ extern "C" {
 #define SOFT_AP_PASSPHRASE   "abcd1234"
 #define SOFT_AP_SECURITY     WICED_SECURITY_WPA2_AES_PSK
 #define SOFT_AP_CHANNEL      1
-//#define SOFT_AP_VALID        WICED_TRUE
 
 /* This is the default AP the device will connect to (as a client)*/
 #define CLIENT_AP_SSID       "YOUR_AP_SSID"

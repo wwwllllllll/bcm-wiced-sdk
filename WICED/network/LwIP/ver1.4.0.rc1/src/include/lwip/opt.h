@@ -223,7 +223,7 @@
  * this should be set high.
  */
 #ifndef MEMP_NUM_PBUF
-#define MEMP_NUM_PBUF                   16
+#define MEMP_NUM_PBUF                   ( PBUF_POOL_TX_SIZE + PBUF_POOL_RX_SIZE + 2 )
 #endif
 
 /**
@@ -293,7 +293,7 @@
  * (requires the ARP_QUEUEING option)
  */
 #ifndef MEMP_NUM_ARP_QUEUE
-#define MEMP_NUM_ARP_QUEUE              30
+#define MEMP_NUM_ARP_QUEUE              (PBUF_POOL_TX_SIZE)
 #endif
 
 /**

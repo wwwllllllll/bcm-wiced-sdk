@@ -7,6 +7,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  */
+#pragma once
 
 /** @file
  *  Defines the Bus part of the WICED Platform Interface.
@@ -14,9 +15,6 @@
  *  Provides prototypes for functions that allow WICED to start and stop
  *  the hardware communications bus for a platform.
  */
-
-#ifndef INCLUDED_WWD_BUS_INTERFACE_H_
-#define INCLUDED_WWD_BUS_INTERFACE_H_
 
 #include "network/wwd_buffer_interface.h"
 
@@ -108,5 +106,3 @@ extern void host_platform_bus_buffer_freed( wwd_buffer_dir_t direction );
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-#endif /* ifndef INCLUDED_WWD_BUS_INTERFACE_H_ */

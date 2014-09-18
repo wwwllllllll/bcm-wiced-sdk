@@ -53,7 +53,7 @@ wwd_wlan_status_t wwd_wlan_status =
 };
 
 /******************************************************
- *             Function declarations
+ *             Static Function Declarations
  ******************************************************/
 
 static uint32_t wwd_get_core_address( device_core_t core_id );

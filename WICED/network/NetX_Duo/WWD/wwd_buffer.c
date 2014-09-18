@@ -54,10 +54,6 @@ wwd_result_t host_buffer_get( wiced_buffer_t* buffer, wwd_buffer_dir_t direction
     }
     if ( NX_SUCCESS != ( status = nx_packet_allocate( pool, nx_buffer, 0, ( wait == WICED_TRUE ) ? NX_WAIT_FOREVER : NX_NO_WAIT ) ) )
     {
-//        if (status == NX_NO_PACKET)
-//        {
-//            packet_unavailable_time[direction] = host_get_time();
-//        }
         return ( status == NX_NO_PACKET )? WWD_BUFFER_UNAVAILABLE_TEMPORARY: WWD_BUFFER_ALLOC_FAIL;
     }
     ( *nx_buffer )->nx_packet_length = size;
@@ -79,8 +75,13 @@ void host_buffer_release( wiced_buffer_t buffer, wwd_buffer_dir_t direction )
          * Return prepend pointer to the original location which the stack expects (the start of IP header).
          * For other packets, resetting prepend pointer isn't required.
          */
-        nx_buffer->nx_packet_prepend_ptr = nx_buffer->nx_packet_data_start + WICED_PHYSICAL_HEADER;
-        nx_buffer->nx_packet_length      = (ULONG)nx_buffer->nx_packet_append_ptr - (ULONG)nx_buffer->nx_packet_prepend_ptr;
+        if ( nx_buffer->nx_packet_length > WICED_LINK_OVERHEAD_BELOW_ETHERNET_FRAME + WICED_ETHERNET_SIZE )
+        {
+            if ( host_buffer_add_remove_at_front( &buffer, WICED_LINK_OVERHEAD_BELOW_ETHERNET_FRAME + WICED_ETHERNET_SIZE ) != WWD_SUCCESS )
+            {
+                WPRINT_NETWORK_DEBUG(("Could not move packet pointer\r\n"));
+            }
+        }
 
         if ( NX_SUCCESS != nx_packet_transmit_release( nx_buffer ) )
         {

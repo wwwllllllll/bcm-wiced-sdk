@@ -84,7 +84,6 @@ typedef enum
     WPS_BESL_RESULT_LIST(  WICED_BESL_     )  /* 3000 - 3999 */
     RESOURCE_RESULT_LIST(  WICED_RESOURCE_ )  /* 4000 - 4999 */
     TLS_RESULT_LIST     (  WICED_TLS_      )  /* 5000 - 5999 */
-    TLS_RESULT_LIST     (  TLS_            )  /* 5000 - 5999 */
     PLATFORM_RESULT_LIST(  WICED_PLATFORM_ )  /* 6000 - 6999 */
     TCPIP_RESULT_LIST   (  WICED_TCPIP_    )  /* 7000 - 7999 */
     BT_RESULT_LIST      (  WICED_BT_       )  /* 8000 - 8999 */

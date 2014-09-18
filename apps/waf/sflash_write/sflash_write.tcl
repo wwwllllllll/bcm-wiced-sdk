@@ -112,8 +112,9 @@ proc load_image_bin {fname foffset address length } {
 #      waf_sflash_write-NoOS-NoNS-<PlatBusDebug>
 #
 # PlatBusDebug   - The platform, bus and debug part of the build target
+# init4390       - run initialisation for the 4390
 ###############################################################################
-proc sflash_init { PlatBusDebug } {
+proc sflash_init { PlatBusDebug init4390 } {
     global entry_address_loc
     global stack_address_loc
     global buffer_size_loc
@@ -122,12 +123,15 @@ proc sflash_init { PlatBusDebug } {
     global buffer_size
 
     init
-    post_init_setup
+
+    if { $init4390 == 1 } {
+        post_init_setup
+    }
 
   #  reset halt
 
  #   halt
-    load_image build/waf_sflash_write-NoOS-NoNS-$PlatBusDebug/Binary/waf_sflash_write-NoOS-NoNS-$PlatBusDebug.elf
+    load_image build/waf_sflash_write-NoOS-NoNS-$PlatBusDebug/binary/waf_sflash_write-NoOS-NoNS-$PlatBusDebug.elf
 
     #mdw 0x000D0000 100
     #mdw $entry_address_loc 100
@@ -212,11 +216,12 @@ proc program_sflash { filename foffset dataSize destaddr cmd } {
 # destAddress  - the destination serial flash address
 # PlatBusDebug - The platform, bus and debug part of the build target
 # erasechip    - If 1, Erase the chip before writing.
+# init4390     - run initialisation for the 4390
 ###############################################################################
-proc sflash_write_file { filename destAddress PlatBusDebug erasechip } {
+proc sflash_write_file { filename destAddress PlatBusDebug erasechip init4390 } {
     global COMMAND_ERASE COMMAND_INITIAL_VERIFY COMMAND_WRITE COMMAND_POST_WRITE_VERIFY buffer_size COMMAND_WRITE_ERASE_IF_NEEDED
 
-    sflash_init $PlatBusDebug
+    sflash_init $PlatBusDebug $init4390
 
     set binDataSize [file size $filename]
     # set erase_command_val [expr $COMMAND_ERASE ]
@@ -255,15 +260,16 @@ proc sflash_write_file { filename destAddress PlatBusDebug erasechip } {
 # srcAddress   - the destination serial flash address
 # PlatBusDebug - The platform, bus and debug part of the build target
 # length       - number of bytes to read
+# init4390     - run initialisation for the 4390
 ###############################################################################
-proc sflash_read_file { filename srcAddress PlatBusDebug length } {
+proc sflash_read_file { filename srcAddress PlatBusDebug length init4390 } {
     global COMMAND_ERASE COMMAND_INITIAL_VERIFY COMMAND_WRITE COMMAND_POST_WRITE_VERIFY buffer_size COMMAND_READ data_loc
 
-    sflash_init $PlatBusDebug
-#    set temp_file "temp.bin"
-#    exec echo > $filename
+    sflash_init $PlatBusDebug $init4390
+    set temp_file "temp.bin"
+    exec tools/common/Win32/echo > $filename
 
-    set write_command_val [expr $COMMAND_READ ]
+    set read_command_val [expr $COMMAND_READ ]
     set pos 0
 
     puts "Total read size is $length"
@@ -274,20 +280,23 @@ proc sflash_read_file { filename srcAddress PlatBusDebug length } {
             set readsize $buffer_size
         }
         puts "reading $readsize bytes from [expr $srcAddress + $pos]"
-        program_sflash "" $pos $readsize [expr $srcAddress + $pos] $write_command_val
-        dump_image $filename $data_loc $readsize
+        program_sflash "" $pos $readsize [expr $srcAddress + $pos] $read_command_val
+#        mem2array memar 8 [expr $data_loc-8] 1024
+#        puts "$memar(0) $memar(1) $memar(2) $memar(3) $memar(4) $memar(5) $memar(6) $memar(7) $memar(8)"
+        puts "dumping image from $data_loc $readsize"
+        dump_image  $temp_file $data_loc $readsize
 
-#        exec cat $temp_file >> $filename
+        exec cat $temp_file >> $filename
         set pos [expr $pos + $readsize]
     }
 }
 
 
 
-proc sflash_erase { PlatBusDebug } {
+proc sflash_erase { PlatBusDebug init4390 } {
     global COMMAND_ERASE COMMAND_INITIAL_VERIFY COMMAND_WRITE COMMAND_POST_WRITE_VERIFY buffer_size COMMAND_WRITE_ERASE_IF_NEEDED
 
-    sflash_init $PlatBusDebug
+    sflash_init $PlatBusDebug $init4390
 
     set erase_command_val [expr $COMMAND_ERASE ]
 

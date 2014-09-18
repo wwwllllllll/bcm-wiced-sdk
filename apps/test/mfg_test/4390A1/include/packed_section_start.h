@@ -16,7 +16,7 @@
  *
  *
  * $Copyright Open Broadcom Corporation$
- * $Id: packed_section_start.h 286783 2011-09-29 06:18:57Z nisar $
+ * $Id: packed_section_start.h 397846 2013-04-21 22:11:16Z ishen $
  */
 
 
@@ -47,6 +47,10 @@
 	#endif   /* BWL_PACKED_SECTION */
 #endif   /* _MSC_VER */
 
+#if defined(__GNUC__) && defined(EFI)
+#pragma pack(push)
+#pragma pack(1)
+#endif
 
 /* Declare compiler-specific directives for structure packing. */
 #if defined(_MSC_VER)

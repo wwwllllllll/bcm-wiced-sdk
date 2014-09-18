@@ -10,31 +10,46 @@
 
 #include "wwd_debug.h"
 #include "RTOS/wwd_rtos_interface.h"
+#include "wiced_framework.h"
 
+/******************************************************
+ *                      Macros
+ ******************************************************/
 
-/*---------------------------------------------------------------------------*/
-/* from "Platform/common/ARM_Cortex_M3/crt0_gcc.c" */
-#ifndef SCB_AIRCR_ADDRESS
-    #define SCB_AIRCR_ADDRESS        ( 0xE000ED0C )
-#endif /* SCB_AIRCR_ADDRESS */
-#ifndef SCB_AIRCR_VECTKEY
-    #define SCB_AIRCR_VECTKEY        ( 0x5FA << 16 )
-#endif /* SCB_AIRCR_VECTKEY */
-#ifndef SCB_AIRCR
-    #define SCB_AIRCR                ( ( volatile unsigned long* ) SCB_AIRCR_ADDRESS )
-#endif /* SCB_AIRCR */
-#ifndef SCB_AIRCR_SYSRESETREQ
-    #define SCB_AIRCR_SYSRESETREQ    ( 0x1 << 2 )
-#endif /* SCB_AIRCR_SYSRESETREQ */
-/*---------------------------------------------------------------------------*/
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 int reboot( int argc, char *argv[] )
 {
     WPRINT_APP_INFO( ( "Rebooting...\n" ) );
     host_rtos_delay_milliseconds( 1000 );
 
-    /* Reboot the ARM Cortex M3 */
-    *SCB_AIRCR = SCB_AIRCR_SYSRESETREQ | SCB_AIRCR_VECTKEY;
+    shared_waf_api->platform_reboot();
 
     /* Never reached */
     return 0;

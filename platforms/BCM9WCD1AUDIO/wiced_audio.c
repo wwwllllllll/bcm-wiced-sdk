@@ -43,7 +43,7 @@
 static wiced_audio_device_interface_t* search_audio_device( const char* device_name );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static audio_device_class_t audio_dev_class =
@@ -81,6 +81,8 @@ struct wiced_audio_session_t
 struct wiced_audio_session_t sessions[MAX_AUDIO_SESSIONS];
 extern const platform_i2s_t i2s_interfaces[];
 
+#define MAX_AUDIO_BUFFER_SIZE       (12*1024)
+uint8_t wiced_audio_buffer[MAX_AUDIO_BUFFER_SIZE];
 
 #define lock_session(sh)        wiced_rtos_lock_mutex(&(sh)->session_lock)
 #define unlock_session(sh)      wiced_rtos_unlock_mutex(&(sh)->session_lock)
@@ -234,7 +236,7 @@ exit:
 }
 
 
-wiced_result_t wiced_audio_create_buffer( wiced_audio_session_ref sh, uint16_t size, uint8_t* buffer_ptr, void*(*allocator)(uint16_t size))
+wiced_result_t wiced_audio_create_buffer( wiced_audio_session_ref sh, uint16_t size, uint8_t* buffer_ptr, void*(*allocator)(uint16_t size), wiced_bool_t is_buf_shared)
 {
     wiced_result_t result;
 
@@ -256,6 +258,14 @@ wiced_result_t wiced_audio_create_buffer( wiced_audio_session_ref sh, uint16_t s
         buf_ptr_tmp = (uint8_t*)allocator(size);
         wiced_required_action(buf_ptr_tmp != NULL, exit, result = WICED_ERROR);
         sh->audio_buffer.buffer = buf_ptr_tmp;
+        sh->audio_buffer.length = size;
+        result = WICED_SUCCESS;
+    }
+    else if ( is_buf_shared == WICED_TRUE )
+    {
+        WPRINT_LIB_INFO( ( "using shared buffer for player\n" ) );
+        memset(&wiced_audio_buffer, 0, sizeof(wiced_audio_buffer));
+        sh->audio_buffer.buffer = wiced_audio_buffer;
         sh->audio_buffer.length = size;
         result = WICED_SUCCESS;
     }

@@ -37,8 +37,15 @@
 
 #define NX_DHCP_CLIENT_RESTORE_STATE
 
+#define NX_TCP_ENABLE_KEEPALIVE
+
+#define NX_TCP_MAX_OUT_OF_ORDER_PACKETS
+#define NX_ARP_DISABLE_AUTO_ARP_ENTRY
+
+
 #define PACKET_RELEASE_NOTIFY
 extern void packet_release_notify( void* pool );
+extern UINT nx_rand16( void );
 
 /* Disable parameter checking when building non-debug */
 #ifndef DEBUG
@@ -70,7 +77,7 @@ extern unsigned long host_rtos_get_tickrate( void );
 
 #define NX_IP_PERIODIC_RATE ( host_rtos_get_tickrate( ) )
 
-
+#define NX_RANDOM_INITIAL_TCP_PORT
 
 
 /* These are all the defines that are used in NetX-Duo #if statements

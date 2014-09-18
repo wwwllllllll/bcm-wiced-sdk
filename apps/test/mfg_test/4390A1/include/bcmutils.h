@@ -3,7 +3,7 @@
  *
  * $Copyright Open Broadcom Corporation$
  *
- * $Id: bcmutils.h 382794 2013-02-04 17:34:08Z ishen $
+ * $Id: bcmutils.h 414569 2013-07-25 09:10:33Z anoops $
  */
 
 #ifndef	_bcmutils_h_
@@ -98,6 +98,7 @@ struct spktq;
 }
 
 /* osl multi-precedence packet queue */
+#define PKTQ_LEN_MAX            0xFFFF  /* Max uint16 65535 packets */
 #ifndef PKTQ_LEN_DEFAULT
 #define PKTQ_LEN_DEFAULT        128	/* Max 128 packets */
 #endif
@@ -143,7 +144,16 @@ typedef struct {
 	uint32 queue_capacity; /* the maximum capacity of the queue */
 	uint32 rtsfail;        /* count of rts attempts that failed to receive cts */
 	uint32 acked;          /* count of packets sent (acked) successfully */
+	uint32 txrate_succ;    /* running total of phy rate of packets sent successfully */
+	uint32 txrate_main;    /* running totoal of primary phy rate of all packets */
+	uint32 throughput;     /* actual data transferred successfully */
+	uint32  _logtime;      /* timestamp of last counter clear  */
 } pktq_counters_t;
+
+typedef struct {
+	uint32                  _prec_log;
+	pktq_counters_t*	_prec_cnt[PKTQ_MAX_PREC];     /* Counters per queue  */
+} pktq_log_t;
 #endif /* PKTQ_LOG */
 
 
@@ -159,9 +169,7 @@ struct pktq {
 	/* q array must be last since # of elements can be either PKTQ_MAX_PREC or 1 */
 	struct pktq_prec q[PKTQ_MAX_PREC];
 #ifdef PKTQ_LOG
-	pktq_counters_t	_prec_cnt[PKTQ_MAX_PREC];     /* Counters per queue  */
-	pktq_counters_t _prec_bytes[PKTQ_MAX_PREC];   /* Byte count per queue  */
-	uint32 _logtime;                   /* timestamp of last counter clear  */
+	pktq_log_t*      pktqlog;
 #endif
 };
 
@@ -189,6 +197,12 @@ typedef bool (*ifpkt_cb_t)(void*, int);
 #define SHARED_POOL		((struct pktpool *)NULL)
 #endif /* BCMPKTPOOL */
 
+#ifdef BCMFRAGPOOL
+#define SHARED_FRAG_POOL	(pktpool_shared_lfrag)
+#endif
+#define SHARED_RXFRAG_POOL	(pktpool_shared_rxlfrag)
+
+
 #ifndef PKTPOOL_LEN_MAX
 #define PKTPOOL_LEN_MAX		40
 #endif /* PKTPOOL_LEN_MAX */
@@ -200,6 +214,13 @@ typedef struct {
 	pktpool_cb_t cb;
 	void *arg;
 } pktpool_cbinfo_t;
+/* call back fn extension to populate host address in pool pkt */
+typedef int (*pktpool_cb_extn_t)(struct pktpool *pool, void *arg, void* pkt);
+typedef struct {
+	pktpool_cb_extn_t cb;
+	void *arg;
+} pktpool_cbextn_info_t;
+
 
 #ifdef BCMDBG_POOL
 /* pkt pool debug states */
@@ -231,6 +252,7 @@ typedef struct {
 
 typedef struct pktpool {
 	bool inited;
+	uint8 type;
 	uint16 r;
 	uint16 w;
 	uint16 len;
@@ -246,7 +268,9 @@ typedef struct pktpool {
 	pktpool_cbinfo_t cbs[PKTPOOL_CB_MAX];
 	pktpool_cbinfo_t ecbs[PKTPOOL_CB_MAX];
 	void *q[PKTPOOL_LEN_MAX + 1];
-
+#ifdef BCMSPLITRX
+	pktpool_cbextn_info_t cbext;
+#endif
 #ifdef BCMDBG_POOL
 	uint8 dbg_cbcnt;
 	pktpool_cbinfo_t dbg_cbs[PKTPOOL_CB_MAX];
@@ -259,9 +283,13 @@ typedef struct pktpool {
 extern pktpool_t *pktpool_shared_ptr;
 #else
 extern pktpool_t *pktpool_shared;
+#ifdef BCMFRAGPOOL
+extern pktpool_t *pktpool_shared_lfrag;
+#endif
+extern pktpool_t *pktpool_shared_rxlfrag;
 #endif /* BCM4329C0 */
 
-extern int pktpool_init(osl_t *osh, pktpool_t *pktp, int *pktplen, int plen, bool istx);
+extern int pktpool_init(osl_t *osh, pktpool_t *pktp, int *pktplen, int plen, bool istx, uint8 type);
 extern int pktpool_deinit(osl_t *osh, pktpool_t *pktp);
 extern int pktpool_fill(osl_t *osh, pktpool_t *pktp, bool minimal);
 extern void* pktpool_get(pktpool_t *pktp);
@@ -276,7 +304,7 @@ extern int pktpool_setmaxlen(pktpool_t *pktp, uint16 maxlen);
 extern int pktpool_setmaxlen_strict(osl_t *osh, pktpool_t *pktp, uint16 maxlen);
 extern void pktpool_emptycb_disable(pktpool_t *pktp, bool disable);
 extern bool pktpool_emptycb_disabled(pktpool_t *pktp);
-
+int pktpool_hostaddr_fill_register(pktpool_t *pktp, pktpool_cb_extn_t cb, void *arg);
 #define POOLPTR(pp)			((pktpool_t *)(pp))
 #define pktpool_len(pp)			(POOLPTR(pp)->len - 1)
 #define pktpool_plen(pp)		(POOLPTR(pp)->plen)
@@ -585,7 +613,9 @@ extern int bcm_format_ssid(char* buf, const uchar ssid[], uint ssid_len);
 #define BCME_NMODE_DISABLED		-41 	/* NMODE disabled */
 #define BCME_NONRESIDENT		-42 /* access to nonresident overlay */
 #define BCME_SCANREJECT			-43 	/* reject scan request */
-#define BCME_LAST			BCME_SCANREJECT
+/* Leave gap between -44 and -46 to synchronize with trunk. */
+#define BCME_DISABLED                   -47     /* Disabled in this build */
+#define BCME_LAST			BCME_DISABLED
 
 /* These are collection of BCME Error strings */
 #define BCMERRSTRINGTABLE {		\
@@ -633,6 +663,10 @@ extern int bcm_format_ssid(char* buf, const uchar ssid[], uint ssid_len);
 	"NMODE Disabled",		\
 	"Nonresident overlay access", \
 	"Scan Rejected",		\
+	"unused",			\
+	"unused",			\
+	"unused",			\
+	"Disabled",			\
 }
 
 #ifndef ABS
@@ -949,7 +983,8 @@ unsigned int process_nvram_vars(char *varbuf, unsigned int len);
 extern void bcm_uint64_multiple_add(uint32* r_high, uint32* r_low, uint32 a, uint32 b, uint32 c);
 /* calculate a / b */
 extern void bcm_uint64_divide(uint32* r, uint32 a_high, uint32 a_low, uint32 b);
-
+/* calculate a >> b */
+void bcm_uint64_right_shift(uint32* r, uint32 a_high, uint32 a_low, uint32 b);
 #ifdef __cplusplus
 	}
 #endif

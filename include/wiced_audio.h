@@ -127,7 +127,8 @@ typedef struct
 
 wiced_result_t wiced_audio_init                        ( const char* device_name, wiced_audio_session_ref* sh, uint16_t period_size );
 wiced_result_t wiced_audio_configure                   ( wiced_audio_session_ref sh, wiced_audio_config_t* config );
-wiced_result_t wiced_audio_create_buffer               ( wiced_audio_session_ref sh, uint16_t size, uint8_t* buffer_ptr, void*(*allocator)(uint16_t size));
+wiced_result_t wiced_audio_create_buffer               ( wiced_audio_session_ref sh, uint16_t size, uint8_t* buffer_ptr, void*(*allocator)(uint16_t size),\
+                                                       wiced_bool_t is_buffer_shared);
 wiced_result_t wiced_audio_set_volume                  ( wiced_audio_session_ref sh, double volume_in_db );
 wiced_result_t wiced_audio_deinit                      ( wiced_audio_session_ref sh );
 wiced_result_t wiced_audio_get_buffer                  ( wiced_audio_session_ref sh, uint8_t** ptr, uint16_t* size);

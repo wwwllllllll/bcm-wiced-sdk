@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007-2013 Free Software Foundation, Inc.
+// Copyright (C) 2007-2014 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -150,7 +150,9 @@ namespace __parallel
 
       if (_GLIBCXX_PARALLEL_CONDITION(true))
         {
-	  std::binder2nd<__gnu_parallel::_EqualTo<_ValueType, const _Tp&> >
+	  __gnu_parallel::__binder2nd<__gnu_parallel::_EqualTo<_ValueType,
+							       const _Tp&>,
+				      _ValueType, const _Tp&, bool>
             __comp(__gnu_parallel::_EqualTo<_ValueType, const _Tp&>(), __val);
           return __gnu_parallel::__find_template(
                    __begin, __end, __begin, __comp,

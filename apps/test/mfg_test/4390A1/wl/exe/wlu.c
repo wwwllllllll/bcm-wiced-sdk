@@ -3,7 +3,7 @@
  *
  * $Copyright (C) 2002-2005 Broadcom Corporation$
  *
- * $Id: wlu.c 391610 2013-03-19 00:03:37Z peyush $
+ * $Id: wlu.c 450845 2014-01-23 06:47:51Z vkanchi $
  */
 
 #ifdef BCMINTERNAL
@@ -53,6 +53,9 @@
 #include <proto/802.11e.h>
 #include <proto/wpa.h>
 #include <proto/bcmip.h>
+#if defined(MACOSX)
+#include <proto/bcmtcp.h>
+#endif
 #include <proto/wps.h>
 
 #include <bcmwifi_rates.h>
@@ -99,8 +102,8 @@
 #include <miniopt.h>
 #include <errno.h>
 
-#if defined SERDOWNLOAD || defined CLMDOWNLOAD
 #include <sys/stat.h>
+#if defined SERDOWNLOAD || defined CLMDOWNLOAD
 #include <trxhdr.h>
 #ifdef SERDOWNLOAD
 #include <usbrdl.h>
@@ -125,12 +128,18 @@
 #include <proto/bcmipv6.h>
 #include <wlc_ppr.h>
 
+#ifdef ATE_BUILD
+#include <wl_ate.h>
+#endif
+
 /* For backwards compatibility, the absense of the define 'NO_FILESYSTEM_SUPPORT'
  * implies that a filesystem is supported.
  */
 #if !defined(BWL_NO_FILESYSTEM_SUPPORT)
 #define BWL_FILESYSTEM_SUPPORT
 #endif
+
+#define WLC_BSS_RSSI_ON_CHANNEL 0x0002 /* Copied from wlc.h. Is there a better way to do this? */
 
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
@@ -153,13 +162,16 @@ int wlu_var_getbuf(void *wl, const char *iovar, void *param, int param_len, void
 int wlu_var_getbuf_sm(void *wl, const char *iovar, void *param, int param_len, void **bufptr);
 int wlu_var_getbuf_med(void *wl, const char *iovar, void *param, int param_len, void **bufptr);
 int wlu_var_setbuf(void *wl, const char *iovar, void *param, int param_len);
-int wlu_var_setbuf_sm(void *wl, const char *iovar, void *param, int param_len);
-int wlu_var_setbuf_med(void *wl, const char *iovar, void *param, int param_len);
 int wlu_iovar_get(void *wl, const char *iovar, void *outbuf, int len);
 int wlu_iovar_set(void *wl, const char *iovar, void *param, int paramlen);
 int wlu_iovar_getint(void *wl, const char *iovar, int *pval);
 int wlu_iovar_setint(void *wl, const char *iovar, int val);
 static cmd_func_t wl_gpioout;
+static cmd_func_t wl_sample_collect, wl_out, wl_txpwr1;
+static cmd_func_t wl_chanspec;
+static cmd_func_t wl_rate, wl_gpaio;
+chanspec_t wl_chspec_to_legacy(chanspec_t chspec);
+static uint16 wl_qdbm_to_mw(uint8 qdbm);
 
 #else /* ATE_BUILD */
 
@@ -176,6 +188,7 @@ static cmd_func_t wl_maclist, wl_get_pktcnt, wl_upgrade;
 static cmd_func_t wl_maclist_1;
 static cmd_func_t wl_rateset, wl_txbf_rateset, wl_interfere, wl_interfere_override;
 static cmd_func_t wl_radar_args, wl_radar_thrs, wl_dfs_status;
+static cmd_func_t wl_radar_status, wl_clear_radar_status;
 static cmd_func_t wl_get_txpwr_limit, wl_get_current_power, wl_get_instant_power;
 static cmd_func_t wl_get_current_txppr;
 static cmd_func_t wl_var_get, wl_var_getint, wl_var_getinthex, wl_var_getandprintstr;
@@ -186,7 +199,7 @@ static cmd_func_t wl_wme_apsd_sta, wl_wme_dp, wl_lifetime;
 static cmd_func_t wl_rand, wl_otpw, wl_otpraw, wl_counters, wl_delta_stats;
 static cmd_func_t wl_assoc_info, wl_wme_counters, wl_devpath;
 static cmd_func_t wl_management_info;
-static cmd_func_t wl_bitvec128, wl_diag, wl_var_void;
+static cmd_func_t wl_event_bitvec, wl_diag, wl_var_void;
 static cmd_func_t wl_auto_channel_sel;
 static cmd_func_t wl_bsscfg_int, wl_bsscfg_enable, wl_ap_bsscfg;
 static cmd_func_t wl_msglevel, wl_plcphdr, wl_reg, wl_macreg, wl_band_elm;
@@ -229,6 +242,8 @@ static cmd_func_t wl_pfn_cfg;
 static cmd_func_t wl_pfn;
 static cmd_func_t wl_pfnbest;
 static cmd_func_t wl_pfn_suspend;
+static cmd_func_t wl_pfnlbest;
+static cmd_func_t wl_pfn_mem;
 #if defined(linux)
 static cmd_func_t wl_pfn_event_check;
 static cmd_func_t wl_escan_event_check;
@@ -243,7 +258,7 @@ static cmd_func_t wl_p2po_addsvc;
 static cmd_func_t wl_p2po_delsvc;
 static cmd_func_t wl_p2po_sd_reqresp;
 static cmd_func_t wl_p2po_listen_channel;
-static cmd_func_t wl_p2po_tracelevel;
+static cmd_func_t wl_p2po_stop;
 #if defined(linux)
 static cmd_func_t wl_p2po_results;
 #endif	/* linux */
@@ -287,7 +302,7 @@ static cmd_func_t wlu_reg3args;
 static cmd_func_t wlu_reg1or3args;
 static cmd_func_t wl_coma;
 static cmd_func_t wl_aci_args;
-static cmd_func_t wlu_ratedump, wlu_fixrate;
+static cmd_func_t wlu_ratedump, wlu_dump_rateset, wlu_fixrate;
 static cmd_func_t wlu_ccreg;
 static cmd_func_t wl_send_wpa_m1;
 #endif
@@ -330,7 +345,9 @@ static cmd_func_t wl_pkteng, wl_pkteng_stats;
 
 static cmd_func_t wl_offload_cmpnt;
 static cmd_func_t wl_hostip, wl_arp_stats, wl_toe_stats, wl_nshostip;
-static cmd_func_t wl_mcast_ackmac, wl_mcast_status;
+static cmd_func_t wl_mcast_ackmac, wl_mcast_ackreq, wl_mcast_status;
+static cmd_func_t wl_mcast_actf_time, wl_mcast_rssi_thresh, wl_mcast_stats;
+static cmd_func_t wl_mcast_rssi_delta, wl_mcast_vsie, wl_mcast_ar_timeout;
 #ifdef WLOFFLD
 static cmd_func_t wl_ol_notify_bcn_ie;
 #endif
@@ -348,14 +365,14 @@ cmd_func_t wl_seq_start;
 cmd_func_t wl_seq_stop;
 
 static cmd_func_t wl_phy_txiqcc, wl_phy_txlocc;
+static cmd_func_t wl_phy_rssi_gain_delta_2g, wl_phy_rssi_gain_delta_5g;
 static cmd_func_t wl_phytable, wl_phy_pavars, wl_phy_povars;
 static cmd_func_t wl_phy_fem, wl_phy_maxpower, wl_antgain, wl_phy_txpwrindex;
 static cmd_func_t wl_keep_alive;
 static cmd_func_t wl_mkeep_alive;
 static cmd_func_t wl_srchmem;
-#ifdef MACOSX
-static cmd_func_t wl_mdns_wake;
-#endif
+static cmd_func_t wl_phy_rpcalvars;
+static cmd_func_t wl_wake_inf;
 
 #ifdef WLAWDL
 static cmd_func_t wl_awdl_sync_params;
@@ -414,6 +431,9 @@ static cmd_func_t wl_wifiserver;
 
 static cmd_func_t wl_led_blink_sync;
 static cmd_func_t wl_cca_get_stats;
+#if defined(BCMINTERNAL)
+static cmd_func_t wl_dump_cca;
+#endif
 static cmd_func_t wl_itfr_get_stats;
 static cmd_func_t wl_rrm;
 static cmd_func_t wl_rrm_nbr_req;
@@ -431,7 +451,9 @@ static cmd_func_t wl_wnm_bsstq;
 static cmd_func_t wl_tclas_add;
 static cmd_func_t wl_tclas_del;
 static cmd_func_t wl_tclas_list;
-static cmd_func_t wl_wnm_tfsreq_add;
+static cmd_func_t wl_wnm_tfs_set;
+static cmd_func_t wl_wnm_tfs_status;
+static cmd_func_t wl_wnm_tfs_term;
 static cmd_func_t wl_wnm_dms_set;
 static cmd_func_t wl_wnm_dms_status;
 static cmd_func_t wl_wnm_dms_term;
@@ -444,6 +466,7 @@ static cmd_func_t wl_wnm_bsstrans_req;
 static cmd_func_t wl_chanim_acs_record;
 static cmd_func_t wl_chanim_stats;
 static cmd_func_t wl_txdelay_params;
+static cmd_func_t wl_intfer_params;
 
 #if defined(BCMINTERNAL) || defined(WLTEST)
 static cmd_func_t wl_sslpnphy_papd_debug;
@@ -456,6 +479,12 @@ static cmd_func_t wl_phy_sslpnphy_cga_5g;
 static cmd_func_t wl_sslpnphy_tx_iqcc;
 static cmd_func_t wl_sslpnphy_tx_locc;
 #endif /* BCMINTERNAL || WLTEST */
+
+
+/* LTE coex funcs */
+static cmd_func_t wl_wci2_config;
+static cmd_func_t wl_mws_params;
+static cmd_func_t wl_mws_wci2_msg;
 
 #ifdef WLP2P
 static cmd_func_t wl_p2p_state;
@@ -479,9 +508,9 @@ static cmd_func_t wl_wnm_url;
 static cmd_func_t wl_nwoe_ifconfig;
 #endif /* BCMINTERNAL */
 
+int debug = 0;
 #ifdef SERDOWNLOAD
 static cmd_func_t dhd_upload;
-int debug = 0;
 #endif
 
 #if defined(WL_PROXDETECT)
@@ -492,10 +521,23 @@ static cmd_func_t wl_proxd_payload;
 #define WL_PROXD_PAYLOAD_LEN 	1026
 #endif
 
+static cmd_func_t wl_bcnlenhist;
+
 #if defined(DWDS)
 static cmd_func_t wl_dwds_config;
 #endif
 
+#ifdef SR_DEBUG
+static cmd_func_t wl_dump_pmu;
+#endif
+
+
+static cmd_func_t wl_stamon_sta_config;
+static cmd_func_t wl_monitor_promisc_level;
+static cmd_func_t wl_staprio;
+
+static cmd_func_t wl_aibss_bcn_force_config;
+static cmd_func_t wl_bss_peer_info;
 
 static void wl_txppr_print(ppr_t *ppr, int cck, uint flags);
 static void wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw);
@@ -629,9 +671,8 @@ static int wl_mfp_bip_test(void *wl, cmd_t *cmd, char **argv);
 static void wl_tclas_dump(wl_tclas_t *elem);
 static int wl_tclas_list_parse(wl_tclas_list_t *list);
 static cmd_func_t wl_patrim;
-#endif /* ATE_BUILD */
-
 static int wl_sleep_ret_ext(void *wl, cmd_t *cmd, char **argv);
+#endif /* ATE_BUILD */
 
 char *ver2str(unsigned int vms, unsigned int vls);
 
@@ -640,10 +681,12 @@ char *ver2str(unsigned int vms, unsigned int vls);
  * hence keeping WL_DUMP_BUF_LEN below that
  */
 #if defined(BWL_SMALL_WLU_DUMP_BUF) || defined(__IOPOS__)
-#define WL_DUMP_BUF_LEN (8 * 1024)
+#define WL_DUMP_BUF_LEN (4 * 1024)
 #else
 #define WL_DUMP_BUF_LEN (127 * 1024)
 #endif /* __IOPOS__ */
+
+#define CMDLINESZ		80
 
 #define OUI_STR_SIZE	8	/* OUI string size */
 #define MAX_OUI_SIZE	3	/* MAX  OUI size */
@@ -702,6 +745,11 @@ typedef struct {
 	uint value;
 	const char *string;
 } phy_msg_t;
+
+typedef struct {
+	uint value;
+	const char *string;
+} monitor_promisc_level_msg_t;
 
 #define WL_SCAN_PARAMS_SSID_MAX 10
 #define SCAN_USAGE	"" \
@@ -825,6 +873,35 @@ typedef struct {
 "\tExample: wl proxd_params 1 -c 36 -i 100 -d 10 -s -40 -p 12 -r 6 -t 20 -m 1000\n" \
 "\tExample: wl proxd_params 1 -s -55"
 
+#define MONITOR_PROMISC_LEVEL_USAGE	\
+"\tUsage: wl monitor_promisc_level [<bitmap> | <+|-name>]\n" \
+"\tbitmap values and corresponding name are the following:\n" \
+"\tArgs:\n" \
+"\t\tbit:0:promisc: " \
+"When set, address filter accepts all received frames." \
+"When cleared, the address filter accepts only those frames " \
+"that match the BSSID or local MAC address\n" \
+"\t\tbit:1:ctrl: " \
+"When set, the RX filter accepts all received control frames " \
+"that are accepted by the address filter. " \
+"When cleared, the RX filter rejects all control frames other " \
+"than PS poll frames." \
+"\t\tbit:3:fcs: " \
+"When set, the RX filter forwards received frames with FCS " \
+"errors to the driver." \
+"When cleared, frames with FCS errors are discarded.\n\n" \
+"\tExample: wl monitor_promisc_level +promisc\n" \
+"\tExample: wl monitor_promisc_level 0x2\n" \
+"\tExample: wl monitor_promisc_level 0"
+
+#define WDS_TYPE_USAGE	\
+"\tUsage: wl wds_type -i <ifname>\n" \
+"\tifname is the name of the interface to query the type.\n" \
+"\tReturn values:\n" \
+"\t\t0:The interface type is neither WDS nor DWDS.\n" \
+"\t\t1:The interface is WDS type.\n" \
+"\t\t2:The interface is DWDS type.\n"
+
 /* the default behavior is batching in driver,
  * to indicate client batching, users should specify --interactive and --clientbatch
  */
@@ -844,12 +921,12 @@ cmd_t wl_cmds[] = {
 #endif
 	{ "up",	wl_void, -1, WLC_UP,
 	"reinitialize and mark adapter up (operational)" },
-#ifndef ATE_BUILD
 	{ "down", wl_void, -1, WLC_DOWN,
 	"reset and mark adapter down (disabled)" },
 	{ "out", wl_out, -1, WLC_OUT,
 	"mark adapter down but do not reset hardware(disabled)\n"
 	"\tOn dualband cards, cards must be bandlocked before use."},
+#ifndef ATE_BUILD
 	{ "clk", wl_int, WLC_GET_CLK, WLC_SET_CLK,
 	"set board clock state. return error for set_clk attempt if the driver is not down\n"
 	"\t0: clock off\n"
@@ -865,8 +942,13 @@ cmd_t wl_cmds[] = {
 	"Give suboption \"list\" to list various suboptions" },
 	{ "ol_stats", wlu_offloads_stats, WLC_GET_VAR, -1,
 	"Give suboption \"list\" to list various suboptions" },
-	{ "ol_cons", wlu_offloads_stats, WLC_GET_VAR, -1,
+	{ "ol_eventlog", wlu_offloads_stats, WLC_GET_VAR, -1,
 	"Give suboption \"list\" to list various suboptions" },
+	{ "ol_cons", wlu_offloads_stats, WLC_GET_VAR, WLC_SET_VAR,
+	"Display the ARM console or issue a command to the ARM console\n"
+	"  Usage: ol_cons [<cmd>]\n"
+	"\t\"?\" - Display the list of active console commands"
+	},
 	{ "ol_wowl_cons", wlu_offloads_stats, WLC_GET_VAR, -1,
 	"Give suboption \"list\" to list various suboptions" },
 	{ "ol_clr", wlu_offloads_stats, WLC_GET_VAR, -1,
@@ -978,6 +1060,7 @@ cmd_t wl_cmds[] = {
 	"\tvalid values for 802.11b are (1, 2, 5.5, 11)\n"
 	"\tvalid values for 802.11g are (1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54)\n"
 	"\t-1 (default) means automatically determine the best rate" },
+#endif /* !ATE_BUILD */
 	{ "2g_rate", wl_rate, WLC_GET_VAR, WLC_SET_VAR,
 	"Force a fixed rate for data frames in the 2.4G band:\n\n"
 	RATE_2G_USAGE
@@ -994,6 +1077,7 @@ cmd_t wl_cmds[] = {
 	"Force a fixed rate for mulitcast/broadcast data frames in the 5G band:\n\n"
 	RATE_5G_USAGE
 	},
+#ifndef ATE_BUILD
 	{ "infra", wl_int, WLC_GET_INFRA, WLC_SET_INFRA,
 	"Set Infrastructure mode: 0 (IBSS) or 1 (Infra BSS)" },
 	{ "ap", wl_int, WLC_GET_AP, WLC_SET_AP,
@@ -1038,6 +1122,7 @@ cmd_t wl_cmds[] = {
 	"\t-w bandwidth, 20, 40 or 80\n"
 	"\t[-c country_abbrev]"
 	},
+#endif /* !ATE_BUILD */
 	{ "chanspec", wl_chanspec, WLC_GET_VAR, WLC_SET_VAR,
 	"Set current or configured channel:\n"
 	"\t20MHz : [2g|5g]<channel>[/20]\n"
@@ -1052,6 +1137,7 @@ cmd_t wl_cmds[] = {
 	"\t-b band (5(a) or 2(b/g))\n"
 	"\t-w bandwidth 20 or 40\n"
 	"\t-s ctl sideband, -1=lower, 0=none, 1=upper"},
+#ifndef ATE_BUILD
 	{ "dfs_channel_forced", wl_chanspec, WLC_GET_VAR, WLC_SET_VAR,
 	"Set <channel>[a,b][n][u,l]\n"
 	"\tchannel number (0-224)\n"
@@ -1062,6 +1148,7 @@ cmd_t wl_cmds[] = {
 	"Get the tssi value from radio" },
 	{ "txpwr", wl_txpwr, -1, -1, /* Deprecated. Use "txpwr1" */
 	"Set tx power in milliwatts.  Range [1, 84]." },
+#endif /* !ATE_BUILD */
 	{ "txpwr1", wl_txpwr1, WLC_GET_VAR, WLC_SET_VAR,
 	"Set tx power in in various units. Choose one of (default: dbm): \n"
 	"\t-d dbm units\n"
@@ -1070,6 +1157,7 @@ cmd_t wl_cmds[] = {
 	"Can be combined with:\n"
 	"\t-o turn on override to disable regulatory and other limitations\n"
 	"Use wl txpwr -1 to restore defaults"},
+#ifndef ATE_BUILD
 	{ "txpathpwr", wl_int, WLC_GET_TX_PATH_PWR, WLC_SET_TX_PATH_PWR,
 	"Turn the tx path power on or off on 2050 radios" },
 	{ "txpwrlimit", wl_get_txpwr_limit, WLC_CURRENT_PWR, -1,
@@ -1140,9 +1228,12 @@ cmd_t wl_cmds[] = {
 	"To get: wl fixrate xx:xx:xx:xx:xx:xx (the remote mac addr).\n"
 	"To set: wl fixrate xx:xx:xx:xx:xx:xx <ac> <rateid>, \n"
 	"\twhere <ac> = -1 means for all ACs, and \n"
-	"\t<rateid> is the index to the rate set, -1 means auto."},
+	"\t<rateid>: index to the rate set (octal), bit8 to indicate primary, -1 means auto."},
 	{ "ratedump", wlu_ratedump, WLC_DUMP_RATE, -1,
 	"Print driver rate selection tunables and per-scb state to stdout\n"
+	"\tbased on remote station mac address[xx:xx:xx:xx:xx:xx]" },
+	{ "dump_rateset", wlu_dump_rateset, WLC_DUMP_RATESET, -1,
+	"Print per-scb rate set chosen by rate selection stdout\n"
 	"\tbased on remote station mac address[xx:xx:xx:xx:xx:xx]" },
 	{ "ccreg", wlu_ccreg, WLC_GET_VAR, WLC_SET_VAR, "g/set cc registers"},
 	{ "corereg", wlu_reg3args, WLC_GET_VAR, WLC_SET_VAR,
@@ -1641,6 +1732,10 @@ cmd_t wl_cmds[] = {
 	"\tthresh0_40_hi, thresh1_40_hi, thresh0_80_hi, thresh1_80_hi\n"},
 	{ "dfs_status", wl_dfs_status, WLC_GET_VAR, -1,
 	"Get dfs status"},
+	{ "radar_status", wl_radar_status, WLC_GET_VAR, -1,
+	"Get radar detection status"},
+	{ "clear_radar_status", wl_clear_radar_status, -1, WLC_SET_VAR,
+	"Clear radar detection status"},
 	{ "interference", wl_interfere, WLC_GET_INTERFERENCE_MODE, WLC_SET_INTERFERENCE_MODE,
 	"NON-ACPHY. Get/Set interference mitigation mode. Choices are:\n"
 	"\t0 = none\n"
@@ -1653,7 +1748,8 @@ cmd_t wl_cmds[] = {
 	"\t1 = desnese based on glitches\n"
 	"\t2 = limit pktgain based on hwaci (high pwr aci)\n"
 	"\t3 = limit pktgain based on w2/nb (high pwr aci)\n"
-	"\tSo a value of 7 would enable all three\n"},
+	"\t4 = enable preemption\n"
+	"\tSo a value of 15 would enable all four\n"},
 	{ "interference_override", wl_interfere_override,
 	WLC_GET_INTERFERENCE_OVERRIDE_MODE,
 	WLC_SET_INTERFERENCE_OVERRIDE_MODE,
@@ -1670,7 +1766,8 @@ cmd_t wl_cmds[] = {
 	"\t1 = desnese based on glitches\n"
 	"\t2 = limit pktgain based on hwaci (high pwr aci)\n"
 	"\t3 = limit pktgain based on w2/nb (high pwr aci)\n"
-	"\tSo a value of 7 would enable all three\n"},
+	"\t4 = enable preemption\n"
+	"\tSo a value of 15 would enable all four\n"},
 	{ "frameburst", wl_int, WLC_GET_FAKEFRAG, WLC_SET_FAKEFRAG,
 	"Disable/Enable frameburst mode" },
 	{ "pwr_percent", wl_int, WLC_GET_PWROUT_PERCENTAGE, WLC_SET_PWROUT_PERCENTAGE,
@@ -1801,13 +1898,19 @@ cmd_t wl_cmds[] = {
 	"Reinitialize device"},
 	{ "sta_info", wl_sta_info, WLC_GET_VAR, -1,
 	"wl sta_info <xx:xx:xx:xx:xx:xx>"},
+	{ "staprio", wl_staprio, WLC_GET_VAR, WLC_SET_VAR,
+	"Set/Get sta priority \n"
+	"Usage: wl staprio <xx:xx:xx:xx:xx:xx> <prio> \n"
+	"<prio>: 0~3"},
 	{ "pktq_stats", wl_iov_mac_params, WLC_GET_VAR, -1,
 	"Dumps packet queue log info for [C] common, [A] AMPDU or [P] power save queues\n"
 	"A: or P: are used to prefix a MAC address (a colon : separator is necessary),\n"
 	"or else C: is used alone. The '+' option after the colon gives more details.\n"
 	"Up to 4 parameters may be given, the common queue is default when no parameters\n"
 	"are supplied\n"
-	"wl pktq_stats [C:[+]]|[A:[+]|P:[+]<xx:xx:xx:xx:xx:xx>]..." },
+	"Use '/<PREC>' as suffix to restrict to certain prec indices; multiple /<PREC>/<PREC>/..."
+	"can be used\n"
+	"wl pktq_stats [C:[+]]|[A:[+]|P:[+]<xx:xx:xx:xx:xx:xx>][/<PREC>[/<PREC>]]..." },
 	{ "cap", wl_var_getandprintstr, WLC_GET_VAR, -1, "driver capabilities"},
 	{ "malloc_dump", wl_print_deprecate, -1, -1, "Deprecated. Folded under 'wl dump malloc"},
 	{ "chan_info", wl_chan_info, WLC_GET_VAR, -1, "channel info"},
@@ -1849,9 +1952,9 @@ cmd_t wl_cmds[] = {
 	{ "bcmerrorstr", wl_var_getandprintstr, WLC_GET_VAR, -1, "errorstring"},
 	{ "freqtrack", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
 	"Set Frequency Tracking Mode (0=Auto, 1=On, 2=OFF)"},
-	{ "eventing", wl_bitvec128, WLC_GET_VAR, WLC_SET_VAR,
+	{ "eventing", wl_event_bitvec, WLC_GET_VAR, WLC_SET_VAR,
 	"set/get 128-bit hex filter bitmask for MAC event reporting up to application layer"},
-	{ "event_msgs", wl_bitvec128, WLC_GET_VAR, WLC_SET_VAR,
+	{ "event_msgs", wl_event_bitvec, WLC_GET_VAR, WLC_SET_VAR,
 	"set/get 128-bit hex filter bitmask for MAC event reporting via packet indications"},
 	{ "counters", wl_counters, WLC_GET_VAR, -1,
 	"Return driver counter values" },
@@ -2005,6 +2108,26 @@ cmd_t wl_cmds[] = {
 	{ "lcnphy_papdepstbl", wl_phy_papdepstbl, -1, WLC_GET_VAR,
 	"print papd eps table; Usage: wl lcnphy_papdepstbl"
 	},
+	{ "phy_rssi_gain_delta_2g", wl_phy_rssi_gain_delta_2g, WLC_GET_VAR, WLC_SET_VAR,
+	"usage: phy_rssi_gain_delta_2g [val0 val1 ....]\n"
+	"Set/get rssi gain delta values"
+	},
+	{ "phy_rssi_gain_delta_5gl", wl_phy_rssi_gain_delta_5g, WLC_GET_VAR, WLC_SET_VAR,
+	"usage: phy_rssi_gain_delta_5gl [val0 val1 ....]\n"
+	"Set/get rssi gain delta values"
+	},
+	{ "phy_rssi_gain_delta_5gml", wl_phy_rssi_gain_delta_5g, WLC_GET_VAR, WLC_SET_VAR,
+	"usage: phy_rssi_gain_delta_5gml [val0 val1 ....]\n"
+	"Set/get rssi gain delta values"
+	},
+	{ "phy_rssi_gain_delta_5gmu", wl_phy_rssi_gain_delta_5g, WLC_GET_VAR, WLC_SET_VAR,
+	"usage: phy_rssi_gain_delta_5gmu [val0 val1 ....]\n"
+	"Set/get rssi gain delta values"
+	},
+	{ "phy_rssi_gain_delta_5gh", wl_phy_rssi_gain_delta_5g, WLC_GET_VAR, WLC_SET_VAR,
+	"usage: phy_rssi_gain_delta_5gh [val0 val1 ....]\n"
+	"Set/get rssi gain delta values"
+	},
 	{ "phy_test_idletssi", wl_test_idletssi, WLC_GET_VAR, -1,
 	"get idletssi for the given core; wl phy_test_idletssi corenum"},
 	{ "phy_setrptbl", wl_var_void, -1, WLC_SET_VAR,
@@ -2076,8 +2199,14 @@ cmd_t wl_cmds[] = {
 	  "\t-f lpf hpc override select, 0 (hpc unchanged) or 1 (overridden to ltrn mode)\n"
 	  "\t-w dig lpf override select, 0 (lpf unchanged) or 1 (overridden to ltrn_lpf mode)"
 	  "\t or 2 (bypass)\n"
-	  "\t-g gain-correction select, 0 (disable) or 1 (enable)\n"
-	  "\t-e extra INITgain in dB on top of default. Valid values = {0, 3, 6, .., 21, 24}"
+	  "\t-g gain-correction select, 0 (disable), 1(enable full correction) \n"
+	  "\t	2 (enable temperature correction) or 3(verify rssi_gain_delta)\n"
+	  "\t-e extra INITgain in dB on top of default. Valid values = {0, 3, 6, .., 21, 24}\n"
+#ifdef BCMINTERNAL
+	  "\t-i gain mode select, 0 (default gain), 1 (init gain) or 4 (clip LO gain). \n"
+#else
+	  "\t-i gain mode select, 0 (default gain), 1 (fixed high gain) or 4 (fixed low gain). \n"
+#endif
 	},
 	{ "phy_txiqcc", wl_phy_txiqcc, WLC_GET_VAR, WLC_SET_VAR,
 	"usage: phy_txiqcc [a b]\n"
@@ -2115,6 +2244,16 @@ cmd_t wl_cmds[] = {
 	"  power offsets in one band range (2g, 5gl, 5g, 5gh) must all present if\n"
 	"  one of them is specified in the command, otherwise it will be filled with 0"
 	"  cck(2g only), ofdm, and mcs(0-7) for NPHY are supported "
+	},
+	{ "rpcalvars", wl_phy_rpcalvars, WLC_GET_VAR, WLC_SET_VAR,
+	"Set/get temp RPCAL parameters\n"
+	"usage: wl down\n"
+	"       wl rpcalvars rpcal2g=0x1 \n"
+	"       wl rpcalvars\n"
+	"       wl up\n"
+	"  override the RPCAL parameters after driver attach(srom read), before diver up\n"
+	"  These override values will be propogated to HW when driver goes up\n"
+	"  Only the RPCAL parameter specified in the command is updated, the rest is untouched \n"
 	},
 	{ "fem", wl_phy_fem, WLC_GET_VAR, WLC_SET_VAR,
 	"Set temp fem2g/5g value\n"
@@ -2163,6 +2302,7 @@ cmd_t wl_cmds[] = {
 	"Usage: wl txchain_pwr_offset [qdBm offsets]\n"
 	"\tGet/Set the current offsets for each core in qdBm (quarter dBm)"
 	},
+#endif /* ATE_BUILD */
 	{ "sample_collect", wl_sample_collect, WLC_PHY_SAMPLE_COLLECT, -1,
 	"Optional parameters ACPHY/HTPHY/(NPHY with NREV >= 7) are:\n"
 	"\t-f File name to dump the sample buffer (default \"sample_collect.dat\")\n"
@@ -2213,16 +2353,17 @@ cmd_t wl_cmds[] = {
 	"\tIn 20MHz [(uint16)num_bytes, <I(core0), Q(core0), I(core1), Q(core1)>]\n"
 	"\tIn 40MHz [(uint16)num_bytes(core0), <I(core0), Q(core0)>,\n"
 	"\t\t(uint16)num_bytes(core1), <I(core1), Q(core1)>]"},
+#ifndef ATE_BUILD
 	{ "txfifo_sz", wl_txfifo_sz, WLC_GET_VAR, WLC_SET_VAR,
 	"set/get the txfifo size; usage: wl txfifo_sz <fifonum> <size_in_bytes>" },
 #ifdef WLPFN
 	{ "pfnset", wl_pfn_set, -1, -1,
 	"Configures preferred network offload parameter\n"
 	"\tpfnset syntax is: pfnset [scanfrq xxxxx(30 sec)] [netimeout xxxx(60 sec)]"
-	"[slowfrq xxxx(180 sec)]"
-	"[bestn (2)|[1-3]] [mscan (0)|[0-90]] [bdscan (0)|1] [adapt (off)|[smart, strict, slow]]"
+	"[slowfrq xxxx(180 sec)] [bestn (2)|[1-BESTN_MAX]] [mscan (0)|[0-MSCAN_MAX]]"
+	"[bdscan (0)|1] [adapt (off)|[smart, strict, slow]]"
 	"[rssi_delta xxxx(30 dBm)] [sort (listorder)|rssi] [bkgscan (0)|1] [immediateevent (0)|1]"
-	"[immediate 0|(1)] [repeat (10)|[1-20]] [exp (2)|[1-5]]"},
+	"[immediate 0|(1)] [repeat (10)|[1-20]] [exp (2)|[1-5]] [separate 0|(1)]"},
 	{ "pfnadd", wl_pfn_add, -1, -1,
 	"Adding SSID based preferred networks to monitor and connect\n"
 	"\tpfnadd syntax is: pfnadd ssid <SSID> [hidden (0)|1]"
@@ -2239,7 +2380,9 @@ cmd_t wl_cmds[] = {
 	"\tUp to 150 BSSIDs can be added together in one pfnadd_bssid\n"},
 	{ "pfncfg", wl_pfn_cfg, -1, -1,
 	"Configures channel list and report type\n"
-	"\tpfncfg syntax is: pfncfg [channel <channel list>] [report (both)|ssidonly|bssidonly]"},
+	"Usage: pfncfg [channel <list>] [report <type>] [prohibited 1|0]\n"
+	"\treport <type> is ssidonly, bssidonly, or both (default: both)\n"
+	"\tprohibited flag 1: allow and (passively) scan any channel (default 0)"},
 	{ "pfn", wl_pfn, -1, -1,
 	"Enable/disable preferred network off load monitoring\n"
 	"\tpfn syntax is: pfn 0|1"},
@@ -2247,11 +2390,17 @@ cmd_t wl_cmds[] = {
 	"Clear the preferred network list\n"
 	"\tpfnclear syntax is: pfnclear"},
 	{ "pfnbest", wl_pfnbest, -1, -1,
-	"Get the best n networks in each of up to m scans\n"
+	"Get the best n networks in each of up to m scans, with 16bit timestamp\n"
 	"\tpfnbest syntax is: pfnbest"},
+	{ "pfnlbest", wl_pfnlbest, -1, -1,
+	"Get the best n networks in each scan, up to m scans, with 32bit timestmp\n"
+	"\tpfnbest syntax is: pfnlbest"},
 	{ "pfnsuspend", wl_pfn_suspend, -1, -1,
 	"Suspend/resume pno scan\n"
 	"\tpfnsuspend syntax is: pfnsuspend 0|1"},
+	{ "pfnmem", wl_pfn_mem, -1, -1,
+	"Get supported mscan with given bestn\n"
+	"\tpfnmem syntax is: pfnmscan bestn [1-BESTN_MAX]"},
 #if defined(linux)
 	{ "pfneventchk", wl_pfn_event_check, -1, -1,
 	"Listen and prints the preferred network off load event from dongle\n"
@@ -2277,8 +2426,9 @@ cmd_t wl_cmds[] = {
 	{ "p2po_find", wl_var_void, -1, WLC_SET_VAR,
 	"start discovery\n"
 	},
-	{ "p2po_stop", wl_var_void, -1, WLC_SET_VAR,
-	"stop discovery/listen\n"
+	{ "p2po_stop", wl_p2po_stop, -1, WLC_SET_VAR,
+	"stop both P2P listen and P2P device discovery offload(0:stop; 1:pause).\n"
+	"\tusage: p2po_stop <0|1>\n"
 	},
 	{ "p2po_addsvc", wl_p2po_addsvc, -1, WLC_SET_VAR,
 	"add query-service pair\n"
@@ -2301,14 +2451,6 @@ cmd_t wl_cmds[] = {
 	{ "p2po_listen_channel", wl_p2po_listen_channel, -1, WLC_SET_VAR,
 	"set listen channel to channel 1, 6, 11, or default\n"
 	"\tusage: p2po_listen_channel <1|6|11|0>\n"
-	},
-	{ "p2po_tracelevel", wl_p2po_tracelevel, -1, WLC_SET_VAR,
-	"set tracelevel\n"
-	"\tusage: p2po_tracelevel [tracelevel]\n"
-	"\t\t<tracelevel>:\t0x0000 none\n"
-	"\t\t\t\t0x0001 error\n"
-	"\t\t\t\t0x0002 debug\n"
-	"\t\t\t\t0x0004 event\n"
 	},
 #if defined(linux)
 	{ "p2po_results", wl_p2po_results, -1, WLC_SET_VAR,
@@ -2408,7 +2550,7 @@ cmd_t wl_cmds[] = {
 
 	/* wowl_keepalive shares structures and functions with "mkeep_alive" */
 	{"wowl_keepalive", wl_mkeep_alive, WLC_GET_VAR, WLC_SET_VAR,
-	"Send specified keep alive packet periodically in wowl mode.\n"
+	"Send specified keep alive packet periodically in w mode.\n"
 	"\tUsage: wl wowl_keepalive <index0-1> <period> <packet>\n"
 	"\t\tindex: 0 - 1.\n"
 	"\t\tperiod: Re-transmission period in milli-seconds. 0 to disable packet transmits.\n"
@@ -2522,10 +2664,9 @@ cmd_t wl_cmds[] = {
 	"\n\te.g. Send keep alive packet every 30 seconds:\n"
 	"\twl keep_alive 30000 0x0014a54b164f000f66f45b7e08004500001e000040004011c"
 	"52a0a8830700a88302513c413c4000a00000a0d" },
-#ifdef MACOSX
-	{ "wowl_mdns_wake_pkt", wl_mdns_wake,  WLC_GET_VAR, -1,
-	"returns mdns packet that woke  host\n"},
-#endif
+	{ "wowl_pkt_info", wl_wake_inf,  WLC_GET_VAR, -1,
+	"dump packet that woke host\n"
+	" -s: 'smart' dump (tries to decode packet)" },
 	{ "srchmem", wl_srchmem, WLC_GET_VAR, WLC_SET_VAR,
 	"g/set ucode srch engine memory"},
 #ifdef WLAWDL
@@ -2843,6 +2984,12 @@ cmd_t wl_cmds[] = {
 	"\t -i: list individual measurements in addition to the averages\n"
 	"\t -curband: Only recommend channels on current band"
 	},
+#if defined(BCMINTERNAL)
+	{"dump_cca", wl_dump_cca, WLC_GET_VAR, -1,
+	"Usage: \n\t wl dump_cca [-d num msecs] to begin measurement\n"
+	"\t wl dump_cca to query for the measurement results"
+	},
+#endif
 	{ "itfr_get_stats", wl_itfr_get_stats, WLC_GET_VAR, -1,
 	"get interference source information"
 	},
@@ -2907,8 +3054,7 @@ cmd_t wl_cmds[] = {
 	"set driver wnm feature mask\n"
 	"\ttype \'wl msglevel ?\' for values" },
 	{ "wnm_bsstq", wl_wnm_bsstq, -1, WLC_SET_VAR,
-	"send 11v BSS transition management query\n"
-	"\tUsage: wl wnm_bsstq [ssid]"},
+	"deprecated, please use wnm_bsstrans_query"},
 	{ "tclas_add", wl_tclas_add, -1, WLC_SET_VAR,
 	"add tclas frame classifier type entry\n"
 	"\tUsage: wl tclas_add <user priority> <type> <mask> <...>\n"
@@ -2927,18 +3073,30 @@ cmd_t wl_cmds[] = {
 	"list the added tclas frame classifier type entry\n"
 	"\tUsage: wl tclas_list"
 	},
-	{ "wnm_tfsreq_add", wl_wnm_tfsreq_add, -1, WLC_SET_VAR,
-	"add one tfs request element and send tfs request frame\n"
-	"\tUsage: wl wnm_tfsreq_add <tfs_id> <tfs_action_code> <tfs_subelem_id> <send>\n"
-	"\ttfs_id: a non-zero value (1 ~ 255)\n"
-	"\ttfs_action_code bitfield: 1: delete after match, 2: notify\n"
-	"\ttfs_subelem_id: TFS subelement (0 for none or 1 for previous tclas_add)\n"
-	"\tsend: 0: store element, 1: send all stored elements"
+	{ "wnm_tfs_set", wl_wnm_tfs_set, -1, WLC_SET_VAR,
+	"If <tfs_id> is set, add pending TCLASs (after tclas_add) to this filter set and create\n"
+	"or reinitialize it. If <send> is set, register all filter set on AP to enable TFS.\n\n"
+	"\tUsage: wl wnm_tfs_set <send> [tfs_id action [tc_pro]]\n"
+	"\t\tsend: 0: store filter, 1: send all stored filters to AP\n"
+	"\t\ttfs_id: ID to assign to the filter set (if TCLAS added)\n"
+	"\t\t         or existing ID to append as new filter to the set , 0 for all filters\n"
+	"\t\taction: TFS action bitfiled: bit 0 -> delete after match, bit 1 -> notify\n"
+	"\t\ttc_pro: TCLAS processing element (if several TCLAS added)"
+	},
+	{ "wnm_tfs_status", wl_wnm_tfs_status, WLC_GET_VAR, -1,
+	"list all TFS filters and provide their internal and AP status\n"
+	"\tUsage: wl wl_wnm_tfs_status"
+	},
+	{ "wnm_tfs_term", wl_wnm_tfs_term, -1, WLC_SET_VAR,
+	"Disable registered TFS filter on AP side and optionally discard them\n"
+	"\tUsage: wl wnm_tfs_term <flags> [<tfs_id>]\n"
+	"\t\tflags: 1: send immendiatly; 2: also delete filter internally\n"
+	"\t\ttfs_id: filter to disable/delete, 0 for all filters"
 	},
 	{ "wnm_dms_set", wl_wnm_dms_set, -1, WLC_SET_VAR,
 	"Optionally add pending DMS desc (after tclas_add) and optionally register all desc\n"
-	"on AP side to enable the service (with send=1)"
-	"\tUsage: wl wnm_dms_set <send> [<user_id> [<tc_pro>]]\n"
+	"on AP side to enable the service (with send=1)\n"
+	"\tUsage: wl wnm_dms_set <send> [user_id [tc_pro]]\n"
 	"\t\tsend: 0: store descriptor, 1: send all stored descs/enable DMS on AP\n"
 	"\t\tuser_id: new ID to assign to the created desc (if TCLAS added)\n"
 	"\t\t         or existing ID to enable on AP (if no TCLAS added), 0 for all desc\n"
@@ -2949,7 +3107,7 @@ cmd_t wl_cmds[] = {
 	"\tUsage: wl wl_wnm_dms_status"
 	},
 	{ "wnm_dms_term", wl_wnm_dms_term, -1, WLC_SET_VAR,
-	"Disable registered DMS des on AP side and optionally discard them\n"
+	"Disable registered DMS desc on AP side and optionally discard them\n"
 	"\tUsage: wl wnm_dms_term <del> [<user_id>]\n"
 	"\t\tdel: Discard desc after disabling the service on AP side\n"
 	"\t\tuser_id: desc to disable/delete, 0 for all desc"
@@ -3068,8 +3226,7 @@ cmd_t wl_cmds[] = {
 	},
 #endif /* WLP2P */
 	{ "pm_dur", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
-	"Retrieve accumulated PM duration information (GET) or clear accumulator (SET)\n"
-	"\tUsage: wl pm_dur <any-number-to-clear>"
+	"Retrieve accumulated PM duration information (GET only)\n"
 	},
 	{ "mpc_dur", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
 	"Retrieve accumulated MPC duration information in ms (GET) or clear accumulator (SET)\n"
@@ -3085,6 +3242,11 @@ cmd_t wl_cmds[] = {
 	{"txdelay_params", wl_txdelay_params, WLC_GET_VAR, -1,
 	"get chanim stats \n"
 	"\t Usage: wl txdelay_params ratio cnt period tune"
+	},
+	{"intfer_params", wl_intfer_params, WLC_GET_VAR, WLC_SET_VAR,
+	"set/get intfer params \n"
+	"\tUsage: wl intfer_params period (in sec) cnt(0~4) txfail_thresh tcptxfail_thresh\n"
+	"\tperiod=0: disable Driver monitor txfail"
 	},
 	{ "dngl_wd", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
 	"enable or disable dongle keep alive watchdog timer\n"
@@ -3148,16 +3310,22 @@ cmd_t wl_cmds[] = {
 	" max 32 for AC 0x4)"
 	},
 #ifdef SERDOWNLOAD
+	{ "rwl_download", rwl_download, -1, WLC_SET_VAR,
+	"rwl_download  <firmware> <nvram>\n"
+	"\trwl_download transfer firmware and nvram via remote interface\n"
+	},
 	{ "init", dhd_init, WLC_GET_VAR, WLC_SET_VAR,
 	"init <chip_id>\n"
 	"\tInitialize the chip.\n"
 	"\tCurrently only 4325, 4329, 43291, 4330a1 and 4330 (b1) are supported"
 	},
+#endif /* ifdef SERDOWNLOAD */
 	{ "download", dhd_download, WLC_GET_VAR, WLC_SET_VAR,
 	"download  <binfile> <varsfile>\n"
 	"\tdownload file to dongle ram and start CPU\n"
 	"\tvars file will replace vars parsed from the CIS"
 	},
+#ifdef SERDOWNLOAD
 	{ "hsic_download", hsic_download, WLC_GET_VAR, WLC_SET_VAR,
 	"hsic_download  <binfile> <varsfile>\n"
 	"\thsic_download file to dongle ram and start CPU\n"
@@ -3225,7 +3393,12 @@ cmd_t wl_cmds[] = {
 	{ "sr_enable", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
 	"\tGet/Set SaveRestore functionality"},
 #endif
-#endif /* !ATE_BUILD */
+#ifdef SR_DEBUG
+	{ "dump_pmu", wl_dump_pmu, WLC_GET_VAR, WLC_SET_VAR,
+	"Dump value of PMU registers"},
+	{ "pmu_keep_on", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
+	"Keep resource on"},
+#endif
 #ifdef BCMINTERNAL
 	{ "nwoe_ifconfig", wl_nwoe_ifconfig, WLC_GET_VAR, WLC_SET_VAR,
 	"Configure the network offload interface, or display current settings\n"
@@ -3247,7 +3420,6 @@ cmd_t wl_cmds[] = {
 	{ "nd_status_clear", wl_var_void, -1, WLC_SET_VAR,
 	"Clear neighbor discovery status"},
 #endif
-#ifndef ATE_BUILD
 	{ "lpc_params", wl_lpc_params, WLC_GET_VAR, WLC_SET_VAR,
 	"Set/Get Link Power Control params\n"
 	"\tUsage: wl lpc_params <rate_stab_thresh>\n"
@@ -3284,7 +3456,11 @@ cmd_t wl_cmds[] = {
 	},
 	{ "rmc_ackmac", wl_mcast_ackmac, WLC_GET_VAR, WLC_SET_VAR,
 	"Set/Get ACK required multicast mac address\n"
-	"\tusage: wl mcast_ackmac [multicast mac address]\n"
+	"\tusage: wl rmc_ackmac -i [index] -t [multicast mac address]\n"
+	},
+	{ "rmc_ackreq", wl_mcast_ackreq, WLC_GET_VAR, WLC_SET_VAR,
+	"Set/Get ACK rmc_mode 0 disable, 1 enable transmitter, 2 enable initiator \n"
+	"\tusage: wl rmc_ackreq [mode] \n"
 	},
 	{ "rmc_txrate", wl_phy_rate, WLC_GET_VAR, WLC_SET_VAR,
 	"Set/Get a fixed transmit rate for the reliable multicast:\n"
@@ -3294,6 +3470,44 @@ cmd_t wl_cmds[] = {
 	{ "rmc_status", wl_mcast_status, WLC_GET_VAR, -1,
 	"Display reliable multicast client status\n"
 	},
+	{ "rmc_actf_time", wl_mcast_actf_time, WLC_GET_VAR, WLC_SET_VAR,
+	"Set/Get mcast action frame tx time period in ms\n"
+	"\tusage: wl rmc_actf_time [value] \n"
+	},
+	{ "rmc_ar_timeout", wl_mcast_ar_timeout, WLC_GET_VAR, WLC_SET_VAR,
+	"Set/Get rmc active receiver timeout in ms\n"
+	"\tusage: wl rmc_ar_timeout [duration in ms] \n"
+	},
+	{ "rmc_rssi_thresh", wl_mcast_rssi_thresh, WLC_GET_VAR, WLC_SET_VAR,
+	"Set/Get minimum rssi needed for a station to be an active receiver\n"
+	"\tusage: wl rmc_rssi_thresh [value] \n"
+	},
+	{ "rmc_stats", wl_mcast_stats, WLC_GET_VAR, WLC_SET_VAR,
+	"Display/Clear reliable multicast client statistical counters\n"
+	"\tusage: wl rmc_stats [arg] \n"
+	},
+	{ "rmc_rssi_delta", wl_mcast_rssi_delta, WLC_GET_VAR, WLC_SET_VAR,
+	"Display/Set RSSI delta to switch receive leader\n"
+	"\tusage: wl rmc_rssi_delta [arg] \n"
+	},
+	{ "rmc_vsie", wl_mcast_vsie, WLC_GET_VAR, WLC_SET_VAR,
+	"Display/Set vendor specific IE contents\n"
+	"\tusage: wl rmc_vsie [OUI] [Data] \n"
+	},
+	{ "wci2_config", wl_wci2_config, WLC_GET_VAR, WLC_SET_VAR,
+	"Get/Set LTE coex MWS signaling config\n"
+	"\tUsage: wl wci2_config <rxassert_off> <rxassert_jit> <rxdeassert_off> <rxdeassert_jit> "
+	"<txassert_off> <txassert_jit> <txdeassert_off> <txdeassert_jit> "
+	"<patassert_off> <patassert_jit> <inactassert_off> <inactassert_jit> "
+	"<scanfreqassert_off> <scanfreqassert_jit> <priassert_off_req>"},
+	{ "mws_params", wl_mws_params, WLC_GET_VAR, WLC_SET_VAR,
+	"Get/Set LTE coex MWS channel params\n"
+	"\tUsage: wl mws_params <rx_center_freq> <tx_center_freq> "
+	"<rx_channel_bw> <tx_channel_bw> <channel_en> <channel_type>\n"},
+	{ "mws_debug_msg", wl_mws_wci2_msg, WLC_GET_VAR, WLC_SET_VAR,
+	"Get/Set LTE coex BT-SIG message\n"
+	"\tUsage: wl mws_debug_msg <Message> <Interval 20us-32000us> "
+	"<Repeats> \n"},
 #if defined(WL_PROXDETECT)
 	{ "proxd", wl_proxd, WLC_GET_VAR, WLC_SET_VAR,
 	"Enable/Disable Proximity Detection\n"
@@ -3329,13 +3543,39 @@ cmd_t wl_cmds[] = {
 #endif
 	{ "patrim", wl_patrim, WLC_GET_VAR, -1,
 	"Get PA trim option" },
-#endif /* !ATE_BUILD */
 	{ "pm2_sleep_ret_ext", wl_sleep_ret_ext, WLC_GET_VAR, WLC_SET_VAR,
 	"Get/Set Dynamic Fast Return To Sleep params"},
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMINTERNAL) || defined(WLTEST) || defined(BCMDBG_DUMP)
 	{ "btcx_clear_dump", wl_var_void, -1, WLC_SET_VAR,
 	"clear btcoex debug counters"},
 #endif
+	{ "sta_monitor", wl_stamon_sta_config, WLC_GET_VAR, WLC_SET_VAR,
+	"wl sta_monitor [<add/del> <xx:xx:xx:xx:xx:xx>]"},
+	{ "monitor_promisc_level", wl_monitor_promisc_level, WLC_GET_VAR, WLC_SET_VAR,
+	"Set a bitmap of different MAC promiscuous level of monitor mode.\n\n"
+	MONITOR_PROMISC_LEVEL_USAGE},
+	{ "aibss_bcn_force_config", wl_aibss_bcn_force_config, WLC_GET_VAR, WLC_SET_VAR,
+	"Get/Set AIBSS beacon force configuration \n"
+	"wl aibss_bcn_force_config <initial_min_bcn_dur,min_bcn_dur,initial_bcn_flood_dur>\n"},
+	{"bcnlenhist", wl_bcnlenhist, WLC_GET_VAR, -1,
+	"Usage: wl bcnlenhist [0]"},
+	{ "wds_type", wl_varint, WLC_GET_VAR, -1,
+	"Indicate whether the interface to which this IOVAR is sent is of WDS or DWDS type.\n\n"
+	WDS_TYPE_USAGE},
+	{ "bss_peer_info", wl_bss_peer_info, WLC_GET_VAR, -1,
+	"Get BSS peer info of all the peer's in the indivudual interface\n"
+	"\tIf a non-zero MAC address is specified, gets the peer info of the PEER alone\n"
+	"\tUsage: wl bss_peer_info [MAC address]"},
+#else
+	{ "gpaio", wl_gpaio, NULL, WLC_SET_VAR,
+	"Configure the GPAIO using different options as follows:\n\n"
+	"\tgpaio pmu_afeldo\n\n"
+	"\tgpaio pmu_txldo\n\n"
+	"\tgpaio pmu_vcoldo\n\n"
+	"\tgpaio pmu_lnaldo\n\n"
+	"\tgpaio pmu_adcldo\n\n"
+	"\tgpaio clear\n\n"},
+#endif /* !ATE_BUILD */
 	{ NULL, NULL, 0, 0, NULL }
 };
 
@@ -3707,6 +3947,7 @@ wl_int(void *wl, cmd_t *cmd, char **argv)
 
 	return ret;
 }
+#endif /* !ATE_BUILD */
 
 /* Return a new chanspec given a legacy chanspec
  * Returns INVCHANSPEC on error
@@ -3795,6 +4036,7 @@ wl_chspec_to_legacy(chanspec_t chspec)
 	return lchspec;
 }
 
+#ifndef ATE_BUILD
 /* given a chanspec value, do the endian and chanspec version conversion to
  * a chanspec_t value
  * Returns INVCHANSPEC on error
@@ -3812,6 +4054,7 @@ wl_chspec_to_driver(chanspec_t chanspec)
 
 	return chanspec;
 }
+#endif /* !ATE_BUILD */
 
 /* given a chanspec value, do the endian and chanspec version conversion to
  * a chanspec_t value in a 32 bit integer
@@ -3833,6 +4076,7 @@ wl_chspec32_to_driver(chanspec_t chanspec)
 	return val;
 }
 
+#ifndef ATE_BUILD
 /* given a chanspec value from the driver, do the endian and chanspec version conversion to
  * a chanspec_t value
  * Returns INVCHANSPEC on error
@@ -3847,6 +4091,7 @@ wl_chspec_from_driver(chanspec_t chanspec)
 
 	return chanspec;
 }
+#endif /* !ATE_BUILD */
 
 /* given a chanspec value from the driver in a 32 bit integer, do the endian and
  * chanspec version conversion to a chanspec_t value
@@ -3866,6 +4111,7 @@ wl_chspec32_from_driver(uint32 chanspec32)
 	return chanspec;
 }
 
+#ifndef ATE_BUILD
 
 #ifdef CLMDOWNLOAD
 /*
@@ -5139,11 +5385,34 @@ wl_rssi(void *wl, cmd_t *cmd, char **argv)
 	int ret;
 	scb_val_t scb_val;
 	int32 rssi;
+	int32 rssi_qdb;
 
-	if (!*++argv) {
+	argv++;
+	if ((!*argv) || ((*argv) && (!strcmp(*argv, "-r")))) {
 		if ((ret = wlu_get(wl, cmd->get, &rssi, sizeof(rssi))) < 0)
 			return ret;
-		printf("%d\n", dtoh32(rssi));
+		if ((*argv) && (!strcmp(*argv, "-r"))) {
+			++argv;
+			if ((*argv) && (!strcmp(*argv, "1"))) {
+				if ((wlu_get(wl, WLC_GET_RSSI_QDB,
+				             &rssi_qdb, sizeof(rssi_qdb))) < 0)
+					rssi_qdb = 0;
+				/* Convert the rssi for display
+				 * e.g. rssi -17 and rssi_qdb 3 will yield -16.25 to print
+				 */
+				if ((rssi < 0) && (rssi_qdb > 0)) {
+					rssi = rssi + 1;
+					rssi_qdb = 4 - rssi_qdb;
+				}
+				printf("Ant0: ");
+				printf("%2d.%02d \n", dtoh32(rssi), (dtoh32(rssi_qdb)*25));
+			} else if ((*argv) && (!strcmp(*argv, "0")))
+				printf("%d\n", dtoh32(rssi));
+			else
+				printf("wl_rssi: invalid resolution select %s"
+				       " (0,1)\n", *argv);
+		} else
+			printf("%d\n", dtoh32(rssi));
 		return 0;
 	} else {
 		if (!wl_ether_atoe(*argv, &scb_val.ea))
@@ -5289,39 +5558,43 @@ wl_txq_prec_dump(wl_iov_pktq_log_t* iov_pktq_log)
 {
 	switch (iov_pktq_log->version)
 	{
-		case 0x02:
+		case 0x04:
 		{
 			const char* title[2] = {"", ""};
 			const char* form[2]  = {"", ""};
 			char* headings = "";
 
 			uint8 index, prec;
-			pktq_log_format_v02_t* logv02 = &iov_pktq_log->pktq_log.v02;
+			pktq_log_format_v04_t* logv04 = &iov_pktq_log->pktq_log.v04;
+			uint32 prec_mask = 0;
 
 			char  marker[4] = "[X]";
 
-			headings = &logv02->headings[0];
+			headings = &logv04->headings[0];
 
 			/* long form */
 			title[0] = "prec:   rqstd,  stored,selfsave,   saved,"
 					   "fulldrop, dropped,sacrficd, retried, rtsfail,"
-					   "rtrydrop, psretry, acked, utlisatn,q length,"
-					   "Mbits/s\n";
-			form[0]  = "  %02u: %7u, %7u, %7u, %7u, %7u, %7u,"
-					   " %7u, %7u, %7u, %7u, %7u, %7u, %7u, %7u, % 8.2f\n";
+					   "rtrydrop, psretry,supprssd,   acked,utlisatn,q length,"
+					   "Data Mbits/s,Phy Mbits/s,Rate Mbits/s (+v%d)\n";
+			form[0]  = "  %02u: %7u, %7u, %7u, %7u, %7u, %7u, %7u, %7u, "
+					   "%7u, %7u, %7u, %7u, %7u, %7u, %7u, %8.2f,   %8.2f,"
+					   "    %8.2f\n";
 
 			/* short form */
 			title[1] = "prec:   rqstd,  stored, dropped, retried,"
-					   "rtsfail,rtrydrop, psretry,   acked, utlisatn,"
-					   "q length,  Mbits/s\n";
-			form[1]  = "  %02u: %7u, %7u, %7u, %7u, %7u, %7u, %7u, %7u,"
-					   "%7u, %7u, % 8.2f\n";
+					   " rtsfail,rtrydrop, psretry,   acked,utlisatn,"
+					   "q length,Data Mbits/s,Phy Mbits/s (v%d)\n";
+			form[1]  = "  %02u: %7u, %7u, %7u, %7u, %7u, %7u, %7u,"
+					   " %7u, %7u, %7u, %8.2f,  %8.2f\n";
 
 			for (index = 0; index < (uint8)iov_pktq_log->params.num_addrs; index++) {
 
 				char* heading_start;
 				char* heading_end;
 				uint32 num_prec = 0;
+
+				prec_mask = logv04->counter_info[index];
 
 				/* search for string marker - the marker is of the form
 				   "[<index>]" where index is a single ascii numeral
@@ -5345,31 +5618,52 @@ wl_txq_prec_dump(wl_iov_pktq_log_t* iov_pktq_log)
 					}
 				}
 
-				num_prec = logv02->num_prec[index];
+				num_prec = logv04->num_prec[index];
 
 				/* Note that this is zero if the data is invalid */
 				if (num_prec) {
 
 					/* check for short form or long form (top bit set) */
-					fputs(iov_pktq_log->params.addr_type[index] & 0x80 ?
-					      title[0] : title [1], stdout);
+					fprintf(stdout,
+					      iov_pktq_log->params.addr_type[index] & 0x80 ?
+					      title[0] : title [1], iov_pktq_log->version);
 
 					for (prec = 0; prec < num_prec; prec++) {
 						float tput = 0.0;
-						pktq_log_counters_v02_t* counters = 0;
+						float txrate_succ = 0.0;
+						float txrate_main = 0.0;
+						pktq_log_counters_v04_t* counters = 0;
+						uint32 try_count;
 
-						counters = &logv02->counters[index][prec];
+						if (!(prec_mask & (1 << prec))) {
+							continue;
+						}
 
-						if (logv02->time_delta != 0) {
+						counters = &logv04->counters[index][prec];
+
+						if (counters->time_delta != 0) {
 							/* convert bytes to bits */
-							tput = (float)logv02->
-								   throughput[index][prec];
+							tput = (float)counters->throughput;
 							tput *= 8.0;
 
 							/* converts to rate of bits per us,
 							   because time_delta is in micro-seconds
 							*/
-							tput /= (float) logv02->time_delta;
+							tput /= (float) counters->time_delta;
+						}
+
+						if (counters->acked) {
+							txrate_succ =
+							       (float)counters->txrate_succ * 0.5;
+							txrate_succ /= (float) counters->acked;
+						}
+
+						try_count = counters->acked + counters->retry;
+
+						if (try_count) {
+							txrate_main =
+							       (float)counters->txrate_main * 0.5;
+							txrate_main /= (float) try_count;
 						}
 
 						if (iov_pktq_log->params.addr_type[index] & 0x80) {
@@ -5386,10 +5680,11 @@ wl_txq_prec_dump(wl_iov_pktq_log_t* iov_pktq_log)
 							        counters->rtsfail,
 							        counters->retry_drop,
 							        counters->ps_retry,
+							        counters->suppress,
 							        counters->acked,
 							        counters->max_used,
 							        counters->queue_capacity,
-							        tput);
+							        tput, txrate_succ, txrate_main);
 						}
 						else {
 							/* short form */
@@ -5404,7 +5699,7 @@ wl_txq_prec_dump(wl_iov_pktq_log_t* iov_pktq_log)
 							        counters->acked,
 							        counters->max_used,
 							        counters->queue_capacity,
-							        tput);
+							        tput, txrate_succ);
 						}
 					}
 					fputs("\n", stdout);
@@ -5434,41 +5729,76 @@ wl_iov_mac_params(void *wl, cmd_t *cmd, char **argv)
 	int ret;
 	char** macaddrs = argv + 1;
 
-	wl_iov_mac_params_t*  params = (wl_iov_mac_params_t*)buf;
+	wl_iov_mac_full_params_t*  full_params = (wl_iov_mac_full_params_t*)buf;
+	wl_iov_mac_params_t*       params = &full_params->params;
+	wl_iov_mac_extra_params_t* extra_params = &full_params->extra_params;
 
 	if (cmd->get < 0)
 		return -1;
 
-	memset(params, 0, sizeof(*params));
+	memset(full_params, 0, sizeof(*full_params));
 
 	/* only pass up to WL_IOV_MAC_PARAM_LEN parameters */
 	while (params->num_addrs < WL_IOV_MAC_PARAM_LEN && *macaddrs) {
 
+		char*   ptr = *macaddrs;
+
 		/* is there a prefix character? */
-		if ((*macaddrs)[1] == ':') {
-			params->addr_type[params->num_addrs] = toupper((int)((*macaddrs)[0]));
+		if (ptr[1] == ':') {
+			params->addr_type[params->num_addrs] = toupper((int)(ptr[0]));
 
 			/* move ptr to skip over prefix */
-			*macaddrs = & ((*macaddrs)[2]);
+			ptr += 2;
 
 			/* is there the 'long form' option ? */
-			if ((*macaddrs)[0] == '+') {
+			if (ptr[0] == '+') {
 				/* check for + additional info option, set top bit */
 				params->addr_type[params->num_addrs]  |= 0x80;
-				*macaddrs = & ((*macaddrs)[1]);
+				ptr++;
 			}
 		}
 
 		/* the prefix C: denotes no given MAC address (to refer to "common") */
-		if (((params->addr_type[params->num_addrs] & 0x7F) == 'C') ||
-		      wl_ether_atoe(*macaddrs, &params->ea[params->num_addrs])) {
-			params->num_addrs ++;
+		if ((params->addr_type[params->num_addrs] & 0x7F) == 'C')  {
+		}
+		else if (wl_ether_atoe(ptr, &params->ea[params->num_addrs])) {
+			 /* length of MAC addr string excl end char */
+			ptr += (ETHER_ADDR_STR_LEN - 1);
 		}
 		else {
 			params->addr_type[params->num_addrs] = 0;
 			printf("Bad parameter '%s'\n", *macaddrs);
 		}
 
+		if (params->addr_type[params->num_addrs]) {
+			uint32 bitmask = 0;
+
+			while (ptr && (ptr[0] == ',' || ptr[0] == '/') &&
+			       (ptr[1] >= '0' && ptr[1] <= '9')) {
+
+				uint8 prec;
+				char* endptr = 0;
+
+				ptr++;
+
+				prec = (uint8)strtoul(ptr, &endptr, 10);
+
+				if (prec <= 15) {
+					bitmask |= (1 << prec);
+				}
+				else {
+					printf("Bad precedence %d (will be ignored)\n", prec);
+				}
+				ptr = endptr;
+
+			}
+			if (bitmask == 0) {
+				bitmask = 0xFFFF;
+			}
+			extra_params->addr_info[params->num_addrs] = bitmask;
+
+			params->num_addrs ++;
+		}
 		++macaddrs;
 	}
 
@@ -5482,11 +5812,16 @@ wl_iov_mac_params(void *wl, cmd_t *cmd, char **argv)
 	if (params->num_addrs == 0)
 	{
 		params->addr_type[0] = 'C';
+		extra_params->addr_info[0] = 0xFFFF;
 		params->num_addrs = 1;
 	}
 
+	/* set a "version" indication (ie extra_params present) */
+	params->num_addrs |= (4 << 8);
+
 	if ((ret = wlu_iovar_getbuf(wl, cmd->name, params,
-	                            sizeof(*params), buf, WLC_IOCTL_MAXLEN)) < 0) {
+	                            sizeof(*params) + sizeof(*extra_params),
+	                            buf, WLC_IOCTL_MAXLEN)) < 0) {
 		fprintf(stderr, "Error getting variable %s\n", argv[0]);
 		return ret;
 	}
@@ -5577,6 +5912,8 @@ wlu_offloads_stats(void *wl, cmd_t *cmd, char **argv)
 {
 	int ret;
 	char *dump_buf;
+	int bufsz = WL_DUMP_BUF_LEN;
+	bool cons_cmd = FALSE;
 
 	if (cmd->get < 0)
 		return -1;
@@ -5586,33 +5923,140 @@ wlu_offloads_stats(void *wl, cmd_t *cmd, char **argv)
 		ret = wlu_iovar_get(wl, cmd->name, NULL, 0);
 		return ret;
 	}
-	dump_buf = malloc(WL_DUMP_BUF_LEN);
+
+	if (!strcmp(cmd->name, "ol_cons")) {
+		/* Check for command */
+		if (*(argv + 1)) {
+			argv++;
+			cons_cmd = TRUE;
+			bufsz = CMDLINESZ;
+		}
+	}
+
+	dump_buf = malloc(bufsz);
 	if (dump_buf == NULL) {
-		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", WL_DUMP_BUF_LEN);
+		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", bufsz);
 		return -1;
 	}
-	memset(dump_buf, 0, WL_DUMP_BUF_LEN);
+	memset(dump_buf, 0, bufsz);
 
 	while (*argv) {
-			/* add space delimiter if this is not the first section name */
-			if (dump_buf[0] != '\0')
-				strcat(dump_buf, " ");
+		/* add space delimiter if this is not the first section name */
+		if (dump_buf[0] != '\0')
+			strcat(dump_buf, " ");
 
-			strcat(dump_buf, *argv);
+		strcat(dump_buf, *argv);
 
-			argv++;
-		}
+		argv++;
+	}
 
-	ret = wlu_iovar_get(wl, cmd->name, dump_buf, WL_DUMP_BUF_LEN);
-
-	if (!ret) {
-		fputs(dump_buf, stdout);
+	if (cons_cmd) {
+		ret = wlu_iovar_set(wl, cmd->name, dump_buf, bufsz);
+	} else {
+		ret = wlu_iovar_get(wl, cmd->name, dump_buf, bufsz);
+		if (!ret)
+			fputs(dump_buf, stdout);
 	}
 
 	free(dump_buf);
 
 	return ret;
+}
 
+
+static int
+wl_staprio(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret = USAGE_ERROR;
+	wl_staprio_cfg_t staprio_cfg;
+	char 	*endptr = NULL;
+
+	if (!*++argv) return -1;
+
+	/* get link mac address */
+	if (!wl_ether_atoe(*argv++, &staprio_cfg.ea))
+		goto error;
+
+	if (argv[0]) {
+		staprio_cfg.prio = (uint8)strtol(argv[0], &endptr, 0);
+		if (*endptr != '\0')
+			goto error;
+
+		if (staprio_cfg.prio > 3) {
+			printf("prio %d out of range [0, 3]\n", staprio_cfg.prio);
+			goto error;
+		}
+		else {
+			printf("Set SCB prio: 0x%x\n", staprio_cfg.prio);
+			ret = wlu_iovar_setbuf(wl, cmd->name, (void *) &staprio_cfg,
+				sizeof(wl_staprio_cfg_t), buf, WLC_IOCTL_MEDLEN);
+		}
+	}
+	else {
+		if ((ret = wlu_iovar_getbuf(wl, cmd->name, (void *) &staprio_cfg,
+			sizeof(wl_staprio_cfg_t), buf, WLC_IOCTL_MEDLEN)) >= 0) {
+			printf("SCB prio: 0x%x\n", ((wl_staprio_cfg_t *)buf)->prio);
+		}
+	}
+
+error:
+	return ret;
+}
+
+static int
+wl_aibss_bcn_force_config(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret = USAGE_ERROR;
+	aibss_bcn_force_config_t bcn_config;
+
+	if (!*++argv) {
+		/* Get */
+		memset(&bcn_config, 0, sizeof(aibss_bcn_force_config_t));
+		/* get current rateset */
+		if ((ret = wlu_iovar_get(wl, cmd->name, &bcn_config,
+			sizeof(aibss_bcn_force_config_t))) < 0)
+			goto error;
+
+		printf("AIBSS Initial beacon check duration: %d \r\n"
+				"AIBSS beacon check duration:%d \r\n"
+				"AIBSS beacon flood duration:%d\r\n",
+				bcn_config.initial_min_bcn_dur, bcn_config.min_bcn_dur,
+				bcn_config.bcn_flood_dur);
+	}
+	else {
+		char *p = argv[0];
+		char *endptr = NULL;
+
+		/* Extract the content */
+		if (!p || *p == '\0')
+			goto error;
+
+		bcn_config.initial_min_bcn_dur = strtoul(p, &endptr, 0);
+
+		p = endptr;
+		/* check and skip , */
+		if (*p == '\0' || *++p == '\0')
+			goto error;
+
+		bcn_config.min_bcn_dur = strtoul(p, &endptr, 0);
+
+		p = endptr;
+		/* check and skip , */
+		if (*p == '\0' || *++p == '\0')
+			goto error;
+
+		bcn_config.bcn_flood_dur = strtoul(p, &endptr, 0);
+
+		if (*endptr != '\0')
+			goto error;
+		bcn_config.version = AIBSS_BCN_FORCE_CONFIG_VER_0;
+		bcn_config.len = sizeof(aibss_bcn_force_config_t);
+		ret = wlu_iovar_set(wl, cmd->name, (void *) &bcn_config,
+			sizeof(aibss_bcn_force_config_t));
+	}
+
+error:
+	return ret;
 }
 
 #ifdef BCMINTERNAL
@@ -5654,6 +6098,30 @@ wlu_fixrate(void *wl, cmd_t *cmd, char **argv)
 
 static int
 wlu_ratedump(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret;
+
+	if (cmd->get < 0)
+		return -1;
+
+	if (!*++argv) {
+		return -1;
+	}
+
+	if (!wl_ether_atoe(*argv, (struct ether_addr *)buf))
+		return -1;
+
+	if ((ret = wlu_get(wl, cmd->get, buf, WLC_IOCTL_MAXLEN)) < 0) {
+		fprintf(stderr, "Could not find corresponding scb from given mac address.\n");
+		return ret;
+	}
+	fputs(buf, stdout);
+
+	return 0;
+}
+
+static int
+wlu_dump_rateset(void *wl, cmd_t *cmd, char **argv)
 {
 	int ret;
 
@@ -7459,6 +7927,7 @@ static dbg_msg_t wl_msgs2[] = {
 	{WL_AWDL_VAL, "awdl"},
 #endif
 	{WL_WNM_VAL, "wnm"},
+	{WL_PCIE_VAL, "pcie"},
 	{0, NULL}
 };
 
@@ -7983,7 +8452,6 @@ wl_nrate_print(uint32 rspec)
 	}
 }
 
-#ifndef ATE_BUILD
 /*
  * Format a ratespec for output of any of the wl_rate() iovars
  */
@@ -8020,7 +8488,7 @@ wl_rate_print(char *rate_buf, uint32 rspec)
 		bw = "???";
 	}
 
-	if (rspec == 0) {
+	if ((rspec & ~WL_RSPEC_TXEXP_MASK) == 0) { /* Ignore TxExpansion for NULL rspec check */
 		sprintf(rate_buf, "auto");
 	} else if (encode == WL_RSPEC_ENCODE_RATE) {
 		sprintf(rate_buf, "rate %d%s Mbps Tx Exp %d",
@@ -8039,7 +8507,6 @@ wl_rate_print(char *rate_buf, uint32 rspec)
 
 	return rate_buf;
 }
-#endif /* !ATE_BUILD */
 
 /* handles both "rate" and "mrate", which makes the flow a bit complex */
 static int
@@ -8151,7 +8618,7 @@ wl_rate_mrate(void *wl, cmd_t *cmd, char **argv)
 
 	return error;
 }
-#ifndef ATE_BUILD
+
 /* parse the -v/--vht or -c argument for the wl_rate() command.
  * return FALSE if the arg does not look like MxS or cMsS, where M and S are single digits
  * return TRUE if the arg does look like MxS or cMsS, setting mcsp to M, and nssp to S
@@ -8633,6 +9100,7 @@ exit:
 	return err;
 }
 
+#ifndef ATE_BUILD
 static int
 wl_wepstatus(void *wl, cmd_t *cmd, char **argv)
 {
@@ -9947,17 +10415,17 @@ wl_lpc_params(void *wl, cmd_t *cmd, char **argv)
 			return USAGE_ERROR;
 
 		argc = 0;
-		lpc_params.rate_stab_thresh = strtol(argv[argc], &endptr, 0);
+		lpc_params.rate_stab_thresh = (uint8) strtol(argv[argc], &endptr, 0);
 		argc++;
-		lpc_params.pwr_stab_thresh = strtol(argv[argc], &endptr, 0);
+		lpc_params.pwr_stab_thresh = (uint8) strtol(argv[argc], &endptr, 0);
 		argc++;
-		lpc_params.lpc_exp_time = strtol(argv[argc], &endptr, 0);
+		lpc_params.lpc_exp_time = (uint8) strtol(argv[argc], &endptr, 0);
 		argc++;
-		lpc_params.pwrup_slow_step = strtol(argv[argc], &endptr, 0);
+		lpc_params.pwrup_slow_step = (uint8) strtol(argv[argc], &endptr, 0);
 		argc++;
-		lpc_params.pwrup_fast_step = strtol(argv[argc], &endptr, 0);
+		lpc_params.pwrup_fast_step = (uint8) strtol(argv[argc], &endptr, 0);
 		argc++;
-		lpc_params.pwrdn_slow_step = strtol(argv[argc], &endptr, 0);
+		lpc_params.pwrdn_slow_step = (uint8) strtol(argv[argc], &endptr, 0);
 
 		/* Set LPC params */
 		err = wlu_iovar_set(wl, cmd->name, (void *) &lpc_params,
@@ -10057,7 +10525,6 @@ wl_channel(void *wl, cmd_t *cmd, char **argv)
 	}
 }
 
-#ifndef ATE_BUILD
 static int
 wl_chanspec(void *wl, cmd_t *cmd, char **argv)
 {
@@ -10147,7 +10614,7 @@ wl_chanspec(void *wl, cmd_t *cmd, char **argv)
 					err = -1;
 					goto exit;
 				}
-				if ((to.val != 20) && (to.val != 40)) {
+				if ((to.val != 20) && (to.val != 40) && (to.val != 80)) {
 					fprintf(stderr,
 						"%s: invalid bandwidth %d\n",
 						fn_name, to.val);
@@ -10156,8 +10623,10 @@ wl_chanspec(void *wl, cmd_t *cmd, char **argv)
 				}
 				if (to.val == 20)
 					chanspec |= WL_CHANSPEC_BW_20;
-				else
+				else if (to.val == 40)
 					chanspec |= WL_CHANSPEC_BW_40;
+				else
+					chanspec |= WL_CHANSPEC_BW_80;
 				bw_set = TRUE;
 			}
 			if (to.opt == 's') {
@@ -10219,6 +10688,7 @@ exit:
 	return err;
 }
 
+#ifndef ATE_BUILD
 static int
 wl_chanim_state(void *wl, cmd_t *cmd, char **argv)
 {
@@ -11489,26 +11959,76 @@ wl_scanol(void *wl, cmd_t *cmd, char **argv)
 	argc--;
 
 	params_size += WL_SCAN_PARAMS_SSID_MAX * sizeof(wlc_ssid_t);
+	if (argc) {
 	params = (scanol_params_t *)malloc(params_size);
 	if (params == NULL) {
 		fprintf(stderr, "Error allocating %d bytes for scan params\n", params_size);
 		return -1;
 	}
 	memset(params, 0, params_size);
-
+		params->version = SCANOL_PARAMS_VERSION;
 	err = wl_scanol_prep(wl, cmd, argv, params, &params_size);
-
-	if (err) {
+		if (!err)
+			err = wlu_iovar_setbuf(wl, cmd->name, params, params_size, buf,
+				WLC_IOCTL_MAXLEN);
 		free(params);
-		return err;
+	} else {
+		uint nchan;
+		uint nssid;
+		chanspec_t *chanspecs;
+		uint i;
+		void *ptr = NULL;
+
+		/* Get */
+		if ((err = wlu_var_getbuf(wl, cmd->name, NULL, 0, &ptr)) < 0)
+			return err;
+
+		params = (scanol_params_t *)ptr;
+		if (params->version != SCANOL_PARAMS_VERSION)
+			fprintf(stderr, "Structure version don't match to the driver\n");
+
+		nchan = params->nchannels;
+		nssid = params->ssid_count;
+		printf("flags 0x%x\n", params->flags);
+		printf("Active Time %d Passive Time %d\n",
+		       params->active_time, params->passive_time);
+		printf("Idle Rest Time %d Idle Rest Time Multiplier %d\n",
+		       params->idle_rest_time, params->idle_rest_time_multiplier);
+		printf("Active Rest Time %d Active Rest Time Multiplier %d\n",
+		       params->active_rest_time, params->active_rest_time_multiplier);
+		printf("Scan Cycle Idle Rest Time %d"
+		       " Scan Cycle Idle Rest Time Multiplier %d\n",
+		       params->scan_cycle_idle_rest_time,
+		       params->scan_cycle_idle_rest_multiplier);
+		printf("Scan Cycle Active Rest Time %d"
+		       " Scan Cycle Active Rest Time Multiplier %d\n",
+		       params->scan_cycle_active_rest_time,
+		       params->scan_cycle_active_rest_multiplier);
+		printf("Maximum Rest Time %d  Maximum Scan Cycles %d Scan Start Delay %d\n",
+		       params->max_rest_time, params->max_scan_cycles, params->scan_start_delay);
+		printf("nprobes %d\n", params->nprobes);
+		printf("SSID (%d): ", nssid);
+		if (params->ssidlist[0].SSID[0] == 0)
+			printf("None\n");
+		else {
+			for (i = 0; nssid && i < nssid; i++)
+				printf(" \"%s\"", params->ssidlist[i].SSID);
+			printf("\n");
+		}
+		printf("Scan Channels (%d): ", nchan);
+		if (nchan == 0)
+			printf("None\n");
+		else {
+			printf("None\n");
+			chanspecs = (chanspec_t *)&params->ssidlist[nssid];
+			for (i = 0; i < nchan; i++) {
+				printf("%04x ", chanspecs[i]);
+				if (((i + 1) % 10) == 0)
+					printf("\n");
+			}
+			printf("\n");
+		}
 	}
-
-	if (argc)
-		err = wlu_iovar_setbuf(wl, cmd->name, params, params_size, buf, WLC_IOCTL_MAXLEN);
-	else
-		err = wlu_iovar_getbuf(wl, cmd->name, params, params_size, buf, WLC_IOCTL_MAXLEN);
-
-	free(params);
 	return err;
 }
 
@@ -13030,6 +13550,58 @@ wl_monitor_lq(void *wl, cmd_t *cmd, char **argv)
 } /* wl_monitor_lq */
 
 static int
+wl_bcnlenhist(void *wl, cmd_t *cmd, char **argv)
+{
+	wlc_bcn_len_hist_t *bcnlenhist = NULL;
+	uint32 *bcns_len = NULL;
+	char* dump_buf = NULL;
+	uint32 counter = 0;
+	int	index = 0;
+	int err = 0;
+
+	UNUSED_PARAMETER(cmd);
+
+	dump_buf = malloc(WLC_IOCTL_SMLEN);
+	if (dump_buf == NULL) {
+		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", WLC_IOCTL_SMLEN);
+		return -1;
+	}
+	memset(dump_buf, 0, WLC_IOCTL_SMLEN);
+
+	if (argv[1])
+		err = wlu_iovar_getbuf(wl, "bcnlenhist", argv[1], 1, dump_buf, WLC_IOCTL_SMLEN);
+	else
+		err = wlu_iovar_getbuf(wl, "bcnlenhist", NULL, 0, dump_buf, WLC_IOCTL_SMLEN);
+
+	if (BCME_OK == err) {
+		bcnlenhist = (wlc_bcn_len_hist_t *)dump_buf;
+
+		index = bcnlenhist->cur_index;
+		counter = bcnlenhist->ringbuff_len;
+		bcns_len = bcnlenhist->bcnlen_ring;
+
+		index--;
+		printf("LAST %d BEACON LENGTH's:  ", counter);
+		for (; counter--; index--) {
+			if (index < 0)
+				index = bcnlenhist->ringbuff_len - 1;
+			printf("%d  ", bcns_len[index]);
+		}
+
+		printf("\nMAX BCNLEN: %d\n", bcnlenhist->max_bcnlen);
+
+		if (bcnlenhist->min_bcnlen == (int)0x7fffffff)
+			printf("MIN BCNLEN: 0\n\n");
+		else
+			printf("MIN BCNLEN: %d\n\n", bcnlenhist->min_bcnlen);
+	}
+
+	free(dump_buf);
+
+	return err;
+}
+
+static int
 wl_dump_networks(void *wl, cmd_t *cmd, char **argv)
 {
 	int ret;
@@ -14151,11 +14723,20 @@ wl_tsc(void *wl, cmd_t *cmd, char **argv)
 	return 0;
 }
 
+
+#define PRINT_PPR_RATE_LOOP(idx, len, rates)		  \
+			for (idx = 0; idx < len; idx++) { \
+				if (rates[idx] == WL_RATE_DISABLED) \
+					printf("  -"); \
+				else \
+					printf(" %2d", rates[idx]); \
+			}
+
 /* print power offset for for a given bandwidth */
 static void
 wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 {
-	uint i;
+	uint i, j, rlen;
 	uint n = WL_NUM_2x2_ELEMENTS;
 	uint offset = 0;
 	int8 *ptr, *vhtptr;
@@ -14163,7 +14744,6 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 	bool siso = ((flags & WL_TX_POWER_F_MIMO) == 0);
 	bool vht = ((flags & WL_TX_POWER_F_VHT) != 0);
 	ppr_ofdm_rateset_t ofdm_rate;
-	ppr_ofdm_rateset_t ofdm_cdd_rate;
 	ppr_vht_mcs_rateset_t vhtrate;
 
 	if (!siso) {
@@ -14173,36 +14753,31 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 	if (cck) {
 		ppr_dsss_rateset_t rate;
 		ppr_get_dsss(ppr, bw, WL_TX_CHAINS_1, &rate);
-		printf("CCK          %2d %2d %2d %2d\n", rate.pwr[0], rate.pwr[1],
-		       rate.pwr[2], rate.pwr[3]);
+		printf("CCK         ");
+		PRINT_PPR_RATE_LOOP(j, WL_RATESET_SZ_DSSS, rate.pwr);
 		if (!siso) {
 			ppr_get_dsss(ppr, bw, WL_TX_CHAINS_2, &rate);
-			printf("CCK CDD 1x2  %2d %2d %2d %2d\n",
-			       rate.pwr[0], rate.pwr[1],
-			       rate.pwr[2], rate.pwr[3]);
+			printf("\nCCK CDD 1x2 ");
+			PRINT_PPR_RATE_LOOP(j, WL_RATESET_SZ_DSSS, rate.pwr);
 			ppr_get_dsss(ppr, bw, WL_TX_CHAINS_3, &rate);
-			printf("CCK CDD 1x3  %2d %2d %2d %2d\n",
-			       rate.pwr[0], rate.pwr[1],
-			       rate.pwr[2], rate.pwr[3]);
+			printf("\nCCK CDD 1x3 ");
+			PRINT_PPR_RATE_LOOP(j, WL_RATESET_SZ_DSSS, rate.pwr);
 		}
 	}
 	ppr_get_ofdm(ppr, bw, WL_TX_MODE_NONE, WL_TX_CHAINS_1, &ofdm_rate);
-	printf("OFDM         %2d %2d %2d %2d %2d %2d %2d %2d\n",
-	       ofdm_rate.pwr[0], ofdm_rate.pwr[1], ofdm_rate.pwr[2], ofdm_rate.pwr[3],
-	       ofdm_rate.pwr[4], ofdm_rate.pwr[5], ofdm_rate.pwr[6], ofdm_rate.pwr[7]);
-	ppr_get_ofdm(ppr, bw, WL_TX_MODE_CDD, WL_TX_CHAINS_2, &ofdm_cdd_rate);
-	printf("OFDM-CDD     %2d %2d %2d %2d %2d %2d %2d %2d\n",
-	       ofdm_cdd_rate.pwr[0], ofdm_cdd_rate.pwr[1], ofdm_cdd_rate.pwr[2],
-	       ofdm_cdd_rate.pwr[3],
-	       ofdm_cdd_rate.pwr[4], ofdm_cdd_rate.pwr[5], ofdm_cdd_rate.pwr[6],
-	       ofdm_cdd_rate.pwr[7]);
+	printf("\nOFDM        ");
+	PRINT_PPR_RATE_LOOP(j, WL_RATESET_SZ_OFDM, ofdm_rate.pwr);
+	ppr_get_ofdm(ppr, bw, WL_TX_MODE_CDD, WL_TX_CHAINS_2, &ofdm_rate);
+	printf("\nOFDM-CDD    ");
+	PRINT_PPR_RATE_LOOP(j, WL_RATESET_SZ_OFDM, ofdm_rate.pwr);
+	printf("\n");
 	for (i = 0; i < n; i++) {
 		wl_tx_nss_t nss;
 		wl_tx_mode_t mode;
 		wl_tx_chains_t chains;
 		switch (i + offset) {
 			case 0:
-				str = "MCS-SISO    ";
+				str = "MCS-SISO   ";
 				nss = WL_TX_NSS_1;
 				mode = WL_TX_MODE_NONE;
 				chains = WL_TX_CHAINS_1;
@@ -14210,7 +14785,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = NULL;
 				break;
 			case 1:
-				str = "MCS-CDD     ";
+				str = "MCS-CDD    ";
 				nss = WL_TX_NSS_1;
 				mode = WL_TX_MODE_CDD;
 				chains = WL_TX_CHAINS_2;
@@ -14218,7 +14793,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = NULL;
 				break;
 			case 2:
-				str = "MCS STBC    ";
+				str = "MCS STBC   ";
 				nss = WL_TX_NSS_1;
 				mode = WL_TX_MODE_STBC;
 				chains = WL_TX_CHAINS_2;
@@ -14226,7 +14801,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = NULL;
 				break;
 			case 3:
-				str = "MCS 8~15    ";
+				str = "MCS 8~15   ";
 				nss = WL_TX_NSS_2;
 				mode = WL_TX_MODE_NONE;
 				chains = WL_TX_CHAINS_2;
@@ -14239,7 +14814,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = NULL;
 				break;
 			case 6:
-				str = "1 Nsts 1 Tx ";
+				str = "1 Nsts 1 Tx";
 				nss = WL_TX_NSS_1;
 				mode = WL_TX_MODE_NONE;
 				chains = WL_TX_CHAINS_1;
@@ -14247,7 +14822,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = &vhtrate.pwr[8];
 				break;
 			case 7:
-				str = "1 Nsts 2 Tx ";
+				str = "1 Nsts 2 Tx";
 				nss = WL_TX_NSS_1;
 				mode = WL_TX_MODE_CDD;
 				chains = WL_TX_CHAINS_2;
@@ -14255,7 +14830,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = &vhtrate.pwr[8];
 				break;
 			case 8:
-				str = "1 Nsts 3 Tx ";
+				str = "1 Nsts 3 Tx";
 				nss = WL_TX_NSS_1;
 				mode = WL_TX_MODE_CDD;
 				chains = WL_TX_CHAINS_3;
@@ -14263,7 +14838,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = &vhtrate.pwr[8];
 				break;
 			case 9:
-				str = "2 Nsts 2 Tx ";
+				str = "2 Nsts 2 Tx";
 				nss = WL_TX_NSS_2;
 				mode = WL_TX_MODE_NONE;
 				chains = WL_TX_CHAINS_2;
@@ -14271,7 +14846,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = &vhtrate.pwr[8];
 				break;
 			case 10:
-				str = "2 Nsts 3 Tx ";
+				str = "2 Nsts 3 Tx";
 				nss = WL_TX_NSS_2;
 				mode = WL_TX_MODE_NONE;
 				chains = WL_TX_CHAINS_3;
@@ -14279,7 +14854,7 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 				vhtptr = &vhtrate.pwr[8];
 				break;
 			case 11:
-				str = "3 Nsts 3 Tx ";
+				str = "3 Nsts 3 Tx";
 				nss = WL_TX_NSS_3;
 				mode = WL_TX_MODE_NONE;
 				chains = WL_TX_CHAINS_3;
@@ -14294,10 +14869,12 @@ wl_txppr_print_bw(ppr_t *ppr, int cck, uint flags, wl_tx_bw_t bw)
 		if (ptr == NULL)
 			continue;
 		ppr_get_vht_mcs(ppr, bw, nss, mode, chains, &vhtrate);
-		printf("%s %2d %2d %2d %2d %2d %2d %2d %2d",
-		       str, ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]);
+		printf("%s ", str);
 		if (vht && vhtptr)
-			printf(" %2d %2d", vhtptr[0], vhtptr[1]);
+			rlen = WL_RATESET_SZ_VHT_MCS;
+		else
+			rlen = WL_RATESET_SZ_HT_MCS;
+		PRINT_PPR_RATE_LOOP(j, rlen, ptr);
 		printf("\n");
 	}
 }
@@ -14345,6 +14922,12 @@ wl_get_current_txppr(void *wl, cmd_t *cmd, char **argv)
 	ppr_t *pprptr = NULL;
 
 	wl_txppr = (wl_txppr_t *)malloc(sizeof(*wl_txppr) + pprsize);
+
+	if (wl_txppr == NULL) {
+		fprintf(stderr, "Error allocating memory for curppr\n");
+		return IOCTL_ERROR;
+	}
+
 	memset(wl_txppr, 0, sizeof(*wl_txppr));
 	wl_txppr->buflen = pprsize;
 	if (ppr_init_ser_mem_by_bw(wl_txppr->pprbuf, ppr_get_max_bw(), pprsize) != BCME_OK) {
@@ -14389,7 +14972,13 @@ wl_get_current_txppr(void *wl, cmd_t *cmd, char **argv)
 	       wf_chspec_ntoa(wl_txppr->chanspec, chanspec_str));
 	printf("BSS channel:\t\t %s\n",
 	       wf_chspec_ntoa(wl_txppr->local_chanspec, chanspec_str));
-	printf("Power/Rate Dump (in 1/4dB): Channel %d\n", CHSPEC_CHANNEL(chanspec));
+
+	if (wl_txppr->flags & WL_TX_POWER_F_QDBM) {
+		printf("Power/Rate Dump (in 1/4dB): Channel %d\n", CHSPEC_CHANNEL(chanspec));
+	} else {
+		printf("Power/Rate Dump (in 1/2dB): Channel %d\n", CHSPEC_CHANNEL(chanspec));
+	}
+
 	if (ppr_deserialize_create(NULL, wl_txppr->pprbuf, pprsize, &pprptr) == BCME_OK) {
 		wl_txppr_print(pprptr, CHSPEC_IS2G(chanspec), flags);
 		ppr_delete(NULL, pprptr);
@@ -14402,7 +14991,7 @@ wl_get_current_txppr(void *wl, cmd_t *cmd, char **argv)
  * warrant a decimal point increment. Major (potential
  * script-breaking) changes should be met with a major increment.
  */
-#define CURPOWER_OUTPUT_FORMAT_VERSION "5.0"
+#define CURPOWER_OUTPUT_FORMAT_VERSION "5.1"
 
 #define RATE_STR_LEN 64
 
@@ -14422,6 +15011,11 @@ wl_get_current_power(void *wl, cmd_t *cmd, char **argv)
 	size_t pprsize = ppr_ser_size_by_bw(ppr_get_max_bw());
 	tx_pwr_rpt_t *ppr_wl = (tx_pwr_rpt_t *)malloc(sizeof(tx_pwr_rpt_t) + pprsize*3);
 	uint8 *ppr_ser  = ppr_wl->pprdata;
+
+	if (ppr_wl == NULL) {
+		fprintf(stderr, "Error allocating memory for curpower\n");
+		return IOCTL_ERROR;
+	}
 	memset(ppr_wl, 0, sizeof(tx_pwr_rpt_t) + pprsize*3);
 	ppr_wl->board_limit_len  = pprsize;
 	ppr_wl->target_len       = pprsize;
@@ -14508,6 +15102,11 @@ wl_get_current_power(void *wl, cmd_t *cmd, char **argv)
 			printf("%d.%d dB\n", DIV_QUO(ppr_wl->sar, 4), DIV_REM(ppr_wl->sar, 4));
 		else
 			printf("-\n");
+		printf("%-23s", "Open loop:");
+		if (ppr_wl->flags & WL_TX_POWER_F_OPENLOOP)
+			printf("On\n");
+		else
+			printf("Off\n");
 		printf("%-23s", "Current rate:");
 		wl_rate_print(rate_str, ppr_wl->last_tx_ratespec);
 		printf("[%s] %s\n", get_reg_rate_string_from_ratespec(ppr_wl->last_tx_ratespec),
@@ -16371,6 +16970,7 @@ wl_tssi(void *wl, cmd_t *cmd, char **argv)
 	printf("CCK %d OFDM %d\n", (val & 0xff), (val >> 8) & 0xff);
 	return 0;
 }
+#endif /* !ATE_BUILD */
 
 /* Quarter dBm units to mW
  * Table starts at QDBM_OFFSET, so the first entry is mW for qdBm=153
@@ -16466,6 +17066,7 @@ wl_txpwr1(void *wl, cmd_t *cmd, char **argv)
 	int ret, val, new_val = 0, unit;
 	const char *name = "qtxpower";
 	bool override = FALSE;
+	uint8 band = 0;
 
 	if (!*++argv) {
 		if (cmd->get < 0)
@@ -16474,7 +17075,7 @@ wl_txpwr1(void *wl, cmd_t *cmd, char **argv)
 			return ret;
 
 		override = ((val & WL_TXPWR_OVERRIDE) != 0);
-		val &= ~WL_TXPWR_OVERRIDE;
+		val &= WL_TXPWR_MASK;
 		printf("TxPower is %d qdbm, %d.%d dbm, %d mW  Override is %s\n",
 		       val, DIV_QUO(val, 4), DIV_REM(val, 4),
 		       wl_qdbm_to_mw((uint8)(MIN(val, 0xff))),
@@ -16483,6 +17084,7 @@ wl_txpwr1(void *wl, cmd_t *cmd, char **argv)
 	} else {
 		/* for set */
 		unit = UNIT_DBM;	/* default units */
+		band = 0;
 
 		/* override can be used in combo with any unit */
 		if (!strcmp(*argv, "-o")) {
@@ -16514,7 +17116,21 @@ wl_txpwr1(void *wl, cmd_t *cmd, char **argv)
 				return (-1);
 		}
 
-		val = atoi(*argv);
+		val = atoi(*argv++);
+
+		if (*argv) {
+			if (!strcmp(*argv, "-b")) {
+				if (!*++argv)
+					return (-1);
+				if (!strcmp(*argv, "a") || !strcmp(*argv, "5") ||
+					!strcmp(*argv, "5g")) {
+					band = WLC_BAND_5G;
+				} else if (!strcmp(*argv, "b") || !strcmp(*argv, "2") ||
+					!strcmp(*argv, "2g")) {
+					band = WLC_BAND_2G;
+				}
+			}
+		}
 
 		if (val == -1) {
 			val = 127;		/* Max val of 127 qdbm */
@@ -16540,10 +17156,20 @@ wl_txpwr1(void *wl, cmd_t *cmd, char **argv)
 		if (override)
 			new_val |= WL_TXPWR_OVERRIDE;
 
-		return wlu_iovar_setint(wl, name, new_val);
+		if (band  == WLC_BAND_2G) {
+			new_val |= WL_TXPWR_2G;
+			ret = wlu_iovar_setint(wl, name, new_val);
+		} else if (band  == WLC_BAND_5G) {
+			new_val |= WL_TXPWR_5G;
+			ret = wlu_iovar_setint(wl, name, new_val);
+		} else if (band == 0) {
+			ret = wlu_iovar_setint(wl, name, new_val);
+		}
 	}
+	return ret;
 }
 
+#ifndef ATE_BUILD
 static int
 wl_txpwr(void *wl, cmd_t *cmd, char **argv)
 {
@@ -16749,6 +17375,7 @@ wl_maclist_1(void *wl, cmd_t *cmd, char **argv)
 		printf("%s %s\n", cmd->name, wl_ether_etoa(ea));
 	return 0;
 }
+#endif /* !ATE_BUILD */
 
 static int
 wl_out(void *wl, cmd_t *cmd, char **argv)
@@ -16758,7 +17385,6 @@ wl_out(void *wl, cmd_t *cmd, char **argv)
 
 	return wlu_set(wl, WLC_OUT, NULL, 0);
 }
-#endif /* !ATE_BUILD */
 
 static int
 wl_band(void *wl, cmd_t *cmd, char **argv)
@@ -17195,7 +17821,6 @@ wl_interfere(void *wl, cmd_t *cmd, char **argv)
 		if ((ret = wlu_get(wl, cmd->get, &mode, sizeof(mode))) < 0)
 			return ret;
 		mode = dtoh32(mode);
-
 		if (phytype == WLC_PHY_TYPE_AC) {
 			mode &= 0x7f;
 			if (mode == INTERFERE_NONE) {
@@ -17214,6 +17839,9 @@ wl_interfere(void *wl, cmd_t *cmd, char **argv)
 					printf("\tbit-mask %d:  Limit pktgain based on w2/nb "
 					       "(high pwr aci)\n",
 					       ACPHY_ACI_W2NB_PKTGAINLMT);
+				if (mode & ACPHY_ACI_PREEMPTION)
+					printf("\tbit-mask %d:  Preemption is enabled\n",
+					       ACPHY_ACI_PREEMPTION);
 			}
 			printf("\n");
 		} else {
@@ -17331,6 +17959,9 @@ wl_interfere_override(void *wl, cmd_t *cmd, char **argv)
 					printf("\tbit-mask %d:  Limit pktgain based on w2/nb "
 					       "(high pwr aci)\n",
 					       ACPHY_ACI_W2NB_PKTGAINLMT);
+				if (mode & ACPHY_ACI_PREEMPTION)
+					printf("\tbit-mask %d:  Preemption is enabled\n",
+					       ACPHY_ACI_PREEMPTION);
 			}
 			printf("\n");
 		} else {
@@ -17364,7 +17995,6 @@ wl_interfere_override(void *wl, cmd_t *cmd, char **argv)
 					printf("active, ");
 				else
 					printf("not active, ");
-
 				printf("and noise reduction is enabled. (mode 4)\n");
 				break;
 			case INTERFERE_OVRRIDE_OFF:
@@ -18112,7 +18742,12 @@ wl_do_samplecollect_n(void *wl, wl_samplecollect_args_t *collect, uint8 *buff, F
 	}
 	return (ret);
 }
+#endif /* !defined(_CFE_) && !defined(_HNDRTE_) && !defined(__IOPOS__) */
+#endif /* defined(BWL_FILESYSTEM_SUPPORT) */
+#endif /* !ATE_BUILD */
 
+#if defined(BWL_FILESYSTEM_SUPPORT)
+#if (!defined(_CFE_) && !defined(_HNDRTE_) && !defined(__IOPOS__)) || defined(ATE_BUILD)
 static int
 wl_do_samplecollect(void *wl, wl_samplecollect_args_t *collect, int sampledata_version,
 	uint32 *buff, FILE *fp)
@@ -18123,6 +18758,9 @@ wl_do_samplecollect(void *wl, wl_samplecollect_args_t *collect, int sampledata_v
 	int err;
 	wl_sampledata_t *sample_collect;
 	wl_sampledata_t sample_data, *psample;
+#ifdef ATE_BUILD
+	uint32 buffer_idx = 0, buffer_retr_count = 0;
+#endif
 
 	err = wlu_iovar_getbuf(wl, "sample_collect", collect, sizeof(wl_samplecollect_args_t),
 		buff, WLC_SAMPLECOLLECT_MAXLEN);
@@ -18134,8 +18772,12 @@ wl_do_samplecollect(void *wl, wl_samplecollect_args_t *collect, int sampledata_v
 	header = (uint32 *)&sample_collect[1];
 	tag = ltoh16_ua(&sample_collect->tag);
 	if (tag != WL_SAMPLEDATA_HEADER_TYPE) {
+#ifdef ATE_BUILD
+		printf("ATE: FATAL Error in sample collect: Type mismatch\n");
+#else
 		fprintf(stderr, "Expect SampleData Header type %d, receive type %d\n",
 			WL_SAMPLEDATA_HEADER_TYPE, tag);
+#endif
 		return -1;
 	}
 
@@ -18143,13 +18785,30 @@ wl_do_samplecollect(void *wl, wl_samplecollect_args_t *collect, int sampledata_v
 	flag = ltoh32_ua(&sample_collect->flag);
 	sync = ltoh32_ua(&header[0]);
 	if (sync != 0xACDC2009) {
+#ifdef ATE_BUILD
+		printf("ATE: FATAL Error in sample collect: Header sync word mismatch\n");
+#else
 		fprintf(stderr, "Header sync word mismatch (0x%08x)\n", sync);
+#endif
 		return -1;
 	}
 
+#ifdef ATE_BUILD
+	if ((buffer_idx + nbytes) > ATE_SAMPLE_COLLECT_BUFFER_SIZE) {
+		printf("ATE: FATAL Error in sample collect. Buffer o/f for header %d %d\n",
+			buffer_idx, nbytes);
+		return -1;
+	} else {
+		/* Copy the header in the read buffer */
+
+		memcpy(ate_buffer_sc + buffer_idx, (uint8 *)header, nbytes);
+		buffer_idx += nbytes;
+	}
+#else
 	err = fwrite((uint8 *)header, 1, nbytes, fp);
 	if (err != (int)nbytes)
 		  fprintf(stderr, "Failed write file-header to file %d\n", err);
+#endif
 
 	memset(&sample_data, 0, sizeof(wl_sampledata_t));
 	sample_data.version = sampledata_version;
@@ -18165,7 +18824,11 @@ wl_do_samplecollect(void *wl, wl_samplecollect_args_t *collect, int sampledata_v
 		err = wlu_iovar_getbuf(wl, "sample_data", &sample_data, sizeof(wl_sampledata_t),
 			buff, WLC_SAMPLECOLLECT_MAXLEN);
 		if (err) {
+#ifdef ATE_BUILD
+			printf("ATE: FATAL Error in sample collect: Reading data\n");
+#else
 			fprintf(stderr, "Error reading back sample collected data\n");
+#endif
 			err = -1;
 			break;
 		}
@@ -18176,16 +18839,38 @@ wl_do_samplecollect(void *wl, wl_samplecollect_args_t *collect, int sampledata_v
 		nbytes = ltoh16_ua(&psample->length);
 		flag = ltoh32_ua(&psample->flag);
 		if (tag != WL_SAMPLEDATA_TYPE) {
+#ifdef ATE_BUILD
+			printf("ATE: FATAL Error in sample collect: Type mismatch\n");
+#else
 			fprintf(stderr, "Expect SampleData type %d, receive type %d\n",
 				WL_SAMPLEDATA_TYPE, tag);
+#endif
 			err = -1;
 			break;
 		}
 		if (nbytes == 0) {
+#ifdef ATE_BUILD
+			printf("ATE: FATAL Error in sample collect: Done retrieving sample data\n");
+#else
 			fprintf(stderr, "Done retrieving sample data\n");
+#endif
 			err = -1;
 			break;
 		}
+
+#ifdef ATE_BUILD
+		buffer_retr_count++;
+		if ((buffer_idx + nbytes) > ATE_SAMPLE_COLLECT_BUFFER_SIZE) {
+			err = -1;
+			printf("ATE: FATAL Error in sample collect. Buff o/f for data %d %d %d\n",
+				buffer_idx, nbytes, buffer_retr_count);
+		} else {
+			/* Copy the data in the read buffer */
+			memcpy(ate_buffer_sc + buffer_idx,	(uint8 *)ptr, nbytes);
+			buffer_idx += nbytes;
+			ate_buffer_sc_size = buffer_idx;
+		}
+#else
 		err = fwrite(ptr, 1, nbytes, fp);
 		if (err != (int)nbytes) {
 			fprintf(stderr, "Error writing %d bytes to file, rc %d!\n",
@@ -18194,7 +18879,9 @@ wl_do_samplecollect(void *wl, wl_samplecollect_args_t *collect, int sampledata_v
 			break;
 		} else {
 			printf("Wrote %d bytes\n", err);
+			err = 0;
 		}
+#endif /* ATE_BUILD */
 	} while (flag & WL_SAMPLEDATA_MORE_DATA);
 	return err;
 }
@@ -18210,7 +18897,7 @@ wl_sample_collect(void *wl, cmd_t *cmd, char **argv)
 #elif defined(_CFE_)
 	UNUSED_PARAMETER(wl); UNUSED_PARAMETER(cmd); UNUSED_PARAMETER(argv);
 	return CFE_ERR_UNSUPPORTED;
-#elif defined(_HNDRTE_) || defined(__IOPOS__)
+#elif (defined(_HNDRTE_) || defined(__IOPOS__)) && !defined(ATE_BUILD)
 	UNUSED_PARAMETER(wl); UNUSED_PARAMETER(cmd); UNUSED_PARAMETER(argv);
 	return 0;
 #else
@@ -18341,21 +19028,29 @@ wl_sample_collect(void *wl, cmd_t *cmd, char **argv)
 
 	buff = malloc(WLC_SAMPLECOLLECT_MAXLEN);
 	if (buff == NULL) {
+#ifdef ATE_BUILD
+		printf("ATE: FATAL Error : Failed to allocate dump buffer\n");
+#else
 		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n",
 			WLC_SAMPLECOLLECT_MAXLEN);
+#endif
 		return -1;
 	}
 	memset(buff, 0, WLC_SAMPLECOLLECT_MAXLEN);
 
+#ifndef ATE_BUILD
 	if ((fp = fopen(fname, "wb")) == NULL) {
 		fprintf(stderr, "Problem opening file %s\n", fname);
 		ret = -1;
 		goto exit;
 	}
+#endif /* ATE_BUILD */
 
 	if ((phytype == WLC_PHY_TYPE_HT) || (phytype == WLC_PHY_TYPE_AC)) {
 		ret = wl_do_samplecollect(wl, &collect, sampledata_version, (uint32 *)buff, fp);
-	} else if (phytype == WLC_PHY_TYPE_N) {
+	}
+#ifndef ATE_BUILD
+	else if (phytype == WLC_PHY_TYPE_N) {
 		if (phyrev < 7) {
 		ret = wl_do_samplecollect_n(wl, &collect, buff, fp);
 		} else {
@@ -18371,14 +19066,17 @@ wl_sample_collect(void *wl, cmd_t *cmd, char **argv)
 		}
 		ret = wl_do_samplecollect_lcn40(wl, &collect, buff, fp);
 	}
-
+#endif /* !ATE_BUILD */
 exit:
 	if (buff) free(buff);
+#ifndef ATE_BUILD
 	if (fp) fclose(fp);
+#endif
 	return ret;
 #endif /* !BWL_FILESYSTEM_SUPPORT */
 }
 
+#ifndef ATE_BUILD
 static int
 wl_ampdu_activate_test(void *wl, cmd_t *cmd, char **argv)
 {
@@ -19727,6 +20425,100 @@ wl_dfs_status(void *wl, cmd_t *cmd, char **argv)
 }
 
 static int
+wl_radar_status(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret;
+	uint i;
+	wl_radar_status_t ra;
+	char chanspec_str[CHANSPEC_STR_LEN];
+	static const struct {
+		uint32 radar_type;
+		const char *radar_type_name;
+	} radar_names[] = {
+		{0, "NONE"},
+		{1, "ETSI_1"},
+		{2, "ETSI_2"},
+		{3, "ETSI_3"},
+		{4, "ETSI_4"},
+		{5, "S2"},
+		{6, "S3"},
+		{7, "UNCLASSIFIED"},
+		{8, "FCC-5"},
+		{9, "JP1-2/JP2-3"},
+		{10, "JP2-1"},
+		{11, "JP4"},
+		{12, "FCC_1"},
+	};
+
+	char radar_type_str[24];
+	ra.ch = wl_chspec_from_driver(ra.ch);
+
+	UNUSED_PARAMETER(argv);
+	if ((ret = wlu_iovar_get(wl, cmd->name, &ra, sizeof(ra))) < 0)
+		return ret;
+
+	if (ra.detected == FALSE) {
+		printf("NO RADAR DETEDTED \n");
+	} else {
+		  for (i = 0; i < ARRAYSIZE(radar_names); i++) {
+			if (radar_names[i].radar_type == ra.radartype)
+				snprintf(radar_type_str, sizeof(radar_type_str),
+					"%s", radar_names[i].radar_type_name);
+		}
+
+		  if (ra.pretended == TRUE) {
+		    printf("DFS: NONE ########## RADAR DETECTED  ON CHAN  %s \n",
+		    wf_chspec_ntoa(ra.ch, chanspec_str));
+		  } else {
+		    if (ra.radartype == 8) {
+		      printf("DFS: FCC-5 ########## RADAR DETECTED  ON CHAN %s \n",
+		      wf_chspec_ntoa(ra.ch, chanspec_str));
+		      printf(" ########## lp_csect_single = %d, Time from last detection = %u, ",
+		      ra.lp_csect_single, ra.timefromL);
+		      printf(" = %dmin %dsec AT %dMS \n ",
+		      ra.timefromL/60, ra.timefromL%60, ra.timenow);
+		    } else {
+		      printf("DFS: %s ########## RADAR DETECTED  ON CHAN %s \n",
+		      radar_type_str, wf_chspec_ntoa(ra.ch, chanspec_str));
+		      printf(" ########## detected_pulse_index= %d, nconseq_pulses = %d, ",
+		      ra.detected_pulse_index, ra.nconsecq_pulses);
+		      printf(" Time from last detection = %u, = %dmin %dsec AT %dMS \n",
+		      ra.timefromL, ra.timefromL/60, ra.timefromL%60, ra.timenow);
+		      printf("Pruned Intv: ");
+		      for (i = 0; i < 10; i++) {
+			printf("%d-%d ", ra.intv[i], i);
+		      }
+		      printf("\n");
+
+		      printf("Pruned PW:  ");
+		      for (i = 0; i < 10; i++) {
+			printf("%i-%d ", ra.pw[i], i);
+		      }
+		      printf("\n");
+
+		      printf("Pruned FM:  ");
+		      for (i = 0; i < 10; i++) {
+			printf("%i-%d ", ra.fm[i], i);
+		      }
+		      printf("\n");
+		    }
+		  }
+	}
+		return ret;
+}
+
+static int
+wl_clear_radar_status(void *wl, cmd_t *cmd, char **argv)
+{
+	wl_radar_status_t ra;
+
+	UNUSED_PARAMETER(argv);
+	printf("Clear Radar Status \n");
+
+		ra.detected = FALSE;
+		return wlu_var_setbuf(wl, cmd->name, &ra, sizeof(wl_radar_status_t));
+}
+static int
 wl_wds_wpa_role_old(void *wl, cmd_t *cmd, char **argv)
 {
 	uint remote[2];
@@ -20448,44 +21240,6 @@ wlu_var_setbuf(void *wl, const char *iovar, void *param, int param_len)
 	len += param_len;
 
 	return wlu_set(wl, WLC_SET_VAR, &buf[0], len);
-}
-
-int
-wlu_var_setbuf_sm(void *wl, const char *iovar, void *param, int param_len)
-{
-	int len;
-
-	memset(buf, 0, WLC_IOCTL_SMLEN);
-	strcpy(buf, iovar);
-
-	/* include the null */
-	len = strlen(iovar) + 1;
-
-	if (param_len)
-		memcpy(&buf[len], param, param_len);
-
-	len += param_len;
-
-	return wlu_set(wl, WLC_SET_VAR, &buf[0], WLC_IOCTL_SMLEN);
-}
-
-int
-wlu_var_setbuf_med(void *wl, const char *iovar, void *param, int param_len)
-{
-	int len;
-
-	memset(buf, 0, WLC_IOCTL_MEDLEN);
-	strcpy(buf, iovar);
-
-	/* include the null */
-	len = strlen(iovar) + 1;
-
-	if (param_len)
-		memcpy(&buf[len], param, param_len);
-
-	len += param_len;
-
-	return wlu_set(wl, WLC_SET_VAR, &buf[0], WLC_IOCTL_MEDLEN);
 }
 
 #ifndef ATE_BUILD
@@ -22531,6 +23285,9 @@ wl_counters(void *wl, cmd_t *cmd, char **argv)
 			PRVAL(chained); PRVAL(chainedsz1); PRVAL(unchained); PRVAL(maxchainsz);
 			PRVAL(currchainsz); PRNL();
 		}
+		if (cnt->version >= 9) {
+			PRVAL(pciereset); PRVAL(cfgrestore); PRNL();
+		}
 	}
 
 	pbuf += sprintf(pbuf, "\n");
@@ -22586,8 +23343,11 @@ wl_delta_stats(void *wl, cmd_t *cmd, char **argv)
 	PRVAL(rx1mbps); PRVAL(rx2mbps); PRVAL(rx5mbps5); PRVAL(rx6mbps); PRNL();
 	PRVAL(rx9mbps); PRVAL(rx11mbps); PRVAL(rx12mbps); PRVAL(rx18mbps); PRNL();
 	PRVAL(rx24mbps); PRVAL(rx36mbps); PRVAL(rx48mbps); PRVAL(rx54mbps); PRNL();
-
 	pbuf += sprintf(pbuf, "\n");
+
+	PRVAL(rxbadplcp); PRVAL(rxcrsglitch); PRVAL(bphy_rxcrsglitch); PRVAL(bphy_badplcp);
+	pbuf += sprintf(pbuf, "\n");
+
 	fputs(buf, stdout);
 
 	if (cnt != NULL)
@@ -22822,11 +23582,11 @@ hexstrtobitvec(const char *cp, uchar *bitvec, int veclen)
 }
 
 static int
-wl_bitvec128(void *wl, cmd_t *cmd, char **argv)
+wl_event_bitvec(void *wl, cmd_t *cmd, char **argv)
 {
 	char *vbuf;
 	int err;
-	uchar bitvec[16];
+	uchar bitvec[WL_EVENTING_MASK_LEN];
 	bool skipzeros;
 	int i;
 
@@ -24109,6 +24869,17 @@ wl_pfn_set(void *wl, cmd_t *cmd, char **argv)
 				fprintf(stderr, "Missing bdscan option\n");
 				return -1;
 			}
+		} else if (!stricmp(*argv, "separate")) {
+			if (*++argv) {
+				pfn_param.flags &= ~REPORT_SEPERATELY_MASK;
+				if (atoi(*argv))
+					pfn_param.flags |= (ENABLE << REPORT_SEPERATELY_BIT);
+				else
+					pfn_param.flags |= (DISABLE << REPORT_SEPERATELY_BIT);
+			} else {
+				fprintf(stderr, "Missing seperate option\n");
+				return -1;
+			}
 		} else if (!stricmp(*argv, "adapt")) {
 			if (*++argv) {
 				pfn_param.flags &= ~ENABLE_ADAPTSCAN_MASK;
@@ -24593,6 +25364,15 @@ wl_pfn_cfg(void *wl, cmd_t *cmd, char **argv)
 				fprintf(stderr, "Missing option for channel\n");
 				return -1;
 			}
+		} else if (!stricmp(*argv, "prohibited")) {
+			if (*++argv) {
+				pfncfg_param.flags &= ~WL_PFN_CFG_FLAGS_PROHIBITED;
+				if (atoi(*argv))
+					pfncfg_param.flags |= WL_PFN_CFG_FLAGS_PROHIBITED;
+			} else {
+				fprintf(stderr, "Missing prohibited option value\n");
+				return -1;
+			}
 		} else {
 			fprintf(stderr, "Invalid parameter %s\n", *argv);
 			return -1;
@@ -24601,6 +25381,7 @@ wl_pfn_cfg(void *wl, cmd_t *cmd, char **argv)
 
 	pfncfg_param.reporttype = htod32(pfncfg_param.reporttype);
 	pfncfg_param.channel_num = htod32(nchan);
+	pfncfg_param.flags = htod32(pfncfg_param.flags);
 
 	if ((err = wlu_iovar_set(wl, "pfn_cfg", &pfncfg_param,
 	     sizeof(wl_pfn_cfg_t)))) {
@@ -24629,7 +25410,7 @@ wl_pfn(void *wl, cmd_t *cmd, char **argv)
 
 	return err;
 }
-#define WL_PFN_BESTNET_LEN	2048
+#define WL_PFN_BESTNET_LEN	1024
 
 static int
 wl_pfnbest(void *wl, cmd_t *cmd, char **argv)
@@ -24676,6 +25457,58 @@ wl_pfnbest(void *wl, cmd_t *cmd, char **argv)
 		}
 	}
 
+	free(bestnet);
+	return 0;
+}
+
+static int
+wl_pfnlbest(void *wl, cmd_t *cmd, char **argv)
+{
+	int	err;
+	wl_pfn_lscanresults_t *bestnet;
+	wl_pfn_lnet_info_t *netinfo;
+	uint32 i, j;
+
+	UNUSED_PARAMETER(cmd);
+
+	if (*++argv) {
+		fprintf(stderr, "Invalid parameter %s\n", *argv);
+		return -1;
+	}
+	bestnet = (wl_pfn_lscanresults_t *)malloc(WL_PFN_BESTNET_LEN);
+	if (bestnet == NULL) {
+		fprintf(stderr, "Failed to allocate buffer of %d bytes\n", WL_PFN_BESTNET_LEN);
+		return -1;
+	}
+	bzero(bestnet, WL_PFN_BESTNET_LEN);
+	while (bestnet->status == PFN_INCOMPLETE) {
+		if ((err = wlu_iovar_get(wl, "pfnlbest", (void *)bestnet, WL_PFN_BESTNET_LEN))) {
+			fprintf(stderr, "pfnbest fail\n");
+			return err;
+		}
+		printf("ver %d, status %d, count %d\n",
+		 bestnet->version, bestnet->status, bestnet->count);
+		netinfo = bestnet->netinfo;
+		for (i = 0; i < bestnet->count; i++) {
+			for (j = 0; j < netinfo->pfnsubnet.SSID_len; j++)
+				printf("%c", netinfo->pfnsubnet.SSID[j]);
+			printf("\n");
+			printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
+			        netinfo->pfnsubnet.BSSID.octet[0],
+			        netinfo->pfnsubnet.BSSID.octet[1],
+			        netinfo->pfnsubnet.BSSID.octet[2],
+			        netinfo->pfnsubnet.BSSID.octet[3],
+			        netinfo->pfnsubnet.BSSID.octet[4],
+			        netinfo->pfnsubnet.BSSID.octet[5]);
+			printf("channel: %d, flags: %d, RSSI: %d, timestamp: %d\n",
+			 netinfo->pfnsubnet.channel, netinfo->flags,
+			 netinfo->RSSI, netinfo->timestamp);
+			printf("RTT0: %d, RTT1: %d\n", netinfo->rtt0, netinfo->rtt1);
+			netinfo++;
+		}
+	}
+
+	free(bestnet);
 	return 0;
 }
 
@@ -24698,6 +25531,39 @@ wl_pfn_suspend(void *wl, cmd_t *cmd, char **argv)
 	return err;
 }
 
+static int
+wl_pfn_mem(void *wl, cmd_t *cmd, char **argv)
+{
+	int	err, val;
+
+	UNUSED_PARAMETER(cmd);
+
+	if (*++argv && !stricmp(*argv, "bestn")) {
+		if (*++argv)
+			val = atoi(*argv);
+		else {
+			fprintf(stderr, "Missing bestn value\n");
+			return -1;
+		}
+	} else {
+		fprintf(stderr, "Missing bestn option\n");
+		return -1;
+	}
+
+	err = wlu_iovar_setint(wl, "pfnmem", val);
+	if (err) {
+		fprintf(stderr, "pfnmem set wrong!\n");
+		return err;
+	}
+
+	err = wlu_iovar_getint(wl, "pfnmem", &val);
+	if (!err)
+		wl_printint(val);
+	else
+		fprintf(stderr, "pfnmem get wrong!\n");
+	return err;
+}
+
 #if defined(linux)
 static void
 wl_pfn_printnet(wl_pfn_scanresults_t *ptr, int event_type)
@@ -24709,6 +25575,10 @@ wl_pfn_printnet(wl_pfn_scanresults_t *ptr, int event_type)
 		printf("WLC_E_PFN_NET_FOUND:\n");
 	} else if (WLC_E_PFN_NET_LOST == event_type) {
 		printf("WLC_E_PFN_NET_LOST:\n");
+	} else if (WLC_E_PFN_BSSID_NET_FOUND == event_type) {
+		printf("WLC_E_PFN_BSSID_NET_FOUND:\n");
+	} else if (WLC_E_PFN_BSSID_NET_LOST == event_type) {
+		printf("WLC_E_PFN_BSSID_NET_LOST:\n");
 	} else {
 		return;
 	}
@@ -24843,7 +25713,9 @@ wl_pfn_event_check(void *wl, cmd_t *cmd, char **argv)
 					info++;
 				}
 			} else if ((WLC_E_PFN_NET_FOUND == event_type) ||
-			           (WLC_E_PFN_NET_LOST == event_type)) {
+			           (WLC_E_PFN_NET_LOST == event_type) ||
+			           (WLC_E_PFN_BSSID_NET_FOUND == event_type) ||
+			           (WLC_E_PFN_BSSID_NET_LOST == event_type)) {
 				wl_pfn_printnet(
 				   (wl_pfn_scanresults_t *)(data + sizeof(bcm_event_t)),
 				                            event_type);
@@ -24861,6 +25733,9 @@ wl_pfn_event_check(void *wl, cmd_t *cmd, char **argv)
 			}
 			if (WLC_E_PFN_SCAN_ALLGONE == event_type) {
 				printf("Got WLC_E_PFN_SCAN_ALLGONE\n");
+			}
+			if (WLC_E_PFN_BEST_BATCHING == event_type) {
+				printf("Got WLC_E_PFN_BEST_BATCHING\n");
 			}
 		}
 	}
@@ -25135,9 +26010,8 @@ wl_escanresults(void *wl, cmd_t *cmd, char **argv)
 				for (result = escan_bss_head; result; result = result->next) {
 					bss = result->bss;
 
-#define WLC_BSS_RSSI_ON_CHANNEL 0x0002 /* Copied from wlc.h. Is there a better way to do this? */
-
-					if (!wlu_bcmp(bi->SSID, bss->SSID, ETHER_ADDR_LEN) &&
+					if (!wlu_bcmp(bi->BSSID.octet, bss->BSSID.octet,
+						ETHER_ADDR_LEN) &&
 						CHSPEC_BAND(bi->chanspec) ==
 						CHSPEC_BAND(bss->chanspec) &&
 						bi->SSID_len == bss->SSID_len &&
@@ -25499,17 +26373,18 @@ wl_p2po_listen_channel(void *wl, cmd_t *cmd, char **argv)
 }
 
 static int
-wl_p2po_tracelevel(void *wl, cmd_t *cmd, char **argv)
+wl_p2po_stop(void *wl, cmd_t *cmd, char **argv)
 {
 	uint32 val;
 
 	UNUSED_PARAMETER(cmd);
 
 	if (*++argv) {
-		val = strtoul(*argv, NULL, 16);
-		return wlu_iovar_setint(wl, "p2po_tracelevel", val);
+		val = atoi(*argv);
+		return wlu_iovar_setint(wl, "p2po_stop", val);
 	}
 
+	fprintf(stderr, "Please specify - 0:stop, 1:pause\n");
 	return -1;
 }
 
@@ -26620,26 +27495,254 @@ static int
 wl_mcast_ackmac(void *wl, cmd_t *cmd, char **argv)
 {
 	int ret = 0;
-	struct ether_addr ea;
+	int i, err;
+	wl_rmc_entry_t ackmac_params;
+	wl_rmc_entry_table_t tablelist;
+	void *ptr = NULL;
+	wl_rmc_entry_table_t *reply = NULL;
+	wl_rmc_gbl_table_t *gtbl = NULL;
+	miniopt_t to;
+	struct ether_addr* ea = NULL;
+	bool index_set = FALSE; bool mac_set = FALSE;
+
+	/* muticast mac address - ipv4 & ipv6 resp. */
+	uint8 mc_mac[6]		 = {0x1, 0x0, 0x5e, 0x7f, 0xff, 0xff};
+	uint8 mc_mac_ipv6[6] = {0x33, 0x33, 0x0, 0x0, 0x0, 0x0};
+
+	/* index will tell us what to do */
 
 	if (!*++argv) {
-		if ((ret = wlu_iovar_get(wl, cmd->name, &ea, ETHER_ADDR_LEN)) < 0)
+
+		/* Get and display all entries in the table */
+		if ((ret = wlu_var_getbuf(wl, cmd->name,
+		             NULL,
+		             0,
+		             &ptr)) < 0) {
 			return ret;
-		printf("%s\n", wl_ether_etoa(&ea));
-	} else {
-		if (!wl_ether_atoe(*argv, &ea))
-			return -1;
-		if ((ea.octet[0] == 1 && ea.octet[1] == 0 && ea.octet[2] == 0x5e &&
-			!(ea.octet[3] & 0x80)) || (ea.octet[0] == 0x33 && ea.octet[1] == 0x33))
-		{
-			ret = wlu_iovar_set(wl, cmd->name, &ea, ETHER_ADDR_LEN);
+
 		}
-		else {
-			fprintf(stderr, "multicast mac started with 01:00:5e:0... or 33:33:...\n");
-			ret = -1;
+		reply = (wl_rmc_entry_table_t *)ptr;
+		printf("\n Local: Active Mask 0x%02x  Transmitter mask 0x%02x ",
+			reply->index, reply->opcode);
+
+		printf("\n Enable\t Multi-cast Group ");
+		printf("\n %d \t\t Ack All \t", (reply->index &  WL_RMC_ACK_MCAST_ALL)?1:0);
+
+		for (i = 0; i < WL_RMC_MAX_TABLE_ENTRY; i++) {
+			printf("\n %d \t %s",
+				(reply->index & (WL_RMC_ACK_MCAST0 << i))?1:0,
+				wl_ether_etoa(&reply->entry[i].addr));
+		}
+
+		gtbl = (wl_rmc_gbl_table_t *)((char*)ptr+sizeof(wl_rmc_entry_table_t));
+
+		printf("\n Global Table: Active Mask 0x%02x ", gtbl->activeMask);
+		printf("\n Multi-cast \t\t Transmitter \t");
+		printf("\n Ack All Entry \t\t %s",
+		        wl_ether_etoa(&gtbl->ackAll.tr_info[0].addr));
+
+		for (i = 0; i <  WL_RMC_MAX_TABLE_ENTRY; i++) {
+			printf("\n %s \t", wl_ether_etoa(&gtbl->mc_entry[i].mcaddr));
+
+			printf("%s \t",
+			       wl_ether_etoa(&gtbl->mc_entry[i].tr_info[0].addr));
+
+		}
+		printf("\n");
+		return 0;
+	}
+
+	miniopt_init(&to, cmd->name, NULL, FALSE);
+
+	while ((err = miniopt(&to, argv)) != -1) {
+		if (err == 1) {
+			return USAGE_ERROR;
+		}
+		argv += to.consumed;
+		/* Index for muticast address in RMC table */
+		if (to.opt == 'i') {
+			if (!to.good_int || (to.val >=  WL_RMC_MAX_TABLE_ENTRY && to.val)) {
+				fprintf(stderr, "%s: Invalid mode value\n", cmd->name);
+				err = -1;
+				goto exit;
+			}
+			tablelist.index = to.val;
+			index_set = TRUE;
+		}
+
+		/* Add multicast address with index "i" to RMC table */
+		if (to.opt == 't') {
+			if (!wl_ether_atoe(to.valstr, &ackmac_params.addr)) {
+				fprintf(stderr,
+					"%s: could not parse \"%s\" as a MAC address\n",
+					cmd->name, to.valstr);
+				err = -1;
+				goto exit;
+			}
+			mac_set = TRUE;
 		}
 	}
+
+	if (index_set) {
+		if (!mac_set) {
+			/* if table index is -1 & no mac entry, it is for ACKALL */
+			if (tablelist.index == 255) {
+				/* enable all  multi-cast */
+				tablelist.index = 0;
+				tablelist.opcode = RELMCAST_ENTRY_OP_ACK_ALL;
+				tablelist.entry[tablelist.index].flag = RELMCAST_ENTRY_OP_ACK_ALL;
+			}
+			/* if index is not -1 and no mac entry,
+			   it is for removing entry at the index
+			*/
+			else if (tablelist.index < WL_RMC_MAX_TABLE_ENTRY) {
+				/* remove multi-cast entry by setting flag to deleted  */
+				tablelist.opcode = RELMCAST_ENTRY_OP_DELETE;
+				tablelist.entry[tablelist.index].flag = RELMCAST_ENTRY_OP_DELETE;
+			}
+			else {
+				printf("%s Invalid index  %d\n", cmd->name, tablelist.index);
+				return USAGE_ERROR;
+			}
+
+			return wlu_var_setbuf(wl, cmd->name,
+			           &tablelist,
+			           sizeof(wl_rmc_entry_table_t)+sizeof(wl_rmc_gbl_table_t));
+		} else {
+			/* mac is also set */
+			memcpy(&tablelist.entry[tablelist.index].addr, &ackmac_params.addr,
+				sizeof(struct ether_addr));
+
+			/* insert to list */
+			ea = &tablelist.entry[tablelist.index].addr;
+			tablelist.entry[tablelist.index].flag = RELMCAST_ENTRY_OP_ENABLE;
+
+			/* for ipv4, initial three bytes in mc address are standard &
+			    2 bytes for ipv6
+			 */
+			if ((!memcmp(ea, mc_mac, 3) && !(ea->octet[3] & 0x80)) ||
+			     !memcmp(ea, mc_mac_ipv6, 2)) {
+
+				fprintf(stderr,
+					    "\nAdding multi-cast mac %s\n", wl_ether_etoa(ea));
+
+				return wlu_var_setbuf(wl, cmd->name,
+				         &tablelist,
+				         sizeof(wl_rmc_entry_table_t)+sizeof(wl_rmc_gbl_table_t));
+
+			} else {
+
+				fprintf(stderr, "multicast mac started with"
+					"01:00:5e:0... or 33:33:...\n");
+				ret = BCME_BADARG;
+
+			}
+		}
+	}
+exit:
 	return ret;
+}
+
+static int
+wl_mcast_ackreq(void *wl, cmd_t *cmd, char **argv)
+{
+	const char* fn_name = "wl_mcast_ackreq";
+	int err, i = 0;
+	uint argc;
+	char *endptr = NULL;
+	void *ptr = NULL;
+	uint8 *reply_mode = NULL;
+	uint8 params_mode, old_mode;
+	wl_relmcast_status_t status;
+
+	memset(&params_mode, 0, sizeof(uint8));
+	/* toss the command name */
+	argv++;
+
+	if ((err = wlu_var_getbuf_sm(wl, cmd->name, &params_mode,
+		sizeof(uint8), &ptr))  != BCME_OK) {
+		fprintf(stderr, "Error getting variable %s\n", argv[0]);
+		return err;
+	}
+
+	reply_mode = (uint8 *)ptr;
+	old_mode = *reply_mode;
+
+	if (!*argv) {
+		fprintf(stderr, "%s mode %d \n", fn_name, *reply_mode);
+		return err;
+	}
+
+	/* arg count */
+	for (argc = 0; argv[argc]; argc++)
+		;
+
+	/* required arg: mode disable, enable  or initiator enabled */
+	if (argc < 1)
+		return -1;
+
+	/* get the new ackreq mode */
+	params_mode = strtol(argv[0], &endptr, 0);
+
+	if ((*endptr != '\0') || (params_mode > WL_RMC_MODE_INITIATOR))
+		return -1;
+
+	if (argc > 1) {
+		fprintf(stderr,
+			"%s: could not parse extra argument %s:\n",
+			fn_name, argv[1]);
+
+		err = -1;
+		goto exit;
+	}
+
+	if ((err = wlu_var_setbuf(wl, cmd->name, &params_mode, sizeof(uint8))) != BCME_OK) {
+		goto out_of_here;
+	}
+
+	if (params_mode == WL_RMC_MODE_INITIATOR ||
+	   ((params_mode == WL_RMC_MODE_RECEIVER) &&
+	   (old_mode == WL_RMC_MODE_INITIATOR))) {
+
+		for (i = 0; i <= 10; i++) {
+			/* check status of the RCV bit to make sure ack are receive */
+			if ((err = wlu_iovar_get(wl, "rmc_status",
+			                    (void *) &status,
+			                    (sizeof(wl_relmcast_status_t)))) < 0) {
+				return (err);
+			}
+
+			if (status.err != (uint16)BCME_NOTREADY) {
+				if (status.err == (uint16)BCME_RXFAIL) {
+					fprintf(stderr, "%s: error in setting mode: no ack receive"
+					        "%d tx code %d \n",
+					         fn_name,  params_mode, status.err);
+
+					err = -1;
+				} else {
+					err = 0;
+				}
+				goto out_of_here;
+			}
+
+			/* Allow ample time (by staying in loop) to get ACK
+			   for previous TX frame
+			*/
+			{
+				volatile uint16 busycnt = -1;
+				while (--busycnt)
+					;
+				busycnt = -1;
+			}
+		} /* for loop */
+	}
+out_of_here:
+	if ((err < 0) || (i > 10))
+		fprintf(stderr, "%s: Error setting %d err %d \n", fn_name, params_mode, err);
+	else
+		fprintf(stderr, "%s: setting %d err %d \n", fn_name, params_mode, err);
+exit:
+	return 0;
 }
 
 static int
@@ -26654,28 +27757,265 @@ wl_mcast_status(void *wl, cmd_t *cmd, char **argv)
 			(sizeof(wl_relmcast_status_t)))) < 0)
 			return (err);
 
-		if (status.ver != WL_RELMCAST_VER)
-			printf("Wrong Version %d %d\n", WL_RELMCAST_VER, status.ver);
-		else if (status.num == 0)
+		if (status.ver != WL_RMC_VER) {
+			printf("Wrong Version %d %d\n", WL_RMC_VER, status.ver);
+		} else if (status.num == 0) {
 			printf("No clients associated\n");
-		else {
+		} else {
 			for (i = 0; i < status.num; i++)
 			{
 				printf("%s\t%d\t%c%c%c\n", wl_ether_etoa(&status.clients[i].addr),
 					status.clients[i].rssi,
-					((status.clients[i].flag & WL_RELMCAST_FLAG_ACTIVEACKER) ?
+					((status.clients[i].flag & WL_RMC_FLAG_ACTIVEACKER) ?
 					'A' : ' '),
-					((status.clients[i].flag & WL_RELMCAST_FLAG_INBLACKLIST) ?
+					((status.clients[i].flag & WL_RMC_FLAG_INBLACKLIST) ?
 					'B' : ' '),
-					((status.clients[i].flag & WL_RELMCAST_FLAG_RELMCAST) ?
+					((status.clients[i].flag & WL_RMC_FLAG_RELMCAST) ?
 					'R' : ' '));
 			}
+
+			printf("Notification Frame TimePeriod: %d ms\n", status.actf_time);
 		}
 	} else {
 		printf("Cannot set reliable multicast status\n");
 	}
 
 	return 0;
+}
+
+static int
+wl_mcast_actf_time(void *wl, cmd_t *cmd, char **argv)
+{
+	int val, error = -1;
+	const char *name = cmd->name;
+
+	/* toss the command name from the args */
+	argv++;
+
+	if (!*argv) {
+		error = wlu_iovar_getint(wl, name, &val);
+		if (error < 0)
+			return (error);
+		printf("Action Frame tx time period: %dms\n", val);
+
+	} else {
+
+		val = (uint16)strtol(*argv, NULL, 10); /* 10 is for base 10 (decimal) */
+
+		if (val >= WL_RMC_ACTF_TIME_MIN &&
+			val <= WL_RMC_ACTF_TIME_MAX) {
+
+			error = wlu_iovar_setint(wl, name, val);
+
+		} else {
+
+			printf("\"Out of range\": valid range %dms - %dms\n",
+			                               WL_RMC_ACTF_TIME_MIN,
+			                               WL_RMC_ACTF_TIME_MAX);
+		}
+	}
+	return error;
+}
+
+static int
+wl_mcast_ar_timeout(void *wl, cmd_t *cmd, char **argv)
+{
+	int val, error = -1;
+	const char *name = cmd->name;
+
+	/* toss the command name from the args */
+	argv++;
+
+	if (!*argv) {
+		error = wlu_iovar_getint(wl, name, &val);
+		if (error < 0)
+			return (error);
+		printf("Active Receiver time out: %dms\n", val);
+
+	} else {
+		val = (uint16)strtol(*argv, NULL, 10);
+		if (val >= WL_RMC_ARTMO_MIN &&
+			val <= WL_RMC_ARTMO_MAX)
+			error = wlu_iovar_setint(wl, name, val);
+		else
+			printf("\"Out of range\": valid range %dms - %dms\n",
+			WL_RMC_ARTMO_MIN,
+			WL_RMC_ARTMO_MAX);
+	}
+	return error;
+}
+
+static int
+wl_mcast_rssi_thresh(void *wl, cmd_t *cmd, char **argv)
+{
+	int val, error = -1;
+	const char *name = cmd->name;
+
+	/* toss the command name from the args */
+	argv++;
+
+	if (!*argv) {
+		error = wlu_iovar_getint(wl, name, &val);
+		if (error < 0)
+			return (error);
+		printf("rmc rssi: %d\n", val);
+
+	} else {
+		val = (int8)strtol(*argv, NULL, 10);
+		error = wlu_iovar_setint(wl, name, val);
+	}
+
+	return error;
+}
+
+static int
+wl_mcast_stats(void *wl, cmd_t *cmd, char **argv)
+{
+#define	PRCNT(name)	pbuf += sprintf(pbuf, "%s %u ", #name, dtoh16(cnts_v.name))
+#define	PRCNT32(name)	pbuf += sprintf(pbuf, "%s %u ", #name, dtoh32(cnts_v.name))
+	wl_rmc_cnts_t *cnts = NULL;
+	wl_rmc_cnts_t cnts_v;
+	int err = BCME_OK;
+	uint8 argval, argc;
+	char *pbuf = buf;
+	char *endptr = NULL;
+	void *ptr = NULL;
+
+	if (!*++argv) {
+		/* no arg - get and display all values */
+
+		if ((err = wlu_var_getbuf (wl, cmd->name, &cnts_v, sizeof(wl_rmc_cnts_t),  &ptr)))
+			return (err);
+
+		cnts = (wl_rmc_cnts_t*)ptr;
+
+		memcpy((wl_rmc_cnts_t*)&cnts_v, cnts, sizeof(wl_rmc_cnts_t));
+		cnts_v.version = dtoh16(cnts->version);
+		cnts_v.length = dtoh16(cnts->length);
+
+		if (cnts_v.version != WL_RMC_CNT_VERSION) {
+			printf("\tIncorrect version of counters struct: expected %d; got %d\n",
+			        WL_RMC_CNT_VERSION, cnts->version);
+
+			return -1;
+		}
+
+		PRCNT(dupcnt); PRCNT(ackreq_err); PRCNT(af_tx_err); PRNL();
+		PRCNT(null_tx_err); PRCNT(af_unicast_tx_err); PRCNT(mc_no_amt_slot); PRNL();
+
+		PRCNT(mc_no_glb_slot); PRCNT(mc_not_mirrored); PRCNT(mc_existing_tr); PRNL();
+		PRCNT(mc_exist_in_amt); PRCNT(mc_not_exist_in_gbl); PRCNT(mc_utilized); PRNL();
+		PRCNT(mc_taken_other_tr); PRCNT32(rmc_rx_frames_mac); PRCNT32(rmc_tx_frames_mac);
+		PRNL(); PRCNT32(mc_ar_role_selected); PRCNT32(mc_ar_role_deleted);
+		PRCNT32(mc_noacktimer_expired); PRNL(); PRCNT32(mc_null_ar_cnt); PRNL();
+		fputs(buf, stdout);
+
+	} else {
+
+			/* arg count */
+			for (argc = 0; argv[argc]; argc++)
+				;
+			argval = strtol(argv[0], &endptr, 0);
+			if (argval == 255) {
+			/* arg is -1, clear all the values */
+				fprintf(stderr, "clearing rmc counters\n");
+				err = wlu_var_setbuf(wl, cmd->name, &cnts_v, sizeof(wl_rmc_cnts_t));
+
+			} else {
+				fprintf(stderr, "Invalid arg, only -1"
+					"is allowed to clear counters\n");
+				err = BCME_BADARG;
+			}
+	}
+	return err;
+}
+
+static int
+wl_mcast_rssi_delta(void *wl, cmd_t *cmd, char **argv)
+{
+	int val, error = -1;
+	const char *name = cmd->name;
+
+	/* toss the command name from the args */
+	argv++;
+
+	if (!*argv) {
+		error = wlu_iovar_getint(wl, name, &val);
+		if (error < 0)
+			return (error);
+		printf("rmc rssi delta: %d\n", val);
+
+	} else {
+		val = (uint16)strtol(*argv, NULL, 10);
+		if (val >= 0) /* rssi delta value should be a whole number */
+			error = wlu_iovar_setint(wl, name, val);
+		else
+			printf("\"Out of range\": rmc rssi delta should be >=0\n");
+	}
+	return error;
+}
+
+static int
+wl_mcast_vsie(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret = 0;
+	void *ptr = NULL;
+	wl_rmc_vsie_t *reply = NULL;
+	wl_rmc_vsie_t vsie;
+	char *parse = NULL;
+	char tmp[4];
+	int idx, cnt;
+
+	if (!*++argv) {
+
+		/* Get and display all entries in the table */
+		if ((ret = wlu_var_getbuf(wl, cmd->name,
+		             NULL,
+		             0,
+		             &ptr)) < 0) {
+			return ret;
+		}
+
+		reply = (wl_rmc_vsie_t*)ptr;
+
+		printf("0x%x%x%x 0x%x", reply->oui[0], reply->oui[1],
+			reply->oui[2], reply->payload);
+
+	} else {
+
+		parse = *argv++;
+
+		/* remove "0x" from the input string which is in hex */
+		if (strlen(parse)/2 > DOT11_OUI_LEN) {
+			if (!strncmp("0x", parse, strlen("0x")) ||
+			    !strncmp("0X", parse, strlen("0X"))) {
+				parse += strlen("0x");
+			}
+		}
+
+		/* if OUI string is not 6 characters, simply reject */
+		if (strlen(parse) != DOT11_OUI_LEN * 2)
+			return BCME_ERROR;
+
+		/* parse oui string */
+		for (idx = 0; idx < DOT11_OUI_LEN; idx++) {
+			for (cnt = 0; cnt < 2; cnt++) {
+				tmp[cnt] = *parse++;
+			}
+			tmp[cnt] = '\0';
+			vsie.oui[idx] = (uint8)(strtoul(tmp, NULL, 16));
+		}
+
+		/* second argument is missing!! */
+		if (!*argv) {
+			return BCME_ERROR;
+		}
+
+		vsie.payload = (uint16)(strtoul(*argv, NULL, 16));
+		ret = wlu_var_setbuf(wl, cmd->name, &vsie, sizeof(vsie));
+	}
+
+	return ret;
 }
 
 static int
@@ -27398,6 +28738,115 @@ wl_phy_txlocc(void *wl, cmd_t *cmd, char **argv)
 }
 
 static int
+wl_phy_rssi_gain_delta_2g(void *wl, cmd_t *cmd, char **argv)
+{
+	int i;
+	int err = -1;
+	int8 deltaValues[18];
+	int32 value;
+	char *endptr;
+	int ret = -1;
+	wlc_rev_info_t revinfo;
+	uint32 phytype;
+	uint8 N;
+
+	memset(&revinfo, 0, sizeof(revinfo));
+	ret = wlu_get(wl, WLC_GET_REVINFO, &revinfo, sizeof(revinfo));
+	if (ret) {
+		return ret;
+	}
+	phytype = dtoh32(revinfo.phytype);
+
+	if (phytype != WLC_PHY_TYPE_AC) {
+		return err;
+	}
+
+	if (!*++argv) {
+		if ((err = wlu_iovar_get(wl, cmd->name, deltaValues, sizeof(deltaValues))) < 0)
+			return err;
+		if (phytype == WLC_PHY_TYPE_AC)
+			N = 15; /* ACPHY: 3 cores max x 5 entries */
+		for (i = 0; i < N; i++) {
+			if ((phytype == WLC_PHY_TYPE_AC) && (i%5 == 0)) {
+				if (i > 0) printf("\n");
+				if (deltaValues[i] == -1) break;
+			}
+			printf("%d ", deltaValues[i]);
+		}
+		if (i == N)
+			printf("\n");
+	} else {
+		if (phytype == WLC_PHY_TYPE_AC)
+			N = 5; /* ACPHY : 5 entries for a core */
+		for (i = 0; i < N; i++) {
+			value = strtol(*argv++, &endptr, 0);
+			if ((value > 63 || value < -64)) {
+				return BCME_BADARG;
+			}
+			deltaValues[i] = (int8)value;
+		}
+		if ((err = wlu_var_setbuf(wl, cmd->name, deltaValues, N*sizeof(int8))) < 0)
+			return err;
+	}
+
+	return 0;
+}
+
+static int
+wl_phy_rssi_gain_delta_5g(void *wl, cmd_t *cmd, char **argv)
+{
+	int i;
+	int err = -1;
+	int8 deltaValues[28];
+	int32 value;
+	char *endptr;
+	int ret = -1;
+	wlc_rev_info_t revinfo;
+	uint32 phytype;
+	uint8 N;
+
+	memset(&revinfo, 0, sizeof(revinfo));
+	ret = wlu_get(wl, WLC_GET_REVINFO, &revinfo, sizeof(revinfo));
+	if (ret) {
+		return ret;
+	}
+	phytype = dtoh32(revinfo.phytype);
+
+	if (phytype != WLC_PHY_TYPE_AC) {
+		return err;
+	}
+
+	if (!*++argv) {
+		if ((err = wlu_iovar_get(wl, cmd->name, deltaValues, sizeof(deltaValues))) < 0)
+			return err;
+		if (phytype == WLC_PHY_TYPE_AC)
+			N = 21; /* ACPHY: 3 cores max x 7 entries */
+		for (i = 0; i < N; i++) {
+			if ((phytype == WLC_PHY_TYPE_AC) && (i%7 == 0)) {
+				if (i > 0) printf("\n");
+				if (deltaValues[i] == -1) break;
+			}
+			printf("%d ", deltaValues[i]);
+		}
+		if (i == N)
+			printf("\n");
+	} else {
+		if (phytype == WLC_PHY_TYPE_AC)
+			N = 7; /* ACPHY : 7 entries for a core */
+		for (i = 0; i < N; i++) {
+			value = strtol(*argv++, &endptr, 0);
+			if ((value > 63 || value < -64)) {
+				return BCME_BADARG;
+			}
+			deltaValues[i] = (int8)value;
+		}
+		if ((err = wlu_var_setbuf(wl, cmd->name, deltaValues, sizeof(deltaValues))) < 0)
+			return err;
+	}
+	return 0;
+}
+
+static int
 wl_phytable(void *wl, cmd_t *cmd, char **argv)
 {
 	int err;
@@ -27588,6 +29037,68 @@ wl_sarlimit(void *wl, cmd_t *cmd, char **argv)
 
 	return ret;
 }
+
+#ifdef SR_DEBUG
+/* Displays PMU related info on screen */
+static int
+wl_dump_pmu(void *wl, cmd_t *cmd, char **argv)
+{
+	void *ptr;
+	pmu_reg_t *pmu_var;
+	int err;
+	uint i;
+	uint32 pmu_chip_ctl_reg;
+	uint32 pmu_chip_reg_reg;
+	uint32 pmu_chip_pll_reg;
+	uint32 pmu_chip_res_reg;
+	UNUSED_PARAMETER(argv);
+	if ((err = wlu_var_getbuf_med (wl, cmd->name, NULL, 0, &ptr)))
+		return (err);
+	pmu_var = (pmu_reg_t *)ptr;
+	printf("PMU Control          : 0x%08x\n", pmu_var->pmu_control);
+	printf("PMU Capabilities     : 0x%08x\n", pmu_var->pmu_capabilities);
+	printf("PMU Status           : 0x%08x\n", pmu_var->pmu_status);
+	printf("Resource State       : 0x%08x\n", pmu_var->res_state);
+	printf("Resurce Pending      : 0x%08x\n", pmu_var->res_pending);
+	printf("PMU Timer            : 0x%08x\n", pmu_var->pmu_timer1);
+	printf("Minimum Resource Mask: 0x%08x\n", pmu_var->min_res_mask);
+	printf("Maximum Resource Mask: 0x%08x\n", pmu_var->max_res_mask);
+	/* Displays values of the 5 PMU Chip Control Registers */
+	pmu_chip_ctl_reg = (pmu_var->pmu_capabilities & 0xf8000000);
+	pmu_chip_ctl_reg = pmu_chip_ctl_reg >> 27;
+	for (i = 0; i < pmu_chip_ctl_reg; i++) {
+		printf("PMU ChipControl[%d]   : 0x%08x\n", i, pmu_var->pmu_chipcontrol1[i]);
+	}
+	/* Displays values of the 6 PMU Reg Control Registers */
+	pmu_chip_reg_reg = (pmu_var->pmu_capabilities & 0x07c00000);
+	pmu_chip_reg_reg = pmu_chip_reg_reg >> 22;
+	for (i = 0; i < pmu_chip_reg_reg; i++) {
+		printf("PMU RegControl[%d]    : 0x%08x\n", i, pmu_var->pmu_regcontrol[i]);
+	}
+	/* Displays values of the 6 PMU Pll Control Registers */
+	pmu_chip_pll_reg = (pmu_var->pmu_capabilities & 0x003e0000);
+	pmu_chip_pll_reg = pmu_chip_pll_reg >> 17;
+	for (i = 0; i < pmu_chip_pll_reg; i++) {
+		printf("PMU PllControl[%d]    : 0x%08x\n", i, pmu_var->pmu_pllcontrol[i]);
+	}
+	/* Displays values of the 31 PMU Resource Up/Down Timer */
+	pmu_chip_res_reg = (pmu_var->pmu_capabilities & 0x00001f00);
+	pmu_chip_res_reg = pmu_chip_res_reg >> 8;
+	for (i = 0; i < pmu_chip_res_reg; i++) {
+		printf("PMU Resource Up/Down Timer[%d]    : 0x%08x\n", i,
+		pmu_var->pmu_rsrc_up_down_timer[i]);
+	}
+	/* Displays values of the 31 PMU Resource Dependancy Mask */
+	pmu_chip_res_reg = (pmu_var->pmu_capabilities & 0x00001f00);
+	pmu_chip_res_reg = pmu_chip_res_reg >> 8;
+	for (i = 0; i < pmu_chip_res_reg; i++) {
+		printf("PMU Resource Dependancy Mask[%d]    : 0x%08x\n", i,
+		pmu_var->rsrc_dep_mask[i]);
+	}
+	return 0;
+}
+#endif /* #ifdef SR_DEBUG */
+
 
 static int
 wl_phy_pavars(void *wl, cmd_t *cmd, char **argv)
@@ -27868,6 +29379,105 @@ wl_phy_povars(void *wl, cmd_t *cmd, char **argv)
 	}
 
 	return err;
+#endif /* _CFE_ */
+}
+
+static int
+wl_phy_rpcalvars(void *wl, cmd_t *cmd, char **argv)
+{
+#if	defined(_CFE_)
+	return CFE_ERR_UNSUPPORTED;
+#elif	defined(_HNDRTE_) || defined(__IOPOS__)
+	return 0;
+#else
+	int    err = 0, k;
+	unsigned int val;
+	wl_rpcal_t rpcal[WL_NUM_RPCALVARS], *rpcal_out;
+	void *ptr = NULL;
+
+	if (*++argv) {	/* set */
+		bool found = FALSE;
+
+		/* initialization */
+		memset(&(rpcal[0]), 0, sizeof(wl_rpcal_t)*WL_NUM_RPCALVARS);
+
+		if (find_pattern(argv, "rpcal2g", &val)) {
+			found = TRUE;
+			rpcal[WL_CHAN_FREQ_RANGE_2G].value  = (uint16) val;
+			rpcal[WL_CHAN_FREQ_RANGE_2G].update = 1;
+		}
+
+		if (find_pattern(argv, "rpcal5gb0", &val)) {
+			found = TRUE;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND0].value  = (uint16) val;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND0].update = 1;
+		}
+
+		if (find_pattern(argv, "rpcal5gb1", &val)) {
+			found = TRUE;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND1].value  = (uint16) val;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND1].update = 1;
+		}
+
+		if (find_pattern(argv, "rpcal5gb2", &val)) {
+			found = TRUE;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND2].value  = (uint16) val;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND2].update = 1;
+		}
+
+		if (find_pattern(argv, "rpcal5gb3", &val)) {
+			found = TRUE;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND3].value  = (uint16) val;
+			rpcal[WL_CHAN_FREQ_RANGE_5G_BAND3].update = 1;
+		}
+
+		if (found) {
+			err = wlu_var_setbuf(wl, cmd->name, &(rpcal[0]),
+			                     sizeof(wl_rpcal_t)*WL_NUM_RPCALVARS);
+			if (err < 0) {
+				printf("wl_phy_rpcalvars: fail to set\n");
+				return err;
+			}
+		} else {
+			printf("wl_phy_rpcalvars: fail to found matching rpcalvar name\n");
+			return err;
+		}
+
+	} else {	/* get */
+
+		err = wlu_var_getbuf(wl, cmd->name, &(rpcal[0]),
+		                     sizeof(wl_rpcal_t)*WL_NUM_RPCALVARS, &ptr);
+
+		if (err < 0) {
+			printf("wl_phy_rpcalvars: fail to get\n");
+			return err;
+		} else {
+			rpcal_out = (wl_rpcal_t*) ptr;
+		}
+
+		for (k = 0; k < WL_NUM_RPCALVARS; k++) {
+
+			switch (k) {
+			case WL_CHAN_FREQ_RANGE_2G:
+				printf("rpcal2g=0x%x ", rpcal_out[k].value);
+				break;
+			case WL_CHAN_FREQ_RANGE_5G_BAND0:
+				printf("rpcal5gb0=0x%x ", rpcal_out[k].value);
+				break;
+			case WL_CHAN_FREQ_RANGE_5G_BAND1:
+				printf("rpcal5gb1=0x%x ", rpcal_out[k].value);
+				break;
+			case WL_CHAN_FREQ_RANGE_5G_BAND2:
+				printf("rpcal5gb2=0x%x ", rpcal_out[k].value);
+				break;
+			case WL_CHAN_FREQ_RANGE_5G_BAND3:
+				printf("rpcal5gb3=0x%x\n", rpcal_out[k].value);
+				break;
+			}
+		}
+	}
+
+	return 0;
 #endif /* _CFE_ */
 }
 
@@ -28218,6 +29828,8 @@ wl_rxiq(void *wl, cmd_t *cmd, char **argv)
 	uint8 dig_lpf = 1;
 	uint8 gain_correct = 0;
 	uint8 extra_gain_3dBsteps = 0;
+	uint8 force_gain_type = 0;
+	uint8 antenna = 3;
 
 	/* arg count */
 	for (argc = 0; argv[argc]; argc++);
@@ -28228,10 +29840,12 @@ wl_rxiq(void *wl, cmd_t *cmd, char **argv)
 	 * dig_lpf = 1; (sets to ltrn_lpf mode)
 	 * resolution = 0 (coarse),
 	 * samples = 1024 (2^10) and antenna = 3
+	 * force_gain_type = 0 (init gain mode)
 	 */
 	/* XXX Currently the lpf_hpc override option applies only for HTPHY */
 	rxiq = (extra_gain_3dBsteps << 28) | (gain_correct << 24) | (dig_lpf << 22)
-	  | (lpf_hpc << 20) | (resolution << 16) | (10 << 8) | 3;
+	        | (lpf_hpc << 20) | (resolution << 16) | (10 << 8) | (force_gain_type << 4)
+	        | antenna;
 
 	if (argc != 0) {
 		miniopt_init(&to, fn_name, NULL, FALSE);
@@ -28246,15 +29860,15 @@ wl_rxiq(void *wl, cmd_t *cmd, char **argv)
 				if (!to.good_int) {
 					fprintf(stderr,
 						"%s: could not parse \"%s\" as an int"
-						" for gain-correction (0, 1)\n",
+						" for gain-correction (0, 1, 2, 3)\n",
 						fn_name, to.valstr);
 
 					err = -1;
 					goto exit;
 				}
-				if ((to.val < 0) || (to.val > 1)) {
+				if ((to.val < 0) || (to.val > 3)) {
 					fprintf(stderr, "%s: invalid gain-correction select %d"
-						" (0,1)\n", fn_name, to.val);
+						" (0,1,2,3)\n", fn_name, to.val);
 					err = -1;
 					goto exit;
 				}
@@ -28344,7 +29958,7 @@ wl_rxiq(void *wl, cmd_t *cmd, char **argv)
 					err = -1;
 					goto exit;
 				}
-				rxiq = ((rxiq & 0xffffff00) | (to.val & 0xff));
+				rxiq = ((rxiq & 0xfffffff0) | (to.val & 0xf));
 			}
 			if (to.opt == 'e') {
 				if (!to.good_int) {
@@ -28363,6 +29977,29 @@ wl_rxiq(void *wl, cmd_t *cmd, char **argv)
 				}
 				rxiq = ((((to.val/3) & 0xf) << 28) | (rxiq & 0x0fffffff));
 			}
+			if (to.opt == 'i') {
+				if (!to.good_int) {
+					fprintf(stderr,
+					        "%s: could not parse \"%s\" as an int"
+					        " for init or clipLO mode\n", fn_name, to.valstr);
+					err = -1;
+					goto exit;
+				}
+				if ((to.val != 0) && (to.val != 1) && (to.val != 4)) {
+					fprintf(stderr,
+#ifdef BCMINTERNAL
+					"%s: Valid options - 0(default gain), 1(init gain)"
+					"or 4(clip LO gain). \n",
+#else
+					"%s: Valid options - 0(default gain), 1(fixed high gain)"
+					"or 4(fixed low gain). \n",
+#endif
+						fn_name);
+					err = -1;
+					goto exit;
+				}
+				rxiq = ((rxiq & 0xffffff0f) | ((to.val << 4) & 0xf0));
+			}
 		}
 	}
 
@@ -28370,6 +30007,7 @@ wl_rxiq(void *wl, cmd_t *cmd, char **argv)
 		return err;
 	if ((err = wlu_iovar_getint(wl, cmd->name, (int*)&rxiq)) < 0)
 		return err;
+
 
 	if (resolution == 1) {
 		/* fine resolution power reporting (0.25dB resolution) */
@@ -28542,6 +30180,8 @@ wl_wowl_wakeind(void *wl, cmd_t *cmd, char **argv)
 			printf("\tWake on MDNS Service.\n");
 		if ((wake.ucode_wakeind & WL_WOWL_TCPKEEP) == WL_WOWL_TCPKEEP)
 			printf("\tWake on TCP data or timeout.\n");
+		if ((wake.ucode_wakeind & WL_WOWL_FW_HALT) == WL_WOWL_FW_HALT)
+			printf("\tWake on Firmware died in wowl mode.\n");
 
 		if ((wake.ucode_wakeind & (WL_WOWL_NET | WL_WOWL_MAGIC | WL_WOWL_EXTMAGPAT))) {
 			if ((wake.ucode_wakeind & WL_WOWL_BCAST) == WL_WOWL_BCAST)
@@ -29015,6 +30655,42 @@ int wl_seq_batch_in_client(bool enable)
 	return 0;
 }
 
+#ifdef ATE_BUILD
+static int wl_gpaio(void *wl, cmd_t *cmd, char **argv)
+{
+	char **p = argv;
+	int counter = 0;
+	wl_gpaio_option_t option;
+
+	BCM_REFERENCE(cmd);
+
+	while (*p) {
+		counter++;
+		p++;
+	}
+	if (counter != 2) {
+		return USAGE_ERROR;
+	}
+	if (strcmp("pmu_afeldo", argv[1]) == 0) {
+		option = GPAIO_PMU_AFELDO;
+	} else if (strcmp("pmu_txldo", argv[1]) == 0) {
+		option = GPAIO_PMU_TXLDO;
+	} else if (strcmp("pmu_vcoldo", argv[1]) == 0) {
+		option = GPAIO_PMU_VCOLDO;
+	} else if (strcmp("pmu_lnaldo", argv[1]) == 0) {
+		option = GPAIO_PMU_LNALDO;
+	} else if (strcmp("pmu_adcldo", argv[1]) == 0) {
+		option = GPAIO_PMU_ADCLDO;
+	} else if (strcmp("clear", argv[1]) == 0) {
+		option = GPAIO_PMU_CLEAR;
+	} else {
+		return USAGE_ERROR;
+	}
+	return (wlu_iovar_setint(wl, argv[0], (int)option));
+}
+
+#endif /* ATE_BUILD */
+
 #ifndef ATE_BUILD
 int
 wl_seq_start(void *wl, cmd_t *cmd, char **argv)
@@ -29075,7 +30751,7 @@ wl_seq_stop(void *wl, cmd_t *cmd, char **argv)
 			return 0;
 		}
 
-		ret = wlu_iovar_setbuf(wl, "seq_start", NULL, 0, buf, WLC_IOCTL_MAXLEN);
+		ret = wlu_var_setbuf(wl, "seq_start", NULL, 0);
 		if (ret) {
 			printf("failed to send seq_start\n");
 			goto fail;
@@ -29117,7 +30793,7 @@ wl_seq_stop(void *wl, cmd_t *cmd, char **argv)
 			}
 		}
 
-		ret = wlu_iovar_setbuf(wl, "seq_stop", NULL, 0, buf, WLC_IOCTL_MAXLEN);
+		ret = wlu_var_setbuf(wl, "seq_stop", NULL, 0);
 		if (ret) {
 			printf("failed to send seq_stop\n");
 		}
@@ -29523,8 +31199,6 @@ wl_pkt_filter_list(void *wl, cmd_t *cmd, char **argv)
 	unsigned int			filter_len;
 	uint32					enable;
 
-
-printf("wl_pkt_filter_list: called\n");
 	if (*++argv == NULL) {
 		printf("No args provided\n");
 		return (-1);
@@ -29537,7 +31211,6 @@ printf("wl_pkt_filter_list: called\n");
 	*/
 	if ((rc = wlu_var_getbuf(wl, cmd->name, &enable, sizeof(enable), &ptr)) < 0)
 		return rc;
-printf("wl_pkt_filter_list: have data\n");
 
 	list = (wl_pkt_filter_list_t *) ptr;
 
@@ -31729,31 +33402,110 @@ wl_obss_coex_action(void *wl, cmd_t *cmd, char **argv)
 	return err;
 }
 
-#ifdef MACOSX
 static int
-wl_mdns_wake(void *wl, cmd_t *cmd, char **argv)
+wl_wake_inf(void *wl, cmd_t *cmd, char **argv)
 {
-	int ret = 0;
-	char *iovar = argv[0];
-	uint32 len;
+	int ret;
+	uchar *dump_buf;
+	UNUSED_PARAMETER(argv);
 
-	UNUSED_PARAMETER(cmd);
+	if (cmd->get < 0)
+			return -1;
 
-	ret = wlu_iovar_getbuf(wl, iovar, NULL, 0, buf, WLC_IOCTL_MEDLEN);
-	if (ret < 0) {
-		printf("get returned error 0x%x\n", ret);
-		return (ret);
-	}
-	len = *(uint32 *)buf;
-	if (len > ETHER_MAX_DATA) {
-		printf("mdns: Invalid packet length\n");
+	dump_buf = malloc(WL_DUMP_BUF_LEN);
+
+	if (dump_buf == NULL) {
+		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", WL_DUMP_BUF_LEN);
 		return -1;
 	}
-	printf("mdns wakeup packet: len: %d\n", len);
-	wl_hexdump((uint8 *)buf+sizeof(len), len);
-	return (ret);
-}
+
+	memset(dump_buf, 0, WL_DUMP_BUF_LEN);
+
+	ret = wlu_iovar_get(wl, cmd->name, dump_buf, WL_DUMP_BUF_LEN);
+
+	if (ret) {
+		free(dump_buf);
+		return ret;
+	}
+
+#if defined(MACOSX)
+	/* 'Smart dump', break down the buffer */
+	if (argv[1]) {
+		int pad;
+		struct ether_header *eh;
+		wake_info_t *wake_info;
+		wake_pkt_t *wake_pkt;
+		char *junk[] = { NULL, NULL};
+
+		wl_wowl_wakeind(wl, NULL, junk);
+
+		wake_info = (wake_info_t *)dump_buf;
+		pad = (wake_info->wake_info_len % 4);
+
+		wake_pkt = (wake_pkt_t *)(dump_buf + pad + wake_info->wake_info_len);
+		printf("Raw wake pkt (len == %d):\n", wake_pkt->wake_pkt_len);
+		if (wake_pkt->wake_pkt_len) {
+			struct ipv4_hdr *v4;
+			struct bcmtcp_hdr *tcp_hdr;
+			prhex("", wake_pkt->packet, wake_pkt->wake_pkt_len);
+
+			eh = (struct ether_header *)wake_pkt->packet;
+
+			printf("MAC header:\n");
+			printf(" src mac: %s\n",
+				wl_ether_etoa((struct ether_addr*)&eh->ether_shost));
+			printf(" dst mac: %s\n",
+				wl_ether_etoa((struct ether_addr*)&eh->ether_dhost));
+			switch (ntoh16(eh->ether_type)) {
+			case ETHER_TYPE_IP:
+				v4 = (struct ipv4_hdr *)((uchar *)eh + sizeof(struct ether_header));
+				printf("IP Frame (len == %d):\n", ntoh16(v4->tot_len));
+				printf(" src ip: %s\n", wl_iptoa((struct ipv4_addr *)&v4->src_ip));
+				printf(" dst ip: %s\n", wl_iptoa((struct ipv4_addr *)&v4->dst_ip));
+				switch (v4->prot) {
+				case IP_PROT_ICMP:
+					printf(" proto: ICMP\n");
+					break;
+				case IP_PROT_TCP:
+					printf(" TCP frame:\n");
+					tcp_hdr = (struct bcmtcp_hdr *)
+						((uchar *)v4 + sizeof(struct ipv4_hdr));
+					printf("  srcport: %d\n", ntoh16(tcp_hdr->src_port));
+					printf("  dstport: %d\n", ntoh16(tcp_hdr->dst_port));
+					break;
+				case IP_PROT_UDP:
+					printf(" proto: UDP\n");
+					break;
+				case IP_PROT_ICMP6:
+					printf(" proto: ICMP6\n");
+					break;
+				default:
+					printf(" proto: Unknown 0x%x\n", v4->prot);
+					break;
+				}
+				break;
+			case ETHER_TYPE_ARP:
+				printf("frame type ARP\n");
+				break;
+			case ETHER_TYPE_IPV6:
+				printf("frame type IPV6\n");
+				break;
+			default:
+				printf("Unknown frame type 0x%x\n", ntoh16(eh->ether_type));
+			}
+		} else {
+			printf(" ... \n");
+		}
+		free(dump_buf);
+		return ret;
+	}
 #endif /* MACOSX */
+
+	/* Simple dump */
+	prhex("wake info", dump_buf, 300);
+	free(dump_buf);
+	return ret;
+}
 
 static int
 wl_srchmem(void *wl, cmd_t *cmd, char **argv)
@@ -32653,6 +34405,91 @@ wl_cca_get_stats(void *wl, cmd_t *cmd, char **argv)
 
 	return 0;
 }
+#if defined(BCMINTERNAL)
+/* wl dump_cca -d <time in ms> sets the measurement into action */
+/* wl dump_cca queries for the results. Outputs them if ready else busy is the output */
+static int
+wl_dump_cca(void *wl, cmd_t *cmd, char **argv)
+{
+	cca_stats_n_flags *results;
+	void *ptr = NULL;
+	int err = 0;
+	char *param;
+	int msr_time;
+	cca_msrmnt_query req;
+	int time_from_driver;
+	int slot_time_ifs;
+		/* when its a query, no argument */
+		if (*++argv == NULL) {
+		req.msrmnt_query = 1;
+		/* retrieving the results */
+if ((err = wlu_var_getbuf_med(wl, cmd->name, &req, sizeof(cca_msrmnt_query), &ptr)) < 0)
+					return err;
+		results = (cca_stats_n_flags *)ptr;
+		/* check whether measurement is complete; as per driver info. */
+		if (results->msrmnt_done) {
+			time_from_driver = results->msrmnt_time;
+			printf("\nMeasurement Time %.3f s \n", ((float)time_from_driver) / 1000);
+			printf("\nOBSS Value :             %6d ms   %3.3f %% \n",
+			((results->output_to_host.obss) / 1000),
+			(float)(results->output_to_host.obss)
+			/ (time_from_driver * 10));
+			printf("IBSS Value :             %6d ms   %3.3f %% \n",
+			((results->output_to_host.ibss) / 1000),
+			(float)(results->output_to_host.ibss)
+			/ (time_from_driver * 10));
+			printf("TXDur Value :            %6d ms   %3.3f %% \n",
+			((results->output_to_host.txdur) / 1000),
+			(float)(results->output_to_host.txdur)
+			/ (time_from_driver * 10));
+			printf("No Category  :           %6d ms   %3.3f %% \n",
+			((results->output_to_host.noctg) / 1000),
+			(float)(results->output_to_host.noctg)
+			/ (time_from_driver * 10));
+			printf("No Packet :              %6d ms   %3.3f %% \n",
+			((results->output_to_host.nopkt) / 1000),
+			(float)(results->output_to_host.nopkt)
+			/ (time_from_driver * 10));
+			printf("MAC Sleep Time :         %6d ms   %3.3f %% \n",
+			((results->output_to_host.PM) / 1000),
+			(float)(results->output_to_host.PM)
+			/ (time_from_driver * 10));
+			slot_time_ifs = ((results->output_to_host.slot_time_txop & 65280) >> 8) +
+			(results->output_to_host.slot_time_txop & 255);
+			printf("TX Opp(slots):        %9d   \n",
+			results->output_to_host.txopp);
+			printf("TX Opp(time):        %3.3f ms  \n",
+			((float)(results->output_to_host.txopp) * slot_time_ifs) / 1000);
+			printf("Good Tx Dur :            %6d ms   %3.3f %% \n",
+			((results->output_to_host.gdtxdur) / 1000),
+			(float)(results->output_to_host.gdtxdur) / (time_from_driver * 10));
+			printf("Bad Tx Dur :             %6d ms   %3.3f %% \n\n",
+			((results->output_to_host.bdtxdur) / 1000),
+			(float)(results->output_to_host.bdtxdur) / (time_from_driver * 10));
+			} else {
+			printf("BUSY\n");
+			}
+		} else {
+		param = *argv++;
+		/* only switch -d for now */
+		if (stricmp(param, "-d") != 0) {
+					return -1;
+			} else {
+					msr_time = htod32(atoi(*argv));
+					if (msr_time <= 0) {
+					printf("Incorrect value for Time specified\n");
+					return 0;
+				}
+		printf("Measure Time: %d ms\n", msr_time);
+		req.msrmnt_query = 0;
+		req.time_req = msr_time;
+if ((err = wlu_var_getbuf_med(wl, cmd->name, &req, sizeof(cca_msrmnt_query), &ptr)) < 0)
+			return err;
+		}
+			}
+	return 0;
+}
+#endif /* BCMINTERNAL */
 
 static int
 wl_itfr_get_stats(void *wl, cmd_t *cmd, char **argv)
@@ -32765,12 +34602,12 @@ wl_chanim_stats(void *wl, cmd_t *cmd, char **argv)
 	stats->timestamp = htod32(stats->timestamp);
 
 	printf("chanspec tx   inbss   obss   nocat   nopkt   doze     txop     "
-		   "goodtx  badtx   glitch   badplcp  knoise  timestamp\n");
+		   "goodtx  badtx   glitch   badplcp  knoise  idle  timestamp\n");
 	printf("0x%4x\t", stats->chanspec);
 	for (j = 0; j < CCASTATS_MAX; j++)
 		printf("%d\t", stats->ccastats[j]);
-	printf("%d\t%d\t%d\t%d", dtoh32(stats->glitchcnt), dtoh32(stats->badplcp),
-		stats->bgnoise, dtoh32(stats->timestamp));
+	printf("%d\t%d\t%d\t%d\t%d", dtoh32(stats->glitchcnt), dtoh32(stats->badplcp),
+		stats->bgnoise, stats->chan_idle, dtoh32(stats->timestamp));
 	printf("\n");
 
 	return (err);
@@ -32802,18 +34639,78 @@ wl_txdelay_params(void *wl, cmd_t *cmd, char **argv)
 			return USAGE_ERROR;
 
 		argc = 0;
-		param.ratio = strtol(argv[argc], &endptr, 0);
+		param.ratio = (uint8) strtol(argv[argc], &endptr, 0);
 		argc++;
-		param.cnt = strtol(argv[argc], &endptr, 0);
+		param.cnt = (uint8) strtol(argv[argc], &endptr, 0);
 		argc++;
-		param.period = strtol(argv[argc], &endptr, 0);
+		param.period = (uint8) strtol(argv[argc], &endptr, 0);
 		argc++;
-		param.tune = strtol(argv[argc], &endptr, 0);
+		param.tune = (uint8) strtol(argv[argc], &endptr, 0);
 
 		/* Set txdelay params */
 		err = wlu_iovar_set(wl, cmd->name, (void *) &param,
 			(sizeof(txdelay_params_t)));
 	}
+	return (err);
+}
+
+static int
+wl_intfer_params(void *wl, cmd_t *cmd, char **argv)
+{
+	int err;
+	wl_intfer_params_t param;
+	int		argc;
+	char 	*endptr = NULL;
+
+	argv++;
+
+	if (*argv == NULL) {
+		/* get current txdelay params */
+		if ((err = wlu_iovar_get(wl, cmd->name, (void *) &param,
+			(sizeof(wl_intfer_params_t)))) < 0)
+			goto error;
+
+		if (param.version != INTFER_VERSION) {
+			printf("Interference params structure version (%d) is not the "
+				"version (%d) supported by this tool",
+				INTFER_VERSION, param.version);
+			err = USAGE_ERROR;
+		}
+		else
+			printf("Intference params: period[%x] cnt[%x] txfail_thresh[%x]"
+				" tcptxfail_thresh[%x]\n", param.period, param.cnt,
+				param.txfail_thresh, param.tcptxfail_thresh);
+	}
+	else {
+		/* Validate num of entries */
+		err = USAGE_ERROR;
+
+		for (argc = 0; argv[argc]; argc++);
+		if (argc != 4)
+			goto error;
+
+		param.period = (uint8)strtol(argv[0], &endptr, 0);
+		if (*endptr != '\0')
+		    goto error;
+
+		param.cnt = (uint8)strtol(argv[1], &endptr, 0);
+		if (*endptr != '\0')
+		    goto error;
+
+		param.txfail_thresh = (uint8)strtol(argv[2], &endptr, 0);
+		if (*endptr != '\0')
+		    goto error;
+
+		param.tcptxfail_thresh = (uint8)strtol(argv[3], &endptr, 0);
+		if (*endptr != '\0')
+		    goto error;
+
+		/* Set intfer params */
+		param.version = INTFER_VERSION;
+		err = wlu_iovar_set(wl, cmd->name, (void *) &param,
+			(sizeof(wl_intfer_params_t)));
+	}
+error:
 	return (err);
 }
 
@@ -33337,32 +35234,204 @@ wl_led_blink_sync(void *wl, cmd_t *cmd, char **argv)
 	return err;
 }
 
+/* RM Enable Capabilities */
+static dbg_msg_t rrm_msgs[] = {
+	{DOT11_RRM_CAP_LINK,	"Link_Measurement"},				/* bit0 */
+	{DOT11_RRM_CAP_NEIGHBOR_REPORT,	"Neighbor_Report"},			/* bit1 */
+	{DOT11_RRM_CAP_PARALLEL,	"Parallel_Measurement"},		/* bit2 */
+	{DOT11_RRM_CAP_REPEATED,	"Repeated_Measurement"},		/* bit3 */
+	{DOT11_RRM_CAP_BCN_PASSIVE,	"Beacon_Passive"},			/* bit4 */
+	{DOT11_RRM_CAP_BCN_ACTIVE,	"Beacon_Active"},			/* bit5 */
+	{DOT11_RRM_CAP_BCN_TABLE,	"Beacon_Table"},			/* bit6 */
+	{DOT11_RRM_CAP_BCN_REP_COND,	"Beacon_measurement_Reporting_Condition"}, /* bit7 */
+	{DOT11_RRM_CAP_FM,	"Frame_Measurement"},				/* bit8 */
+	{DOT11_RRM_CAP_CLM,	"Channel_load_Measurement"},			/* bit9 */
+	{DOT11_RRM_CAP_NHM,	"Noise_Histogram_measurement"},			/* bit10 */
+	{DOT11_RRM_CAP_SM,	"Statistics_Measurement"},			/* bit11 */
+	{DOT11_RRM_CAP_LCIM,	"LCI_Measurement"},				/* bit12 */
+	{DOT11_RRM_CAP_LCIA,	"LCI_Azimuth"},					/* bit13 */
+	{DOT11_RRM_CAP_TSCM,	"Tx_Stream_Category_Measurement"},		/* bit14 */
+	{DOT11_RRM_CAP_TTSCM,	"Triggered_Tx_stream_Category_Measurement"},	/* bit15 */
+	{DOT11_RRM_CAP_AP_CHANREP,	"AP_Channel_Report"},			/* bit16 */
+	{DOT11_RRM_CAP_RMMIB,	"RM_MIB"},					/* bit17 */
+	/* bit 18-26, unused */
+	{DOT11_RRM_CAP_MPTI,	"Measurement_Pilot_Transmission_Information"},	/* bit27 */
+	{DOT11_RRM_CAP_NBRTSFO,	"Neighbor_Report_TSF_Offset"},			/* bit28 */
+	{DOT11_RRM_CAP_RCPI,	"RCPI_Measurement"},				/* bit29 */
+	{DOT11_RRM_CAP_RSNI,	"RSNI_Measurement"},				/* bit30 */
+	{DOT11_RRM_CAP_BSSAAD,	"BSS_Average_Access_Delay"},			/* bit31 */
+	{DOT11_RRM_CAP_BSSAAC,	"BSS_Available_Admission_Capacity"},		/* bit32 */
+	{DOT11_RRM_CAP_AI,	"Antenna_Information"},				/* bit33 */
+	{0,		NULL}
+};
+
+static bool rrm_input_validation(uint val, uint hval, dbg_msg_t *dbg_msg)
+{
+	int i;
+	uint32 flag = 0;
+
+	if ((val == 0) && (hval == 0))
+		return TRUE;
+
+	for (i = 0; dbg_msg[i].value <= DOT11_RRM_CAP_BSSAAD; i++)
+		flag |= 1 << dbg_msg[i].value;
+	flag = ~flag;
+	if (val & flag)
+		return FALSE;
+
+	flag = 0;
+	if (hval != 0) {
+		for (; dbg_msg[i].value; i++) {
+			flag |= 1 << (dbg_msg[i].value - DOT11_RRM_CAP_BSSAAC);
+		}
+		flag = ~flag;
+		if (hval & flag)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
 static int
 wl_rrm(void *wl, cmd_t *cmd, char **argv)
 {
-	int argc;
-	int err = 0;
-	int flag = 0;
+	int err, i;
+	uint hval = 0, val = 0, len, found, rmcap_del = 0, rmcap2_del = 0;
+	uint rmcap_add = 0, rmcap2_add = 0;
+	char *endptr = NULL;
+	dbg_msg_t *dbg_msg = rrm_msgs;
+	void *ptr = NULL;
+	dot11_rrm_cap_ie_t rrm_cap, *reply;
+	uint high = 0, low = 0, bit = 0, hbit = 0;
 	const char *cmdname = "rrm";
 
 	UNUSED_PARAMETER(cmd);
 
-	/* arg count */
-	for (argc = 0; argv[argc]; argc++)
-		;
+	err = wlu_var_getbuf_sm(wl, cmdname, &rrm_cap, sizeof(rrm_cap), &ptr);
+	if (err < 0)
+		return err;
+	reply = (dot11_rrm_cap_ie_t *)ptr;
 
-	if (argc > 1 && argv[1]) {
-		flag = htod32(atoi(argv[1]));
-		*(int *)buf = flag;
-		err = wlu_iovar_set(wl, cmdname, buf, WLC_IOCTL_SMLEN);
-	} else {
-		/* get */
-		err = wlu_iovar_getint(wl, cmdname, &flag);
-		if (err == BCME_OK)
-			printf("%d\n", flag);
+	high = reply->cap[4];
+	low = reply->cap[0] | (reply->cap[1] << 8) | (reply->cap[2] << 16) | (reply->cap[3] << 24);
+	if (!*++argv) {
+		if (high != 0)
+			printf("0x%x%08x", high, low);
+		else
+			printf("0x%x ", low);
+		for (i = 0; ((bit = dbg_msg[i].value) <= DOT11_RRM_CAP_BSSAAD); i++) {
+			if (low & (1 << bit))
+				printf(" %s", dbg_msg[i].string);
+		}
+		for (; (hbit = dbg_msg[i].value); i++) {
+			if (high & (1 << hbit))
+				printf(" %s", dbg_msg[i].string);
+		}
+		printf("\n");
+
+		return err;
+	}
+	while (*argv) {
+		char *s = *argv;
+		char t[32];
+
+		found = 0;
+		if (*s == '+' || *s == '-')
+			s++;
+		else {
+			/* used for clearing previous value */
+			rmcap_del = ~0;
+			rmcap2_del = ~0;
+		}
+		val = strtoul(s, &endptr, 0);
+		/* Input is decimal number or hex with prefix 0x and > 32 bits */
+		if (val == 0xFFFFFFFF) {
+			if (!(*s == '0' && *(s+1) == 'x')) {
+				fprintf(stderr,
+				"Msg bits >32 take only numerical input in hex\n");
+				val = 0;
+			} else {
+				/* Input number with prefix 0x */
+				char c[32] = "0x";
+				len = strlen(s);
+				hval = strtoul(strncpy(t, s, len-8), &endptr, 0);
+				*endptr = 0;
+				s = s + strlen(t);
+				s = strcat(c, s);
+				val = strtoul(s, &endptr, 0);
+				/* Input number > 64bit */
+				if (hval == 0xFFFFFFFF) {
+					fprintf(stderr, "Invalid entry for RM Capabilities\n");
+					hval = 0;
+					val = 0;
+				}
+			}
+		}
+		/* validet the input number */
+		if (!rrm_input_validation(val, hval, dbg_msg))
+			goto usage;
+		/* Input is a string */
+		if (*endptr != '\0') {
+			for (i = 0; ((bit = dbg_msg[i].value) <= DOT11_RRM_CAP_BSSAAD); i++) {
+				if (stricmp(dbg_msg[i].string, s) == 0) {
+					found = 1;
+					break;
+				}
+			}
+			if (!found) {
+				for (; (hbit = dbg_msg[i].value); i++) {
+					if (stricmp(dbg_msg[i].string, s) == 0)
+						break;
+				}
+				if (hbit)
+					hval = 1 << (hbit - DOT11_RRM_CAP_BSSAAC);
+				else
+					hval = 0;
+			} else {
+				val = 1 << bit;
+			}
+			if (!val && !hval)
+			      goto usage;
+		}
+		if (**argv == '-') {
+			rmcap_del |= val;
+			if (!found)
+				rmcap2_del |= hval;
+		}
+		else {
+			rmcap_add |= val;
+			if (!found)
+				rmcap2_add |= hval;
+		}
+		++argv;
 	}
 
-	return (err);
+	low &= ~rmcap_del;
+	high &= ~rmcap2_del;
+	low |= rmcap_add;
+	high |= rmcap2_add;
+
+	rrm_cap.cap[4] = high;
+	rrm_cap.cap[0] = low & 0x000000ff;
+	rrm_cap.cap[1] = (low & 0x0000ff00) >> 8;
+	rrm_cap.cap[2] = (low & 0x00ff0000) >> 16;
+	rrm_cap.cap[3] = (low & 0xff000000) >> 24;
+
+	err = wlu_var_setbuf(wl, cmdname, &rrm_cap, sizeof(dot11_rrm_cap_ie_t));
+	return err;
+
+usage:
+	fprintf(stderr, "msg values may be a list of numbers or names from the following set.\n");
+	fprintf(stderr, "Use a + or - prefix to make an incremental change.");
+	for (i = 0; (bit = dbg_msg[i].value) <= DOT11_RRM_CAP_BSSAAD; i++) {
+		fprintf(stderr, "\n0x%04x %s", (1 << bit), dbg_msg[i].string);
+	}
+	for (; (hbit = dbg_msg[i].value); i++) {
+		hbit -= DOT11_RRM_CAP_BSSAAC;
+		fprintf(stderr, "\n0x%x00000000 %s", (1 << hbit), dbg_msg[i].string);
+	}
+	fprintf(stderr, "\n");
+	return BCME_OK;
 }
 
 static int
@@ -33882,7 +35951,7 @@ wl_wnm_bsstq(void *wl, cmd_t *cmd, char **argv)
 #define TCLAS_ARG_CHECK(argv, str) \
 	do { \
 		if (*++(argv) == NULL) { \
-			printf("TCLAS Frame Classifier: %s not provided\n", (str)); \
+			fprintf(stderr, "TCLAS: %s not provided\n", (str)); \
 			return BCME_ERROR; \
 		} \
 	} while (0)
@@ -33917,7 +35986,7 @@ wl_tclas_add(void *wl, cmd_t *cmd, char **argv)
 		TCLAS_ARG_CHECK(argv, "src mac");
 		if (strlen(*argv) > 1) {
 			if (!wl_ether_atoe(*argv, (struct ether_addr *)fc_eth->sa)) {
-				printf(" ERROR: no valid src ether addr provided\n");
+				fprintf(stderr, "TCLAS: no valid src ether addr provided\n");
 				return BCME_ERROR;
 			}
 		}
@@ -33927,7 +35996,7 @@ wl_tclas_add(void *wl, cmd_t *cmd, char **argv)
 		TCLAS_ARG_CHECK(argv, "dst mac");
 		if (strlen(*argv) > 1) {
 			if (!wl_ether_atoe(*argv, (struct ether_addr *)fc_eth->da)) {
-				printf(" ERROR: no valid dst ether addr provided\n");
+				fprintf(stderr, "TCLAS: no valid dst ether addr provided\n");
 				return BCME_ERROR;
 			}
 		}
@@ -33939,9 +36008,7 @@ wl_tclas_add(void *wl, cmd_t *cmd, char **argv)
 
 		buflen += DOT11_TCLAS_FC_0_ETH_LEN;
 
-		err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
-	}
-	else if (fc->hdr.type == DOT11_TCLAS_FC_1_IP ||
+	} else if (fc->hdr.type == DOT11_TCLAS_FC_1_IP ||
 		fc->hdr.type == DOT11_TCLAS_FC_4_IP_HIGHER) {
 		uint8 version;
 
@@ -33954,10 +36021,16 @@ wl_tclas_add(void *wl, cmd_t *cmd, char **argv)
 			fc_ipv6->version = version;
 
 			TCLAS_ARG_CHECK(argv, "ipv6 source ip");
-			wl_atoipv6(*argv, (struct ipv6_addr *)&fc_ipv6->saddr);
+			if (!wl_atoipv6(*argv, (struct ipv6_addr *)&fc_ipv6->saddr)) {
+				fprintf(stderr, "incorrect ipv6 source ip format\n");
+				return BCME_ERROR;
+			}
 
 			TCLAS_ARG_CHECK(argv, "ipv6 dest ip");
-			wl_atoipv6(*argv, (struct ipv6_addr *)&fc_ipv6->daddr);
+			if (!wl_atoipv6(*argv, (struct ipv6_addr *)&fc_ipv6->daddr)) {
+				fprintf(stderr, "incorrect ipv6 dest ip format\n");
+				return BCME_ERROR;
+			}
 
 			TCLAS_ARG_CHECK(argv, "ipv6 source port");
 			fc_ipv6->src_port = hton16((uint16)strtoul(*argv, NULL, 0));
@@ -33979,19 +36052,22 @@ wl_tclas_add(void *wl, cmd_t *cmd, char **argv)
 
 			buflen += DOT11_TCLAS_FC_4_IPV6_LEN;
 
-			err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
-
-		} else
-		if (version == IP_VER_4) {
+		} else if (version == IP_VER_4) {
 			dot11_tclas_fc_1_ipv4_t *fc_ipv4 = (dot11_tclas_fc_1_ipv4_t *)fc;
 
 			fc_ipv4->version = version;
 
 			TCLAS_ARG_CHECK(argv, "ipv4 source ip");
-			wl_atoip(*argv, (struct ipv4_addr *)&fc_ipv4->src_ip);
+			if (!wl_atoip(*argv, (struct ipv4_addr *)&fc_ipv4->src_ip)) {
+				fprintf(stderr, "incorrect source ip format\n");
+				return BCME_ERROR;
+			}
 
 			TCLAS_ARG_CHECK(argv, "ipv4 dest ip");
-			wl_atoip(*argv, (struct ipv4_addr *)&fc_ipv4->dst_ip);
+			if (!wl_atoip(*argv, (struct ipv4_addr *)&fc_ipv4->dst_ip)) {
+				fprintf(stderr, "incorrect dest ip format\n");
+				return BCME_ERROR;
+			}
 
 			TCLAS_ARG_CHECK(argv, "ipv4 source port");
 			fc_ipv4->src_port = (uint16)strtoul(*argv, NULL, 0);
@@ -34009,13 +36085,19 @@ wl_tclas_add(void *wl, cmd_t *cmd, char **argv)
 
 			buflen += DOT11_TCLAS_FC_1_IPV4_LEN;
 
-			err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
 		} else
 			return BCME_ERROR;
 	} else {
-		printf("Unsupported frame classifier type 0x%2x\n", fc->hdr.type);
+		fprintf(stderr, "TCLAS: Unsupported frame classifier type 0x%2x\n", fc->hdr.type);
 		return BCME_ERROR;
 	}
+
+	if (*++argv) {
+		fprintf(stderr, "TCLAS: superflous argument %s\n", *argv);
+		return BCME_ERROR;
+	}
+
+	err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
 
 	return err;
 }
@@ -34154,61 +36236,123 @@ wl_tclas_list(void *wl, cmd_t *cmd, char **argv)
 }
 
 static int
-wl_wnm_tfsreq_add(void *wl, cmd_t *cmd, char **argv)
+wl_wnm_tfs_set(void *wl, cmd_t *cmd, char **argv)
 {
-	int argc;
-	int err = -1, buflen;
-	wl_tfs_req_t tfs_req;
+	int err, buflen;
+	wl_tfs_set_t *tfs_set;
 
 	UNUSED_PARAMETER(cmd);
 
-	/* arg count */
-	for (argc = 0; argv[argc]; argc++)
-		;
+	buflen = sprintf(buf, "%s", *argv) + 1;
+	tfs_set = (wl_tfs_set_t *) (buf + buflen);
+	tfs_set->tfs_id = 0;
+	tfs_set->tclas_proc = 0;
+	tfs_set->actcode = 0;
+	buflen += sizeof(wl_tfs_set_t);
 
-	strcpy(buf, "wnm_tfsreq_add");
-	buflen = strlen("wnm_tfsreq_add") + 1;
-
-	if (argc != 5 || *++(argv) == NULL) {
-		printf("Incorrect args provided\n");
+	if (*++(argv) == NULL) {
+		printf("Missing <send> argument\n");
 		return BCME_ERROR;
 	}
+	tfs_set->send = (uint8) strtoul(*argv, NULL, 0);
 
-	tfs_req.tfs_id = (uint8)strtoul(*argv++, NULL, 0);
+	if (*++(argv) == NULL)
+		goto set;
+	tfs_set->tfs_id = (uint8) strtoul(*argv, NULL, 0);
 
-	if (*argv != NULL)
-		tfs_req.tfs_actcode = (uint8)strtoul(*argv++, NULL, 0);
-	else {
-		printf("Incorrect args provided\n");
+	if (*++(argv) == NULL)
+		goto set;
+	tfs_set->actcode = (uint8) strtoul(*argv, NULL, 0);
+
+	if (*++(argv) == NULL)
+		goto set;
+	tfs_set->tclas_proc = (uint8) strtoul(*argv, NULL, 0);
+
+	if (*++(argv)) {
+		printf("extra argument\n");
 		return BCME_ERROR;
 	}
+set:
+	err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
 
-	if (*argv != NULL)
-		tfs_req.tfs_subelem_id = (uint8)strtoul(*argv++, NULL, 0);
-	else {
-		printf("Incorrect args provided\n");
+	return err;
+}
+
+static int
+wl_wnm_tfs_status(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret;
+	wl_tfs_status_t *wl_list = (wl_tfs_status_t *)buf;
+	uint8 *p = (uint8 *)wl_list->fset;
+
+	UNUSED_PARAMETER(cmd);
+
+	strcpy(buf, argv[0]);
+	ret = wlu_get(wl, cmd->get, buf, WLC_IOCTL_MAXLEN);
+	if (ret < 0)
+		return ret;
+
+	printf("TFS filter set(s):\n");
+	while (wl_list->fset_cnt--) {
+		wl_tfs_fset_t *fset = (wl_tfs_fset_t *) p;
+
+		printf(" - %s   TFS ID=%d   status=%d   token=%d   "
+			"action code=%d   notify=%d   filter(s):\n",
+			wl_ether_etoa(&fset->ea), fset->tfs_id, fset->status, fset->token,
+			fset->actcode, fset->notify);
+
+		p += WL_TFS_FSET_FIXED_SIZE;
+
+		while (fset->filter_cnt--) {
+			wl_tfs_filter_t *filter = (wl_tfs_filter_t *) p;
+
+			printf("\t- status=%d    TCLAS proc=%d    TCLAS(s):\n",
+				filter->status, filter->tclas_proc);
+
+			p += WL_TFS_FILTER_FIXED_SIZE;
+
+			while (filter->tclas_cnt--) {
+				wl_tclas_t *tclas = (wl_tclas_t *)p;
+
+				printf("\t\t- ");
+				wl_tclas_dump(tclas);
+
+				p += WL_TCLAS_FIXED_SIZE + tclas->fc_len;
+			}
+		}
+	}
+	return 0;
+}
+
+static int
+wl_wnm_tfs_term(void *wl, cmd_t *cmd, char **argv)
+{
+	int err, buflen;
+	wl_tfs_term_t *tfs_term;
+
+	UNUSED_PARAMETER(cmd);
+
+	buflen = sprintf(buf, "%s", *argv) + 1;
+
+	tfs_term = (wl_tfs_term_t *) (buf + buflen);
+	tfs_term->tfs_id = 0;
+	buflen += sizeof(wl_tfs_term_t);
+
+	if (*++(argv) == NULL) {
+		printf("Missing <flags> argument\n");
 		return BCME_ERROR;
 	}
+	tfs_term->flags = (uint8) strtoul(*argv, NULL, 0);
 
-	if (*argv != NULL)
-		tfs_req.send = strtoul(*argv, NULL, 0) == 0 ? FALSE : TRUE;
-	else {
-		printf("Incorrect args provided\n");
+	if (*++(argv) == NULL)
+		goto set;
+	tfs_term->tfs_id = (uint8) strtoul(*argv, NULL, 0);
+
+	if (*++(argv)) {
+		printf("extra argument\n");
 		return BCME_ERROR;
 	}
-
-	if (tfs_req.tfs_id == 0 ||
-		tfs_req.tfs_actcode > 3 ||
-		tfs_req.tfs_subelem_id > 1) {
-		printf("Input args not in range\n");
-		return BCME_ERROR;
-	}
-
-	buf[buflen++] = tfs_req.tfs_id;
-	buf[buflen++] = tfs_req.tfs_actcode;
-	buf[buflen++] = tfs_req.tfs_subelem_id;
-	buf[buflen++] = tfs_req.send;
-
+set:
 	err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
 
 	return err;
@@ -34509,7 +36653,7 @@ wl_wnm_maxidle(void *wl, cmd_t *cmd, char **argv)
 		if (err < 0)
 			return err;
 
-		printf("BSS Max Idle Period: %d\n", *(uint32 *)buf);
+		printf("BSS Max Idle Period: %d(in unit of 1000TU])\n", *(uint32 *)buf);
 		return BCME_OK;
 
 	} else {
@@ -34537,7 +36681,7 @@ wl_wnm_bsstrans_req(void *wl, cmd_t *cmd, char **argv)
 		fprintf(stderr, "%s: error: reqmode missing\n", __FUNCTION__);
 		return BCME_ERROR;
 	}
-	bsstrans_req.reqmode = strtoul(*argv, NULL, 0);
+	bsstrans_req.reqmode = (uint8) strtoul(*argv, NULL, 0);
 
 	/* tbtt parsing */
 	if (*++argv == NULL) {
@@ -34550,7 +36694,7 @@ wl_wnm_bsstrans_req(void *wl, cmd_t *cmd, char **argv)
 		return BCME_ERROR;
 	}
 	else
-		bsstrans_req.tbtt = tmp;
+		bsstrans_req.tbtt = (uint16) tmp;
 
 	/* dur parsing */
 	if (*++argv == NULL) {
@@ -34563,11 +36707,11 @@ wl_wnm_bsstrans_req(void *wl, cmd_t *cmd, char **argv)
 		return BCME_ERROR;
 	}
 	else
-		bsstrans_req.dur = tmp;
+		bsstrans_req.dur = (uint16) tmp;
 
 	/* unicast/broadcast parsing */
 	if (*++argv != NULL)
-		bsstrans_req.unicast = strtoul(*argv, NULL, 0);
+		bsstrans_req.unicast = (uint8) strtoul(*argv, NULL, 0);
 	else
 		bsstrans_req.unicast = 1;
 
@@ -34926,6 +37070,170 @@ wl_mfp_bip_test(void *wl, cmd_t *cmd, char **argv)
 }
 #endif /* BCMINTERNAL */
 #ifdef SERDOWNLOAD
+static int dhd_rwl_download(void *dhd, char *fwname, char *command);
+
+int
+rwl_download(void *dhd, cmd_t *cmd, char **argv)
+{
+	char *fname = NULL;
+	char *vname = NULL;
+	int ret = 0;
+	UNUSED_PARAMETER(cmd);
+	if (!*++argv) {
+		fprintf(stderr, "Require dongle image filename \n");
+		ret = -1;
+		goto exit;
+	}
+	else {
+		fname = *argv;
+		if (debug)
+			printf("dongle image file is %s\n", fname);
+	}
+	if (!*++argv) {
+		fprintf(stderr, "vars filename missing, assuming no var file\n");
+		ret = -1;
+		goto exit;
+	}
+	else {
+		vname = *argv;
+		if (debug)
+			printf("dongle var file is %s\n", vname);
+	}
+	ret = dhd_rwl_download(dhd, fname, "download");
+	printf("ret = %d\n", ret);
+
+	if (ret == 0)
+		ret = dhd_rwl_download(dhd, vname, "nvdownload");
+exit:
+	return ret;
+}
+
+
+static int
+dhd_rwl_download(void *dhd, char *fwfile, char *command)
+{
+	unsigned char *bufp  = NULL;
+	int len = 0, length = 0;
+	int ret = 0;
+	char *p;
+	unsigned char *buff = NULL;
+	int remained_bytes;
+	uint32 start = 0;
+	FILE *fp = NULL;
+	struct stat finfo;
+	unsigned long status;
+
+	/* Open the firmware file */
+	if (!(fp = fopen(fwfile, "rb"))) {
+		perror(fwfile);
+		ret = -1;
+		goto exit;
+	}
+
+	if (stat(fwfile, &finfo)) {
+		printf("ReadFiles: %s: %s\n", fwfile, strerror(errno));
+		ret = -1;
+		goto exit;
+	}
+
+	length = finfo.st_size;
+
+	if (length <= 0) {
+		ret = -1;
+		goto exit;
+	}
+
+	/* XXX: add 4 bytes in caseewe need to add padding  */
+	if ((bufp = malloc(length +4)) == NULL) {
+		printf("ReadFiles: Unable to allowcate %d bytes!\n", len);
+		ret = -1;
+		goto exit;
+	}
+
+	/* Read the firmware file into the buffer */
+	status  = fread(bufp, sizeof(uint8), length, fp);
+
+	/* close the firmware file */
+	fclose(fp);
+
+	if ((int)status < length) {
+		printf("ReadFiles: Short read in %s!\n", fwfile);
+		ret = -1;
+		goto exit;
+	}
+
+
+	printf("Starting %s, total file length is %d\n", command, length);
+
+	/* do the download reset */
+	if ((ret = wlu_iovar_setint(dhd, command, TRUE))) {
+		fprintf(stderr, "dhd_rwl_download: failed to put dongle to download mode\n");
+		ret = -1;
+		goto exit;
+	}
+
+	buff = bufp;
+	remained_bytes = len = length;
+
+	while (remained_bytes > 0) {
+		printf(".");
+		p = buf;
+		memset(p, 0, WLC_IOCTL_MAXLEN);
+		strcpy(p, "membytes");
+		p += strlen("membytes") + 1;
+
+		memcpy(p, &start, sizeof(int));
+		p += sizeof(int);
+
+		if (remained_bytes >= MEMBLOCK)
+			len = MEMBLOCK;
+		else
+			len = remained_bytes;
+
+		memcpy(p, &len, sizeof(int));
+		p += sizeof(int);
+
+		memcpy(p, buff, len);
+		p += len;
+
+		if (debug) {
+			printf("sending %d bytes block: \n", (int)(p - buf));
+#if 0
+			for (j = 0; j < len; j++) {
+				if ((j % 16) == 0)
+					printf("\n");
+				printf("%02x ", (unsigned char)buf[j]);
+			}
+#endif
+		}
+
+		ret = wlu_set(dhd, WLC_SET_VAR, &buf[0], (p - buf));
+
+		if (ret) {
+			fprintf(stderr, "%s: error %d on writing %d membytes at 0x%08x\n",
+				"wl_set()", ret, len, start);
+			goto exit;
+		}
+
+		start += len;
+		buff += len;
+		remained_bytes -= len;
+	}
+	printf("\n");
+
+	/* start running the downloaded code, download complete */
+	if ((ret = wlu_iovar_setint(dhd, command, FALSE))) {
+		fprintf(stderr, "dhd_rwl_download: failed to take dongle out of download mode\n");
+		goto exit;
+	}
+
+exit:
+	if (bufp)
+		free(bufp);
+
+	return ret;
+}
+
 /* Check that strlen("membytes")+1 + 2*sizeof(int32) + MEMBLOCK <= WLC_IOCTL_MAXLEN */
 #if (MEMBLOCK + 17 > WLC_IOCTL_MAXLEN)
 #error MEMBLOCK/WLC_IOCTL_MAXLEN sizing
@@ -34935,8 +37243,12 @@ static int dhd_hsic_download(void *dhd, char *fwname, char *nvname);
 static int ReadFiles(char *fwfile, char *nvfile, unsigned char ** buffer);
 static int check_file(unsigned char *headers);
 
+#endif /* ifdef SERDOWNLOAD */
+
 /* XXX this shouldn't be a global... */
-static char* chip_select = "none";
+static char* chip_select = "4390";
+
+#ifdef SERDOWNLOAD
 
 int
 dhd_init(void *dhd, cmd_t *cmd, char **argv)
@@ -34987,6 +37299,8 @@ dhd_init(void *dhd, cmd_t *cmd, char **argv)
 	return ret;
 }
 
+#endif /* ifdef SERDOWNLOAD */
+
 int
 dhd_download(void *dhd, cmd_t *cmd, char **argv)
 {
@@ -35011,7 +37325,10 @@ dhd_download(void *dhd, cmd_t *cmd, char **argv)
 		goto exit;
 	}
 
-	if (!strcmp(chip_select, "4325")) {
+	if (!strcmp(chip_select, "4390")) {
+        fprintf(stdout, "using 4390 ram_info\n");
+        ram_size = RAM_SIZE_4390;
+    } else if (!strcmp(chip_select, "4325")) {
 		fprintf(stdout, "using 4325 ram_info\n");
 		ram_size = RAM_SIZE_4325;
 	} else if (!strcmp(chip_select, "4329")) {
@@ -35055,7 +37372,7 @@ dhd_download(void *dhd, cmd_t *cmd, char **argv)
 			printf("dongle var file is %s\n", vname);
 	}
 
-
+#if 0
 	/* do the download on hsic */
 	/* merge the firmware and the nvram */
 	if (!strcmp(chip_select, "hsic")) {
@@ -35063,6 +37380,7 @@ dhd_download(void *dhd, cmd_t *cmd, char **argv)
 		ret = dhd_hsic_download(dhd, fname, vname);
 		return ret;
 	}
+#endif /* if 0 */
 
 	if (!(fp = fopen(fname, "rb"))) {
 		perror(fname);
@@ -35256,6 +37574,8 @@ exit:
 
 	return ret;
 }
+
+#ifdef SERDOWNLOAD
 
 int
 hsic_download(void *dhd, cmd_t *cmd, char **argv)
@@ -35944,6 +38264,179 @@ wl_nwoe_ifconfig(void *wl, cmd_t *cmd, char **argv)
 }
 #endif /* BCMINTERNAL */
 
+static int
+wl_wci2_config(void *wl, cmd_t *cmd, char **argv)
+{
+	uint32 val;
+	char *endptr = NULL;
+	uint argc;
+	wci2_config_t wci2_config;
+	uint16 *configp = (uint16 *)&wci2_config;
+	int ret, i;
+
+	UNUSED_PARAMETER(cmd);
+
+	val = 0;
+
+	/* eat command name */
+	argv++;
+	/* arg count */
+	for (argc = 0; argv[argc]; argc++);
+
+	memset(&wci2_config, '\0', sizeof(wci2_config_t));
+
+	if (argc == 0) {
+		/* Get and print the values */
+		ret = wlu_iovar_getbuf(wl, "wci2_config", &wci2_config, sizeof(wci2_config_t),
+		buf, WLC_IOCTL_SMLEN);
+		if (ret)
+			return ret;
+
+		printf("rxassert_off %d rxassert_jit %d rxdeassert_off %d rxdeassert_jit %d "
+			"txassert_off %d txassert_jit %d txdeassert_off %d txdeassert_jit %d "
+			"patassert_off %d patassert_jit %d inactassert_off %d inactassert_jit %d "
+			"scanfreqassert_off %d scanfreqassert_jit %d priassert_off_req %d\n",
+			dtoh16(((uint16 *)buf)[0]), dtoh16(((uint16 *)buf)[1]),
+			dtoh16(((uint16 *)buf)[2]), dtoh16(((uint16 *)buf)[3]),
+			dtoh16(((uint16 *)buf)[4]), dtoh16(((uint16 *)buf)[5]),
+			dtoh16(((uint16 *)buf)[6]), dtoh16(((uint16 *)buf)[7]),
+			dtoh16(((uint16 *)buf)[8]), dtoh16(((uint16 *)buf)[9]),
+			dtoh16(((uint16 *)buf)[10]), dtoh16(((uint16 *)buf)[11]),
+			dtoh16(((uint16 *)buf)[12]), dtoh16(((uint16 *)buf)[13]),
+			dtoh16(((uint16 *)buf)[14]));
+		return 0;
+	}
+
+	if (argc < 15)
+		goto usage;
+
+	for (i = 0; i < 15; ++i) {
+		val = strtoul(argv[i], &endptr, 0);
+		if (*endptr != '\0')
+			goto usage;
+		configp[i] = htod16((uint16)val);
+	}
+	return wlu_iovar_setbuf(wl, "wci2_config", &wci2_config, sizeof(wci2_config_t),
+		buf, WLC_IOCTL_SMLEN);
+
+usage:
+	return -1;
+}
+
+static int
+wl_mws_params(void *wl, cmd_t *cmd, char **argv)
+{
+	uint32 val;
+	char *endptr = NULL;
+	uint argc;
+	mws_params_t mws_params;
+	uint16 *paramsp = (uint16 *)&mws_params;
+	int ret, i;
+
+	UNUSED_PARAMETER(cmd);
+
+	val = 0;
+
+	/* eat command name */
+	argv++;
+
+	/* arg count */
+	for (argc = 0; argv[argc]; argc++);
+
+	memset(&mws_params, '\0', sizeof(mws_params_t));
+
+	if (argc == 0) {
+		/* Get and print the values */
+		ret = wlu_iovar_getbuf(wl, "mws_params", &mws_params, sizeof(mws_params_t),
+		buf, WLC_IOCTL_SMLEN);
+		if (ret)
+			return ret;
+
+		printf("rx_center_freq %d tx_center_freq %d  rx_channel_bw %d tx_channel_bw %d "
+			"channel_en %d channel_type %d\n",
+			dtoh16(((uint16 *)buf)[0]), dtoh16(((uint16 *)buf)[1]),
+			dtoh16(((uint16 *)buf)[2]), dtoh16(((uint16 *)buf)[3]), buf[8], buf[9]);
+		return 0;
+	}
+
+	if (argc < 6)
+		goto usage;
+	for (i = 0; i < 4; ++i) {
+		val = strtoul(argv[i], &endptr, 0);
+		if (*endptr != '\0')
+			goto usage;
+		paramsp[i] = htod16((uint16)val);
+	}
+	val = strtoul(argv[i], &endptr, 0);
+	if (*endptr != '\0')
+		goto usage;
+	mws_params.mws_channel_en = val;
+	++i;
+	val = strtoul(argv[i], &endptr, 0);
+	if (*endptr != '\0')
+		goto usage;
+	mws_params.mws_channel_type = val;
+
+	return wlu_iovar_setbuf(wl, "mws_params", &mws_params, sizeof(mws_params_t),
+		buf, WLC_IOCTL_SMLEN);
+
+usage:
+	return -1;
+}
+
+static int
+wl_mws_wci2_msg(void *wl, cmd_t *cmd, char **argv)
+{
+	uint32 val;
+	char *endptr = NULL;
+	uint argc;
+	mws_wci2_msg_t mws_wci2_msg;
+	uint16 *paramsp = (uint16 *)&mws_wci2_msg;
+	int ret, i = 0;
+
+	UNUSED_PARAMETER(cmd);
+
+	val = 0;
+
+	/* eat command name */
+	argv++;
+
+	/* arg count */
+	for (argc = 0; argv[argc]; argc++);
+
+	memset(&mws_wci2_msg, '\0', sizeof(mws_wci2_msg_t));
+
+	if (argc == 0) {
+		/* Get and print the values */
+		ret = wlu_iovar_getbuf(wl, "mws_debug_msg", &mws_wci2_msg, sizeof(mws_wci2_msg_t),
+		buf, WLC_IOCTL_SMLEN);
+		if (ret)
+			return ret;
+
+		printf("Message %d Interval %d  Repeats %d \n",
+			dtoh16(((uint16 *)buf)[0]), dtoh16(((uint16 *)buf)[1]),
+			dtoh16(((uint16 *)buf)[2]));
+		return 0;
+	}
+
+	if (argc < 3)
+		goto usage;
+
+	for (i = 0; i < 3; ++i) {
+		val = strtoul(argv[i], &endptr, 0);
+		if (*endptr != '\0')
+			goto usage;
+		paramsp[i] = htod16((uint16)val);
+	}
+	if ((paramsp[1] < 20) || (paramsp[1] > 32000))
+		goto usage;
+	return wlu_iovar_setbuf(wl, "mws_debug_msg", &mws_wci2_msg, sizeof(mws_wci2_msg_t),
+		buf, WLC_IOCTL_SMLEN);
+
+usage:
+	return -1;
+}
+
 #if defined(WL_PROXDETECT)
 static int
 wl_proxd(void *wl, cmd_t *cmd, char **argv)
@@ -36587,53 +39080,80 @@ wl_tcp_keep_timers_set(void *wl, cmd_t *cmd, char **argv)
 
 	return rc;
 }
-#endif /* !ATE_BUILD */
 
 static int
 wl_sleep_ret_ext(void *wl, cmd_t *cmd, char **argv)
 {
-	wl_pm2_sleep_ret_ext_t sleep_ret_ext;
-	wl_pm2_sleep_ret_ext_t *sleep_ret_ext_ptr;
+	int ret;
 	int argc, i;
 	uint32 val;
 	char *endptr = NULL;
-	int ret;
+	wl_pm2_sleep_ret_ext_t sleep_ret_ext;
+	wl_pm2_sleep_ret_ext_t* sleep_ret_ext_ptr;
 
 	/* Skip the command name */
 	UNUSED_PARAMETER(cmd);
 	argv++;
 
+	/* If no arguments are given, print the existing settings */
 	argc = ARGCNT(argv);
 	if (argc == 0) {
+		char *logic_str;
+
 		/* Get and print the values */
 		if ((ret = wlu_var_getbuf_med(wl, cmd->name, NULL, 0, (void*) &sleep_ret_ext_ptr)))
 			return ret;
-		printf("algo 0x%x  low_ms %d high_ms %d  "
-		       "rx_pkts_threshold %d rx_bytes_threshold %d tx_pkts_threshold %d\n",
-		       sleep_ret_ext_ptr->algo, sleep_ret_ext_ptr->low_ms,
-		       sleep_ret_ext_ptr->high_ms, sleep_ret_ext_ptr->rx_pkts_threshold,
-		       sleep_ret_ext_ptr->rx_bytes_threshold,
-		       sleep_ret_ext_ptr->tx_pkts_threshold);
+
+		if (sleep_ret_ext_ptr->logic == WL_DFRTS_LOGIC_OFF)
+			logic_str = "DISABLED";
+		else if (sleep_ret_ext_ptr->logic == WL_DFRTS_LOGIC_OR)
+			logic_str = "OR";
+		else if (sleep_ret_ext_ptr->logic == WL_DFRTS_LOGIC_AND)
+			logic_str = "AND";
+		else
+			logic_str = "ERROR";
+
+		printf("logic: %d (%s)\n",
+		       sleep_ret_ext_ptr->logic, logic_str);
+		if (sleep_ret_ext_ptr->logic != WL_DFRTS_LOGIC_OFF) {
+			printf("low_ms: %d\n", sleep_ret_ext_ptr->low_ms);
+			printf("high_ms: %d\n", sleep_ret_ext_ptr->high_ms);
+			printf("rx_pkts_threshold: %d\n",
+				sleep_ret_ext_ptr->rx_pkts_threshold);
+			printf("tx_pkts_threshold: %d\n",
+			       sleep_ret_ext_ptr->tx_pkts_threshold);
+			printf("txrx_pkts_threshold: %d\n",
+			       sleep_ret_ext_ptr->txrx_pkts_threshold);
+			printf("rx_bytes_threshold: %d\n",
+			       sleep_ret_ext_ptr->rx_bytes_threshold);
+			printf("tx_bytes_threshold: %d\n",
+			       sleep_ret_ext_ptr->tx_bytes_threshold);
+			printf("txrx_bytes_threshold: %d\n",
+			       sleep_ret_ext_ptr->txrx_bytes_threshold);
+		}
 		return 0;
 	}
-
-	if (argc < 1)
-		goto usage;
 
 	memset(&sleep_ret_ext, 0, sizeof(wl_pm2_sleep_ret_ext_t));
 	i = 0;
 
-	/* Get the first 'algo' argument. */
+	/* Get the first 'logic' argument. */
 	val = strtoul(argv[i], &endptr, 0);
 	if (*endptr != '\0')
 		goto usage;
-	sleep_ret_ext.algo = val;
+	if (val != WL_DFRTS_LOGIC_OFF && val != WL_DFRTS_LOGIC_OR &&
+		val != WL_DFRTS_LOGIC_AND) {
+		printf("Invalid logic value %u\n", val);
+		goto usage;
+	}
+	sleep_ret_ext.logic = val;
 	++i;
-	if (sleep_ret_ext.algo == 0)
+
+	/* If logic is 0 (disable) then no more arguments are needed */
+	if (sleep_ret_ext.logic == 0)
 		goto set;
 
-	/* If the 'algo' argument is non-zero, more arguments are needed. */
-	if (argc < 6)
+	if (argc < 9)
 		goto usage;
 
 	val = strtoul(argv[i], &endptr, 0);
@@ -36657,19 +39177,220 @@ wl_sleep_ret_ext(void *wl, cmd_t *cmd, char **argv)
 	val = strtoul(argv[i], &endptr, 0);
 	if (*endptr != '\0')
 		goto usage;
+	sleep_ret_ext.tx_pkts_threshold = val;
+	++i;
+
+	val = strtoul(argv[i], &endptr, 0);
+	if (*endptr != '\0')
+		goto usage;
+	sleep_ret_ext.txrx_pkts_threshold = val;
+	++i;
+
+	val = strtoul(argv[i], &endptr, 0);
+	if (*endptr != '\0')
+		goto usage;
 	sleep_ret_ext.rx_bytes_threshold = val;
 	++i;
 
 	val = strtoul(argv[i], &endptr, 0);
 	if (*endptr != '\0')
 		goto usage;
-	sleep_ret_ext.tx_pkts_threshold = val;
+	sleep_ret_ext.tx_bytes_threshold = val;
 	++i;
+
+	val = strtoul(argv[i], &endptr, 0);
+	if (*endptr != '\0')
+		goto usage;
+	sleep_ret_ext.txrx_bytes_threshold = val;
+	++i;
+
+	if (i != argc)
+		goto usage;
 
 set:
 	return wlu_var_setbuf(wl, cmd->name, &sleep_ret_ext,
 		sizeof(wl_pm2_sleep_ret_ext_t));
 
 usage:
+	printf("Usage: %s [logic] [<low_ms> <high_ms>"
+		" <rxP> <txP> <txrxP> <rxB> <txB> <txrxB>\n", wlu_av0);
+	printf("Parameters:\n");
+	printf("logic   : 0=disable, 1=OR, 2=AND all non-zero switching thresholds.\n");
+	printf("low_ms  : Low pm2_sleep_ret value.\n");
+	printf("high_ms : High pm2_sleep_ret value.\n");
+	printf("rxP     : Switching threshold in # of rx packets.\n");
+	printf("          eg. Switch from the low to high FRTS value if rxP or\n");
+	printf("          more packets are received in a PM2 radio wake period.\n");
+	printf("          0 means ignore this threshold.\n");
+	printf("txP     : Switching threshold in # of tx packets.\n");
+	printf("txrxP   : Switching threshold in # of combined tx+rx packets.\n");
+	printf("rxB     : Switching threshold in # of rx bytes.\n");
+	printf("txB     : Switching threshold in # of tx bytes.\n");
+	printf("txrxB   : Switching threshold in # of combined tx+rx bytes.\n");
 	return -1;
 }
+
+static int wl_stamon_sta_config(void *wl, cmd_t *cmd, char **argv)
+{
+	int err = 0;
+	wlc_stamon_sta_config_t stamon_cfg;
+
+	memset(&stamon_cfg, 0, sizeof(wlc_stamon_sta_config_t));
+	if (!*++argv) {
+		err = wlu_iovar_get(wl, cmd->name, &stamon_cfg,
+			sizeof(wlc_stamon_sta_config_t));
+		if (!err)
+			printf("%s \n", wl_ether_etoa(&stamon_cfg.ea));
+	} else {
+		if (!stricmp(*argv, "add"))
+			stamon_cfg.cmd = STAMON_CFG_CMD_ADD;
+		else if (!stricmp(*argv, "del"))
+			stamon_cfg.cmd = STAMON_CFG_CMD_DEL;
+		else {
+			printf("error: unknown operation option%s\n", *argv);
+			err =  -1;
+		}
+
+		if (!err) {
+			argv++;
+			if (!*argv || !wl_ether_atoe(*argv, &stamon_cfg.ea)) {
+				printf(" ERROR: no valid ether addr provided\n");
+				err = -1;
+			} else {
+				err = wlu_iovar_set(wl, cmd->name,
+					&stamon_cfg, sizeof(wlc_stamon_sta_config_t));
+			}
+		}
+	}
+
+	return err;
+}
+
+static monitor_promisc_level_msg_t wl_monpromisc_level_msgs[] = {
+	{WL_MONPROMISC_PROMISC,	"promisc"},
+	{WL_MONPROMISC_CTRL, "ctrl"},
+	{WL_MONPROMISC_FCS, "fcs"},
+	{0,		NULL}
+};
+
+static int
+wl_monitor_promisc_level(void *wl, cmd_t *cmd, char **argv)
+{
+	int ret, i;
+	uint val = 0, last_val = 0;
+	uint promiscbitmap = 0, promiscbitmap_add = 0, promiscbitmap_del = 0;
+	char *endptr;
+	const char *cmdname = "monitor_promisc_level";
+
+	UNUSED_PARAMETER(cmd);
+	if ((ret = wlu_iovar_getint(wl, cmdname, (int *)&promiscbitmap) < 0)) {
+		return ret;
+	}
+	promiscbitmap = dtoh32(promiscbitmap);
+	if (!*++argv) {
+		printf("0x%x ", promiscbitmap);
+		for (i = 0; (val = wl_monpromisc_level_msgs[i].value); i++) {
+			if ((promiscbitmap & val) && (val != last_val))
+				printf(" %s", wl_monpromisc_level_msgs[i].string);
+			last_val = val;
+		}
+		printf("\n");
+		return (0);
+	}
+	while (*argv) {
+		char *s = *argv;
+		if (*s == '+' || *s == '-')
+			s++;
+		else
+			promiscbitmap_del = ~0; /* make the whole list absolute */
+		val = strtoul(s, &endptr, 0);
+		if (val == 0xFFFFFFFF) {
+			fprintf(stderr,
+				"Bits >32 are not supported on this driver version\n");
+			val = 1;
+		}
+		/* not an integer if not all the string was parsed by strtoul */
+		if (*endptr != '\0') {
+			for (i = 0; (val = wl_monpromisc_level_msgs[i].value); i++)
+				if (stricmp(wl_monpromisc_level_msgs[i].string, s) == 0)
+					break;
+				if (!val)
+					goto usage;
+		}
+		if (**argv == '-')
+			promiscbitmap_del |= val;
+		else
+			promiscbitmap_add |= val;
+		++argv;
+	}
+	promiscbitmap &= ~promiscbitmap_del;
+	promiscbitmap |= promiscbitmap_add;
+	promiscbitmap = htod32(promiscbitmap);
+	return (wlu_iovar_setint(wl, cmdname, (int)promiscbitmap));
+
+usage:
+	fprintf(stderr, "msg values may be a list of numbers or names from the following set.\n");
+	fprintf(stderr, "Use a + or - prefix to make an incremental change.");
+	for (i = 0; (val = wl_monpromisc_level_msgs[i].value); i++) {
+		if (val != last_val)
+			fprintf(stderr, "\n0x%04x %s", val, wl_monpromisc_level_msgs[i].string);
+		else
+			fprintf(stderr, ", %s", wl_monpromisc_level_msgs[i].string);
+		last_val = val;
+	}
+	fprintf(stderr, "\n");
+	return 0;
+}
+
+static int
+wl_bss_peer_info(void *wl, cmd_t *cmd, char **argv)
+{
+	bss_peer_list_info_t *info;
+	bss_peer_info_t *peer_info;
+	bss_peer_info_param_t param;
+	int err, i;
+	void *ptr;
+
+	memset(&param, 0, sizeof(bss_peer_info_param_t));
+	param.version = htod16(BSS_PEER_INFO_PARAM_CUR_VER);
+
+	if (*++argv) {
+		if (!wl_ether_atoe(*argv, &param.ea)) {
+			printf(" ERROR: no valid ether addr provided\n");
+			return -1;
+		}
+	}
+
+	if ((err = wlu_var_getbuf_med(wl, cmd->name, &param, sizeof(bss_peer_info_param_t),
+		&ptr)) < 0)
+		return err;
+
+	info = (bss_peer_list_info_t*)ptr;
+
+	if ((dtoh16(info->version) != BSS_PEER_LIST_INFO_CUR_VER) ||
+		(dtoh16(info->bss_peer_info_len) != sizeof(bss_peer_info_t))) {
+		printf("BSS peer info version/structure size mismatch driver %d firmware %d \r\n",
+			BSS_PEER_LIST_INFO_CUR_VER, dtoh16(info->version));
+		return -1;
+	}
+
+	if (WLC_IOCTL_MEDLEN < (BSS_PEER_LIST_INFO_FIXED_LEN +
+		(dtoh32(info->count) * sizeof(bss_peer_info_t)))) {
+		printf("ERROR : peer list received exceed the buffer size\r\n");
+	}
+
+	for (i = 0; i < (int)dtoh32(info->count); i++) {
+		peer_info = &info->peer_info[i];
+		peer_info->rateset.count = dtoh32(peer_info->rateset.count);
+		printf("PEER%d: MAC: %s: RSSI %d TxRate %d kbps RxRate %d kbps age : %ds\r\n",
+			i, wl_ether_etoa(&peer_info->ea), peer_info->rssi,
+			dtoh32(peer_info->tx_rate), dtoh32(peer_info->rx_rate),
+			dtoh32(peer_info->age));
+			printf("\t rateset ");
+			dump_rateset(peer_info->rateset.rates, peer_info->rateset.count);
+			printf("\r\n");
+	}
+
+	return 0;
+}
+#endif /* !ATE_BUILD */

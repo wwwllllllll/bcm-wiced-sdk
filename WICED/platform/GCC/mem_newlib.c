@@ -116,3 +116,16 @@ int _getpid( void )
 /*@+exportheader@*/
 
 #endif
+
+/* Search memory in reverse for the last instance of a character in a buffer*/
+void *memrchr( const void *source_buffer, int search_character, size_t buffer_length )
+{
+    unsigned char * read_pos = ((unsigned char *)source_buffer + buffer_length);
+    while ( ( *read_pos != (unsigned char) search_character ) &&
+            ( read_pos >= (unsigned char*) source_buffer ) )
+    {
+        read_pos--;
+    }
+    return ( read_pos >= (unsigned char*) source_buffer )?read_pos:NULL;
+}
+

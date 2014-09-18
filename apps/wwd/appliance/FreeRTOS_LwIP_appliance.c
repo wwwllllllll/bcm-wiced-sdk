@@ -81,7 +81,14 @@
 #include "appliance.h"
 
 /******************************************************
- *        Configurable Constants
+ *                      Macros
+ ******************************************************/
+/** @cond */
+#define MAKE_IPV4_ADDRESS(a, b, c, d)          ((((uint32_t) (a)) << 24) | (((uint32_t) (b)) << 16) | (((uint32_t) (c)) << 8) | ((uint32_t) (d)))
+/** @endcond */
+
+/******************************************************
+ *                    Constants
  ******************************************************/
 
 #define COUNTRY                 WICED_COUNTRY_AUSTRALIA
@@ -101,33 +108,29 @@
 #define WEB_SERVER_STACK_SIZE   (1024)
 
 /******************************************************
- * @cond       Macros
+ *                   Enumerations
  ******************************************************/
-
-#define MAKE_IPV4_ADDRESS(a, b, c, d)          ((((uint32_t) (a)) << 24) | (((uint32_t) (b)) << 16) | (((uint32_t) (c)) << 8) | ((uint32_t) (d)))
-
-/** @endcond */
 
 /******************************************************
- *             Static Variables
+ *                 Type Definitions
  ******************************************************/
 
+/******************************************************
+ *                    Structures
+ ******************************************************/
 
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 static struct netif wiced_if;
 static xTaskHandle startup_thread_handle;
 
-/******************************************************
- *             Global Variables
- ******************************************************/
-
 /* Sensor Configuration settings variables */
 appliance_config_t       appliance_config   = { .config_type = CONFIG_NONE };
-
-/**
- * Declaration of the URL handler list
- */
-extern const url_list_elem_t config_STA_url_list[];
-extern const url_list_elem_t config_AP_url_list[];
 
 /******************************************************
  *             Static Function Prototypes
@@ -139,19 +142,8 @@ static void run_ap_webserver( void );
 static void run_sta_web_server( void );
 
 /******************************************************
- *             Extern Function Prototypes
+ *               Function Definitions
  ******************************************************/
-
-extern void start_dns_server( uint32_t local_addr );
-extern void quit_dns_server( void );
-extern void start_dhcp_server( uint32_t local_addr );
-extern void quit_dhcp_server( void );
-
-#ifdef APPLIANCE_ENABLE_WPS
-#include "wps_host.h"
-extern void do_wps( wiced_wps_mode_t wps_mode, char* pin );
-#endif /* ifdef APPLIANCE_ENABLE_WPS */
-
 
 /**
  * Main appliance app thread
@@ -209,7 +201,7 @@ static void run_sta_web_server( void )
         if ( appliance_config.config_type == CONFIG_SCANJOIN )
         {
             /* Join a wireless network */
-            while ( WWD_SUCCESS != wwd_wifi_join_specific( &appliance_config.vals.scanjoin.scanresult, (uint8_t*) appliance_config.vals.scanjoin.passphrase, appliance_config.vals.scanjoin.passphrase_len, NULL ) )
+            while ( WWD_SUCCESS != wwd_wifi_join_specific( &appliance_config.vals.scanjoin.scanresult, (uint8_t*) appliance_config.vals.scanjoin.passphrase, appliance_config.vals.scanjoin.passphrase_len, NULL, WWD_STA_INTERFACE ) )
             {
                 WPRINT_APP_INFO(("Failed to join .. retrying\n"));
             }
@@ -255,7 +247,7 @@ static void run_sta_web_server( void )
     dhcp_stop( &wiced_if );
     netif_set_down( &wiced_if );
     netif_remove( &wiced_if );
-    wwd_wifi_leave( );
+    wwd_wifi_leave( WWD_STA_INTERFACE );
     if ( WWD_SUCCESS != wwd_management_wifi_off( ) )
     {
         WPRINT_APP_ERROR(("WICED de-initialization failed\n"));
@@ -270,9 +262,10 @@ static void run_sta_web_server( void )
  */
 static void run_ap_webserver( void )
 {
-    char ap_ssid[33];
-    wiced_mac_t my_mac;
-    struct ip_addr ap_ipaddr, ap_netmask;
+    wiced_ssid_t ap_ssid;
+    wiced_mac_t  my_mac;
+    struct ip_addr ap_ipaddr;
+    struct ip_addr ap_netmask;
     wwd_result_t result;
 
     /* Initialise Wiced */
@@ -283,13 +276,14 @@ static void run_ap_webserver( void )
     }
 
     /* Create the SSID */
-    wwd_wifi_get_mac_address( &my_mac );
-    sprintf( ap_ssid, AP_SSID_START "%02X%02X%02X%02X%02X%02X", my_mac.octet[0], my_mac.octet[1], my_mac.octet[2], my_mac.octet[3], my_mac.octet[4], my_mac.octet[5] );
+    wwd_wifi_get_mac_address( &my_mac, WWD_STA_INTERFACE );
+    sprintf( (char*) ap_ssid.value, AP_SSID_START "%02X%02X%02X%02X%02X%02X", my_mac.octet[0], my_mac.octet[1], my_mac.octet[2], my_mac.octet[3], my_mac.octet[4], my_mac.octet[5] );
+    ap_ssid.length = strlen( (char*)ap_ssid.value );
 
-    WPRINT_APP_INFO(("Starting Access Point: SSID: %s\n", ap_ssid ));
+    WPRINT_APP_INFO(("Starting Access Point: SSID: %s\n", (char*)ap_ssid.value ));
 
     /* Start the access point */
-    wwd_wifi_start_ap( ap_ssid, AP_SEC, (uint8_t*) AP_PASS, sizeof( AP_PASS ) - 1, AP_CHANNEL );
+    wwd_wifi_start_ap( &ap_ssid, AP_SEC, (uint8_t*) AP_PASS, sizeof( AP_PASS ) - 1, AP_CHANNEL );
 
     /* Setup the network interface */
     ap_ipaddr.addr = htonl( AP_IP_ADDR );

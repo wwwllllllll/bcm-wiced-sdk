@@ -10,8 +10,6 @@
 
 NAME := App_SNTP_get_time
 
+$(NAME)_SOURCES    := sntp_get_time.c
+
 $(NAME)_COMPONENTS := protocols/SNTP
-
-$(NAME)_SOURCES := sntp_get_time.c
-
-WIFI_CONFIG_DCT_H := wifi_config_dct.h

@@ -7,6 +7,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  */
+#pragma once
 
 /** @file
  *  Defines the SDIO part of the WICED Platform Interface.
@@ -14,9 +15,6 @@
  *  Provides constants and prototypes for functions that
  *  enable Wiced to use an SDIO bus on a particular hardware platform.
  */
-
-#ifndef INCLUDED_WWD_SDIO_INTERFACE_H_
-#define INCLUDED_WWD_SDIO_INTERFACE_H_
 
 #include <stdint.h>
 #include "wwd_constants.h"
@@ -156,6 +154,16 @@ extern void host_platform_enable_high_speed_sdio( void );
 extern void sdio_irq( void );
 
 
+/**
+ * Unmasks the bus interrupt
+ *
+ * This function is called by WICED to unmask the bus interrupt
+ * on host platforms that must mask off the bus interrupt to
+ * allow processing of the existing interrupt.
+ */
+extern wwd_result_t host_platform_unmask_sdio_interrupt( void );
+
+
 #ifndef  WICED_DISABLE_MCU_POWERSAVE
 
 /**
@@ -179,4 +187,3 @@ extern uint8_t host_platform_get_oob_interrupt_pin( void );
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-#endif /* ifndef INCLUDED_WWD_SDIO_INTERFACE_H_ */

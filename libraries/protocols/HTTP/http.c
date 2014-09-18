@@ -37,11 +37,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************
@@ -81,7 +81,7 @@ wiced_result_t wiced_http_get( wiced_ip_address_t* address, const char* query, v
             /* Record the fact we received a reply of some kind */
             result = WICED_SUCCESS;
 
-            // Copy data into provided buffer
+            /* Copy data into provided buffer */
             wiced_packet_get_data( reply_packet, 0, &data, &data_length, &available );
             data_to_copy = MIN(data_length, buffer_length);
             memcpy( buffer_ptr, data, data_to_copy );
@@ -135,7 +135,7 @@ wiced_result_t wiced_https_get( wiced_ip_address_t* address, const char* query, 
             /* Record the fact we received a reply of some kind */
             result = WICED_SUCCESS;
 
-            // Copy data into provided buffer
+            /* Copy data into provided buffer */
             wiced_packet_get_data( reply_packet, 0, &data, &data_length, &available );
             data_to_copy = MIN(data_length, buffer_length);
             memcpy( buffer_ptr, data, data_to_copy );

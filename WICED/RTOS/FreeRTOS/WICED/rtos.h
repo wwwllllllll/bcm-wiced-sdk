@@ -33,6 +33,7 @@ extern "C" {
 
 #define WICED_END_OF_THREAD( thread )               malloc_leak_check(thread, LEAK_CHECK_THREAD); vTaskDelete(thread)
 #define WICED_END_OF_CURRENT_THREAD( )              malloc_leak_check(NULL, LEAK_CHECK_THREAD); vTaskDelete(NULL)
+#define WICED_END_OF_CURRENT_THREAD_NO_LEAK_CHECK( )   vTaskDelete(NULL)
 
 #define WICED_TO_MALLOC_THREAD( x )                 ((malloc_thread_handle) *(x) )
 
@@ -60,7 +61,7 @@ extern "C" {
 #define HARDWARE_IO_WORKER_THREAD_STACK_SIZE                                   (512)
 #define HARDWARE_IO_WORKER_THREAD_QUEUE_SIZE                                    (10)
 #define HARDWARE_IO_WORKER_THREAD_PRIORITY       (WICED_PRIORITY_TO_NATIVE_PRIORITY(WICED_DEFAULT_LIBRARY_PRIORITY))
-#define NETWORKING_WORKER_THREAD_STACK_SIZE                               (6 * 1024)
+#define NETWORKING_WORKER_THREAD_STACK_SIZE                               (7 * 1024)
 #define NETWORKING_WORKER_THREAD_QUEUE_SIZE                                     (15)
 #define NETWORKING_WORKER_THREAD_PRIORITY        (WICED_PRIORITY_TO_NATIVE_PRIORITY(WICED_NETWORK_WORKER_PRIORITY))
 

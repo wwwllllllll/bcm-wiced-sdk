@@ -44,7 +44,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern wiced_result_t bt_transport_driver_bus_read_handler        ( bt_packet_t** packet );
@@ -54,7 +54,7 @@ static wiced_result_t bt_mpaf_send_command_packet_internal        ( bt_packet_t*
 static wiced_result_t bt_mpaf_application_callback                ( void* arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const mpaf_command_header_t mpaf_command_header_template =

@@ -1,12 +1,12 @@
 /*
-* Copyright 2014, Broadcom Corporation
+ * Copyright 2014, Broadcom Corporation
  * All Rights Reserved.
  *
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
  * the contents of this file may not be disclosed to third parties, copied
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
-*/
+ */
 
 /** @file
  * Defines LPC17xx common peripheral structures, macros, constants and declares  peripheral API
@@ -122,6 +122,11 @@ typedef struct
     platform_gpio_t        cs;
     platform_gpio_t        irq;
 }platform_spi_t;
+
+typedef struct
+{
+    uint8_t unimplemented;
+} platform_spi_slave_driver_t;
 
 typedef struct
 {

@@ -11,6 +11,3 @@
 NAME := App_tcp_client
 
 $(NAME)_SOURCES := tcp_client.c
-
-
-WIFI_CONFIG_DCT_H := wifi_config_dct.h

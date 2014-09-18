@@ -3,7 +3,7 @@
  *
  * $Copyright (C) 2002-2003 Broadcom Corporation$
  *
- * $Id: wlu_linux.c 364479 2012-10-24 06:24:17Z chihap $
+ * $Id: wlu_linux.c 416397 2013-08-03 10:29:46Z guptam $
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +74,8 @@ unsigned short defined_debug = DEBUG_ERR | DEBUG_INFO;
 static uint interactive_flag = 0;
 extern char *remote_vista_cmds[];
 extern char g_rem_ifname[IFNAMSIZ];
+extern int rwl_check_port_number(char *s, int len);
+
 static void
 syserr(char *s)
 {
@@ -423,8 +425,9 @@ main(int argc, char **argv)
 		g_rwl_servIP = *argv;
 		(void)*argv++;
 
+		/* Port number validation is done in client_shared file */
 		g_rwl_servport = DEFAULT_SERVER_PORT;
-		if ((*argv) && isdigit(**argv)) {
+		if (*argv && (rwl_check_port_number(*argv, strlen(*argv)) == SUCCESS)) {
 			g_rwl_servport = atoi(*argv);
 			(void)*argv++;
 		}
@@ -467,12 +470,9 @@ main(int argc, char **argv)
 		/* use default interface */
 		if (!*ifr.ifr_name)
 			wl_find(&ifr);
+
 		/* validate the interface */
-		if (!*ifr.ifr_name) {
-			errno = ENXIO;
-			syserr("interface");
-		}
-		if ((err = wl_check((void *)&ifr)) < 0) {
+		if (!*ifr.ifr_name || (err = wl_check((void *)&ifr)) < 0) {
 			fprintf(stderr, "%s: wl driver adapter not found\n", wlu_av0);
 			exit(1);
 		}
@@ -511,11 +511,13 @@ main(int argc, char **argv)
 #endif /* OLYMPIC_RWL */
 	}
 
+#if !defined(PCIE_MFGTEST) /* XXX disable until fixed for PCIE router */
 	/* RWL client needs to initialize ioctl_version */
 	if (wl_check((void *)&ifr) != 0) {
 		fprintf(stderr, "%s: wl driver adapter not found\n", wlu_av0);
 			exit(1);
 	}
+#endif
 
 	if (interactive_flag == 1) {
 		err = do_interactive(&ifr);
@@ -625,12 +627,9 @@ process_args(struct ifreq* ifr, char **argv)
 			/* use default interface */
 			if (!*(*ifr).ifr_name)
 				wl_find(ifr);
+
 			/* validate the interface */
-			if (!*(*ifr).ifr_name) {
-				errno = ENXIO;
-				syserr("interface");
-			}
-			if ((err = wl_check((void *)ifr)) < 0) {
+			if (!*(*ifr).ifr_name || (err = wl_check((void *)ifr)) < 0) {
 				fprintf(stderr, "%s: wl driver adapter not found\n", wlu_av0);
 				exit(1);
 			}
@@ -643,9 +642,8 @@ process_args(struct ifreq* ifr, char **argv)
 		/* search for command */
 		cmd = wl_find_cmd(*argv);
 		/* if not found, use default set_var and get_var commands */
-		if (!cmd) {
+		if (!cmd)
 			cmd = &wl_varcmd;
-		}
 #ifdef RWL_WIFI
 		if (!strcmp(cmd->name, "findserver")) {
 			remote_wifi_ser_init_cmds((void *) ifr);

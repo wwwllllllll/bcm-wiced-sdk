@@ -59,6 +59,7 @@ extern "C" {
  ******************************************************/
 
 typedef void (*wiced_ip_address_change_callback_t)( void* arg );
+typedef wiced_result_t (*wiced_tcp_stream_write_callback_t)( void* tcp_stream, const void* data, uint32_t data_length );
 
 /******************************************************
  *            Enumerations
@@ -107,6 +108,8 @@ typedef struct
     uint8_t*            tx_packet_data;
     uint16_t            tx_packet_space_available;
     wiced_packet_t*     rx_packet;
+    wiced_bool_t                      use_custom_tcp_stream;
+    wiced_tcp_stream_write_callback_t tcp_stream_write_callback;
 } wiced_tcp_stream_t;
 
 /**
@@ -255,6 +258,14 @@ wiced_result_t wiced_tcp_create_socket( wiced_tcp_socket_t* socket, wiced_interf
 wiced_result_t wiced_tcp_register_callbacks( wiced_tcp_socket_t* socket, wiced_socket_callback_t connect_callback, wiced_socket_callback_t receive_callback, wiced_socket_callback_t disconnect_callback);
 
 
+/** Un-registers all callback functions associated with the indicated TCP socket
+ *
+ * @param[in,out] socket              : A pointer to a TCP socket handle that has been previously created with @ref wiced_tcp_create_socket
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_tcp_unregister_callbacks( wiced_tcp_socket_t* socket );
+
 /** Binds a TCP socket to a local TCP port
  *
  *  Binds a TCP socket to a local port.
@@ -369,6 +380,28 @@ wiced_result_t wiced_tcp_enable_tls( wiced_tcp_socket_t* socket, void* context )
  * @return @ref wiced_result_t
  */
 wiced_result_t wiced_tcp_start_tls( wiced_tcp_socket_t* socket, wiced_tls_endpoint_type_t type, wiced_tls_certificate_verification_t verification );
+
+
+/** Start TLS on a TCP Connection with a particular set of cipher suites
+ *
+ * Start Transport Layer Security (successor to SSL) on a TCP Connection
+ *
+ * @param[in,out] socket       : The TCP socket to use for TLS
+ * @param[in]     type         : Identifies whether the device will be TLS client or server
+ * @param[in]     verification : Indicates whether to verify the certificate chain against a root server.
+ * @param[in]     cipher_list  : a list of cipher suites. Null terminated.
+ *                               e.g.
+ *                                    static const cipher_suite_t* my_ciphers[] =
+ *                                    {
+ *                                          &TLS_RSA_WITH_AES_128_CBC_SHA,
+ *                                          &TLS_RSA_WITH_AES_256_CBC_SHA,
+ *                                          0
+ *                                    };
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_tcp_start_tls_with_ciphers( wiced_tcp_socket_t* socket, wiced_tls_endpoint_type_t type, wiced_tls_certificate_verification_t verification, const cipher_suite_t* cipher_list[] );
+
 
 /*****************************************************************************/
 /** @addtogroup tcppkt       TCP packet comms
@@ -535,9 +568,69 @@ wiced_result_t wiced_tcp_stream_flush( wiced_tcp_stream_t* tcp_stream );
 */
 wiced_result_t wiced_tcp_enable_keepalive(wiced_tcp_socket_t* socket, uint16_t interval, uint16_t probes, uint16_t _time );
 
+/** @} */
+/*****************************************************************************/
+/** @addtogroup tcpserver       TCP server comms
+ *  @ingroup tcp
+ *
+ * Functions for communication over TCP as a server
+ *
+ *  @{
+ */
+/*****************************************************************************/
+
+/** Initializes the TCP server, and creates and begins listening on specified port
+ *
+ * @param[in] tcp_server         : pointer to TCP server structure
+ * @param[in] interface          : The interface (AP or STA) for which the socket should be created
+ * @param[in] port               : TCP server listening port
+ * @param[in] connect_callback   : listening socket connect callback
+ * @param[in] receive_callback   : listening socket receive callback
+ * @param[in] disconnect_callback: listening socket disconnect callback
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_tcp_server_start( wiced_tcp_server_t* tcp_server, wiced_interface_t interface, uint16_t port, wiced_socket_callback_t connect_callback, wiced_socket_callback_t receive_callback, wiced_socket_callback_t disconnect_callback);
+
+/** Server accepts incoming connection on specified socket
+ *
+ * @param[in] tcp_server      : pointer to TCP server structure
+ * @param[in] socket          : TCP socket structure
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_tcp_server_accept( wiced_tcp_server_t* tcp_server, wiced_tcp_socket_t* socket );
+
+/** Add TLS security to a TCP server ( all server sockets )
+ *
+ * @param[in] tcp_server   : pointer to TCP server structure
+ * @param[in] context      : A pointer to a wiced_tls_advanced_context_t context object that will be initialized
+ * @param[in] certificate  : The server x509 certificate in base64 encoded string format
+ * @param[in] key          : The server private key in base64 encoded string format
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_tcp_server_add_tls( wiced_tcp_server_t* tcp_server, wiced_tls_advanced_context_t* context, const char* server_cert, const char* server_key );
+
+/** Stop and tear down TCP server
+ *
+ * @param[in] tcp_server   : pointer to TCP server structure
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_tcp_server_stop( wiced_tcp_server_t* server );
+
+/** Disconnect server socket
+ *
+ * @param[in] tcp_server      : pointer to TCP server structure
+ * @param[in] socket          : TCP socket structure
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_tcp_server_disconnect_socket( wiced_tcp_server_t* tcp_server, wiced_tcp_socket_t* socket);
 
 /** @} */
-/** @} */
+
 /*****************************************************************************/
 /** @addtogroup udp       UDP
  *  @ingroup ipcoms
@@ -638,12 +731,21 @@ wiced_result_t wiced_udp_packet_get_info( wiced_packet_t* packet, wiced_ip_addre
 
 /** Registers a callback function with the indicated UDP socket
  *
- * @param[in,out] socket           : A pointer to a TCP socket handle that has been previously created with @ref wiced_tcp_create_socket
+ * @param[in,out] socket           : A pointer to a TCP socket handle that has been previously created with @ref wiced_udp_create_socket
  * @param[in]     receive_callback : The callback function that will be called when a UDP packet is received
  *
  * @return @ref wiced_result_t
  */
 wiced_result_t wiced_udp_register_callbacks( wiced_udp_socket_t* socket, wiced_socket_callback_t receive_callback );
+
+
+/** Un-registers all callback functions associated with the indicated UDP socket
+ *
+ * @param[in,out] socket              : A pointer to a UDP socket handle that has been previously created with @ref wiced_udp_create_socket
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_udp_unregister_callbacks( wiced_udp_socket_t* socket );
 
 /** @} */
 

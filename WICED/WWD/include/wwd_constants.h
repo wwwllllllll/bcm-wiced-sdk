@@ -218,6 +218,12 @@ typedef enum
     WICED_PACKET_FILTER_RULE_NEGATIVE_MATCHING  = 1  /**< Specifies that a filter should NOT match a given pattern */
 } wiced_packet_filter_rule_t;
 
+typedef enum
+{
+    WICED_SCAN_INCOMPLETE,
+    WICED_SCAN_COMPLETED_SUCCESSFULLY,
+    WICED_SCAN_ABORTED,
+} wiced_scan_status_t;
 
 #ifndef RESULT_ENUM
 #define RESULT_ENUM( prefix, name, value )  prefix ## name = (value)
@@ -283,7 +289,9 @@ typedef enum
     RESULT_ENUM( prefix, SDIO_RETRIES_EXCEEDED,        1051 ),   /**< SDIO transfer failed too many times. */ \
     RESULT_ENUM( prefix, NULL_PTR_ARG,                 1052 ),   /**< Null Pointer argument passed to function. */ \
     RESULT_ENUM( prefix, THREAD_FINISH_FAIL,           1053 ),   /**< Error deleting a thread */ \
-    RESULT_ENUM( prefix, WAIT_ABORTED,                 1054 ),   /**< Semaphore/mutex wait has been aborted */
+    RESULT_ENUM( prefix, WAIT_ABORTED,                 1054 ),   /**< Semaphore/mutex wait has been aborted */ \
+    RESULT_ENUM( prefix, SET_BLOCK_ACK_WINDOW_FAIL,    1055 ),   /**< Failed to set block ack window */ \
+    RESULT_ENUM( prefix, INVALID_INTERFACE,            1056 ),   /**< Invalid interface provided */
 
 
 /* These Enum result values are returned directly from the WLAN during an ioctl or iovar call.

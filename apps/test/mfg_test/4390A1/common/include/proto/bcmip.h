@@ -3,7 +3,7 @@
  *
  * Fundamental constants relating to IP Protocol
  *
- * $Id: bcmip.h 329791 2012-04-26 22:36:58Z rnuti $
+ * $Id: bcmip.h 407333 2013-06-12 16:32:03Z esawma $
  */
 
 #ifndef _bcmip_h_
@@ -132,6 +132,8 @@ BWL_PRE_PACKED_STRUCT struct ipv4_hdr {
 	(IP_VER(ip_body) == IP_VER_4 ? IPV4_TOS(ip_body) : \
 	 IP_VER(ip_body) == IP_VER_6 ? IPV6_TRAFFIC_CLASS(ip_body) : 0)
 
+#define IP_DSCP46(ip_body) (IP_TOS46(ip_body) >> IPV4_TOS_DSCP_SHIFT);
+
 /* IPV6 extension headers (options) */
 #define IPV6_EXTHDR_HOP		0
 #define IPV6_EXTHDR_ROUTING	43
@@ -188,6 +190,16 @@ ipv6_exthdr_len(uint8 *h, uint8 *proto)
 }
 
 #define IPV4_ISMULTI(a) (((a) & 0xf0000000) == 0xe0000000)
+
+#define IPV4_MCAST_TO_ETHER_MCAST(ipv4, ether) \
+{ \
+	ether[0] = 0x01; \
+	ether[1] = 0x00; \
+	ether[2] = 0x5E; \
+	ether[3] = (ipv4 & 0x7f0000) >> 16; \
+	ether[4] = (ipv4 & 0xff00) >> 8; \
+	ether[5] = (ipv4 & 0xff); \
+}
 
 /* This marks the end of a packed structure section. */
 #include <packed_section_end.h>

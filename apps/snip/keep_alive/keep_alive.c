@@ -1,67 +1,67 @@
 /*
-* Copyright 2014, Broadcom Corporation
+ * Copyright 2014, Broadcom Corporation
  * All Rights Reserved.
  *
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
  * the contents of this file may not be disclosed to third parties, copied
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
-*/
+ */
 
 /** @file
-*
-* Network Keep Alive Application
-*
-* This application demonstrates how to make the WLAN chip automatically
-* send an 802.11 Null Function data frame and/or arbitrary IP packet at
-* a regular interval.
-*
-* This feature enables the WLAN chip to automatically maintain connectivity
-* with the Wi-Fi AP and/or a remote network application without needing
-* help from an application running on the host MCU.
-*
-* Features demonstrated
-*  - Adding a keep alive packet
-*  - Retrieving an existing keep alive packet configuration
-*  - Disabling keep alive packets
-*
-* Application Instructions
-*   1. Modify the CLIENT_AP_SSID/CLIENT_AP_PASSPHRASE Wi-Fi credentials
-*      in the wifi_config_dct.h header file to match your Wi-Fi access point
-*   2. Connect a PC terminal to the serial port of the WICED Eval board,
-*      then build and download the application as described in the WICED
-*      Quick Start Guide
-*
-*   Two keep alive packets are configured for this example
-*     1. A Null Function data frame that is sent at intervals of 1 second
-*     2. An ARP frame that is sent at intervals of 3 seconds
-*
-*   Once the keep alive frames have been added, the app retrieves
-*   and prints the configuration from the WLAN chip. After 30 seconds,
-*   both keep alive packets are disabled and the app halts
-*
-* Keep Alive Usage Notes
-*  - A maximum of 4 keep alive packets can exist concurrently
-*  - Keep alive packet functionality only works with client (STA) mode
-*  - If the keep alive packet length is set to 0, a Null-Function Data
-*    frame is automatically used as the keep alive
-*  - Any IP packet can be sent as a keep alive packet
-*
-* References
-*    http://en.wikipedia.org/wiki/EtherType
-*    http://en.wikipedia.org/wiki/Address_Resolution_Protocol
-*
-*/
+ *
+ * Network Keep Alive Application
+ *
+ * This application demonstrates how to make the WLAN chip automatically
+ * send an 802.11 Null Function data frame and/or arbitrary IP packet at
+ * a regular interval.
+ *
+ * This feature enables the WLAN chip to automatically maintain connectivity
+ * with the Wi-Fi AP and/or a remote network application without needing
+ * help from an application running on the host MCU.
+ *
+ * Features demonstrated
+ *  - Adding a keep alive packet
+ *  - Retrieving an existing keep alive packet configuration
+ *  - Disabling keep alive packets
+ *
+ * Application Instructions
+ *   1. Modify the CLIENT_AP_SSID/CLIENT_AP_PASSPHRASE Wi-Fi credentials
+ *      in the wifi_config_dct.h header file to match your Wi-Fi access point
+ *   2. Connect a PC terminal to the serial port of the WICED Eval board,
+ *      then build and download the application as described in the WICED
+ *      Quick Start Guide
+ *
+ *   Two keep alive packets are configured for this example
+ *     1. A Null Function data frame that is sent at intervals of 1 second
+ *     2. An ARP frame that is sent at intervals of 3 seconds
+ *
+ *   Once the keep alive frames have been added, the app retrieves
+ *   and prints the configuration from the WLAN chip. After 30 seconds,
+ *   both keep alive packets are disabled and the app halts
+ *
+ * Keep Alive Usage Notes
+ *  - A maximum of 4 keep alive packets can exist concurrently
+ *  - Keep alive packet functionality only works with client (STA) mode
+ *  - If the keep alive packet length is set to 0, a Null-Function Data
+ *    frame is automatically used as the keep alive
+ *  - Any IP packet can be sent as a keep alive packet
+ *
+ * References
+ *    http://en.wikipedia.org/wiki/EtherType
+ *    http://en.wikipedia.org/wiki/Address_Resolution_Protocol
+ *
+ */
 
 #include "wiced.h"
 
 /******************************************************
-*                      Macros
-******************************************************/
+ *                      Macros
+ ******************************************************/
 
 /******************************************************
-*                    Constants
-******************************************************/
+ *                    Constants
+ ******************************************************/
 
 /* Null function Data Frame keep alive parameters */
 #define KEEP_ALIVE_ID_NFD          0
@@ -74,26 +74,26 @@
 #define MAX_KEEP_ALIVE_PACKET_SIZE 512
 
 /******************************************************
-*                   Enumerations
-******************************************************/
+ *                   Enumerations
+ ******************************************************/
 
 /******************************************************
-*                 Type Definitions
-******************************************************/
+ *                 Type Definitions
+ ******************************************************/
 
 /******************************************************
-*                    Structures
-******************************************************/
+ *                    Structures
+ ******************************************************/
 
 /******************************************************
-*               Function Declarations
-******************************************************/
+ *               Static Function Declarations
+ ******************************************************/
 
 void print_keep_alive_info( wiced_keep_alive_packet_t* packet_info );
 
 /******************************************************
-*               Variable Definitions
-******************************************************/
+ *               Variable Definitions
+ ******************************************************/
 
 static char arp_packet[] =
     "\xff\xff\xff\xff\xff\xff"  /*  0 : Ethernet Destination Address : Broadcast for Gratuitous ARP */
@@ -110,8 +110,8 @@ static char arp_packet[] =
     "\x00\x00\x00\x00";         /* 38 : Target Protocol Address : IP address copied in below        */
 
 /******************************************************
-*               Function Definitions
-******************************************************/
+ *               Function Definitions
+ ******************************************************/
 
 void application_start( )
 {

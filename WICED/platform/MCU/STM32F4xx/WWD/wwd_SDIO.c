@@ -71,7 +71,7 @@ static wwd_bus_transfer_direction_t current_transfer_direction;
 static uint32_t                     current_command;
 
 /******************************************************
- *             Function declarations
+ *             Static Function Declarations
  ******************************************************/
 
 static uint32_t          sdio_get_blocksize_dctrl   ( sdio_block_size_t block_size );

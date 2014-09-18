@@ -45,7 +45,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 extern void platform_filesystem_init( void );
@@ -53,7 +53,7 @@ extern void platform_filesystem_init( void );
 int platform_get_4390_rx_buffer_size( void );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 char bcm439x_platform_inited = 0;
@@ -84,6 +84,8 @@ void platform_init_mcu_infrastructure( void )
 
     init_4390_after_global_init();
 
+    platform_mcu_powersave_disable( );
+
     platform_watchdog_init( );
 
     /* Initialise the interrupt priorities to a priority lower than 0 so that the BASEPRI register can mask them */
@@ -93,6 +95,10 @@ void platform_init_mcu_infrastructure( void )
     }
     platform_init_rtos_irq_priorities( );
     platform_init_peripheral_irq_priorities( );
+
+    /* Initialise peripheral transport units (PTU) before any other peripherals */
+    platform_ptu1_init( );
+    platform_ptu2_init( );
 
     /* Initialise GPIO IRQ manager */
     platform_gpio_irq_manager_init();

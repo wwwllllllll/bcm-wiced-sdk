@@ -41,11 +41,16 @@
 #include "web_server.h"
 #include "wwd_debug.h"
 #include "wwd_assert.h"
+#include "wiced_utilities.h"
+#include "platform_toolchain.h"
 
 /******************************************************
- *        Constants
+ *                      Macros
  ******************************************************/
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define ETHER_PAYLOAD_MTU (1500)
 #define IP_HEADER_SIZE    (20)
 #define TCP_HEADER_SIZE   (20)
@@ -53,34 +58,34 @@
 /* #define MAX_TCP_PAYLOAD   ( ETHER_PAYLOAD_MTU - IP_HEADER_SIZE - TCP_HEADER_SIZE ) */
 #define MAX_TCP_PAYLOAD 1200
 
-
-#ifndef MIN
-#define MIN(a,b) (((a) < (b))?(a):(b))
-#endif
-
 /******************************************************
- *             Static Variables
+ *                   Enumerations
  ******************************************************/
 
-static char pkt_buffer[300];
-static int web_server_quit_flag = 1;
-static xTaskHandle      web_server_thread_handle;
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 
 /******************************************************
- *             Global Function Prototypes
+ *                    Structures
  ******************************************************/
-void *memrchr( const void *s, int c, size_t n );
 
-#ifndef __GNUC__
-void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen );
-#endif /* ifndef __GNUC__ */
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
 
-
-
-
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+static char                     pkt_buffer[300];
+static int                      web_server_quit_flag = 1;
+static xTaskHandle              web_server_thread_handle;
 static const url_list_elem_t *  server_url_list;
-static uint32_t       server_local_addr;
+static uint32_t                 server_local_addr;
 
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 static void web_server_proc( void * thread_input )
 {
     run_webserver( server_local_addr, server_url_list );
@@ -339,55 +344,6 @@ void send_web_data( void * socket, unsigned char * data, unsigned long length )
 
 
 
-void *memrchr( const void *s, int c, size_t n )
-{
-    unsigned char * read_pos = ((unsigned char *)s + n);
-    while ( ( *read_pos != (unsigned char) c ) &&
-            ( read_pos >= (unsigned char*) s ) )
-    {
-        read_pos--;
-    }
-    return ( read_pos >= (unsigned char*) s )?read_pos:NULL;
-}
 
 
-#ifndef __GNUC__
-void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen )
-{
-    unsigned char* needle_char = (unsigned char*) needle;
-    unsigned char* haystack_char = (unsigned char*) haystack;
-    int needle_pos = 0;
 
-    if ( ( haystack == NULL ) ||
-         ( needle == NULL ) )
-    {
-        return NULL;
-    }
-
-    while ( ( haystacklen > 0 ) &&
-            ( needle_pos < needlelen ) )
-    {
-        if ( *haystack_char == needle_char[needle_pos] )
-        {
-            needle_pos++;
-        }
-        else if ( needle_pos != 0 )
-        {
-            /* go back to start of section */
-            haystacklen += needle_pos;
-            haystack_char -= needle_pos;
-            needle_pos = 0;
-        }
-        haystack_char++;
-        haystacklen--;
-    }
-
-    if ( needle_pos == needlelen )
-    {
-       return ((unsigned char*)haystack_char) - needlelen;
-    }
-
-    return NULL;
-}
-
-#endif /* ifndef __GNUC__ */

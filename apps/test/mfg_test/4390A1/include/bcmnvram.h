@@ -3,7 +3,7 @@
  *
  * $Copyright Open Broadcom Corporation$
  *
- * $Id: bcmnvram.h 387789 2013-02-27 03:30:02Z jihuac $
+ * $Id: bcmnvram.h 403347 2013-05-20 14:05:15Z sudhirbs $
  */
 
 #ifndef _bcmnvram_h_
@@ -48,6 +48,14 @@ extern void nvram_restore_var(char *prefix, char *name);
  */
 extern int nvram_init(void *sih);
 extern int nvram_deinit(void *sih);
+
+#if defined(_CFE_) && defined(BCM_DEVINFO)
+extern char *flashdrv_nvram;
+extern char *devinfo_flashdrv_nvram;
+extern int devinfo_nvram_init(void *sih);
+extern int devinfo_nvram_sync(void);
+extern void _nvram_hash_select(int idx);
+#endif
 
 /*
  * Append a chunk of nvram variables to the global list

@@ -3,7 +3,7 @@
  *
  * $Copyright Open Broadcom Corporation$
  *
- * $Id: ethernet.h 384540 2013-02-12 04:28:58Z automrgr $
+ * $Id: ethernet.h 403347 2013-05-20 14:05:15Z sudhirbs $
  */
 
 #ifndef _NET_ETHERNET_H_	/* use native BSD ethernet.h when available */
@@ -75,6 +75,8 @@
 #define ETHER_TYPE_89_0D	0x890d		/* 89-0d frame for TDLS */
 
 #define ETHER_TYPE_PPP_SES	0x8864		/* PPPoE Session */
+
+#define ETHER_TYPE_IAPP_L2_UPDATE	0x6	/* IAPP L2 update frame */
 
 /* Broadcom subtype follows ethertype;  First 2 bytes are reserved; Next 2 are subtype; */
 #define	ETHER_BRCM_SUBTYPE_LEN	4	/* Broadcom 4 byte subtype */

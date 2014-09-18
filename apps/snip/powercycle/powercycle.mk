@@ -12,8 +12,6 @@ NAME := App_Powercycle
 
 $(NAME)_SOURCES := powercycle.c
 
-WIFI_CONFIG_DCT_H := wifi_config_dct.h
-
 # LwIP does not support network stack deinitialisation
 VALID_OSNS_COMBOS := ThreadX-NetX_Duo \
                      ThreadX-NetX

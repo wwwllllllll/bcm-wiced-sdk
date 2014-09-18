@@ -146,7 +146,7 @@ extern   "C" {
 /* Define the size of the BOOT buffer. This should be large enough for all the
    required DHCP fields plus the minimum requirement of 312 bytes of option data
    stated in RFC 2131; 2. Protocol Summary. */
-#define NX_BOOT_CLIENT_BUFFER_SIZE      576
+#define NX_BOOT_CLIENT_BUFFER_SIZE      548
 
 /* Define the DHCP stack size.  */
 

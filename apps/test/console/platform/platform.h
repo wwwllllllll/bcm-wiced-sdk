@@ -15,10 +15,15 @@
 extern "C" {
 #endif
 
-#ifdef CONSOLE_ENABLE_PLATFORM_CMD
+/******************************************************
+ *                     Macros
+ ******************************************************/
 
-extern int reboot( int argc, char* argv[] );
-extern int mcu_powersave( int argc, char *argv[] );
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+#ifdef CONSOLE_ENABLE_PLATFORM_CMD
 
 #define PLATFORM_COMMANDS \
     { "reboot",         reboot,        0, DELIMIT, NULL, NULL,    "Reboot the device"}, \
@@ -27,8 +32,30 @@ extern int mcu_powersave( int argc, char *argv[] );
 #define PLATFORM_COMMANDS
 #endif /* ifdef CONSOLE_ENABLE_PLATFORM_CMD */
 
-extern int platform_enable_mcu_powersave ( void );
-extern int platform_disable_mcu_powersave( void );
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+
+int reboot( int argc, char* argv[] );
+int mcu_powersave( int argc, char *argv[] );
+int platform_enable_mcu_powersave ( void );
+int platform_disable_mcu_powersave( void );
 
 #ifdef __cplusplus
 } /*extern "C" */

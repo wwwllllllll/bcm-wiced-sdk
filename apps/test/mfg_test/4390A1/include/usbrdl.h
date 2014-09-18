@@ -1,9 +1,9 @@
 /*
  * Broadcom USB remote download definitions
  *
- * $Copyright Broadcom Corporation$
+ * $Copyright Open Broadcom Corporation$
  *
- * $Id: usbrdl.h 314495 2012-02-12 07:56:39Z manojkrn $
+ * $Id: usbrdl.h 406060 2013-06-05 23:13:52Z yfeng $
  */
 
 #ifndef _USB_RDL_H
@@ -27,6 +27,7 @@
 #define DL_DEFER_RESP_OK	9	/* Potentially defer the response to setup
 					 * if resp unavailable
 					 */
+#define DL_CHGSPD		0x0A
 
 #define	DL_HWCMD_MASK		0xfc	/* Mask for hardware read commands: */
 #define	DL_RDHW			0x10	/* Read a hardware address (Ctl-in) */

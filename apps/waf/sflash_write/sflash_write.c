@@ -30,9 +30,13 @@
 #include <string.h>
 #include "spi_flash.h"
 #include "wwd_assert.h"
+#include "wiced_utilities.h"
 #include "platform_config.h"
+#include "platform_init.h"
 #include "platform_peripheral.h"
 #include "platform_sflash_dct.h"
+#include "platform_toolchain.h"
+#include "linker_symbols.h"
 
 /*
  * Test mode defines
@@ -42,7 +46,18 @@
  * #define TEST_SFLASH_READ
  */
 
+/******************************************************
+ *                      Macros
+ ******************************************************/
+#ifdef DEBUG_PRINT
+#define DEBUG_PRINTF(x) printf x
+#else
+#define DEBUG_PRINTF(x)
+#endif /* ifdef DEBUG_PRINT */
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 /*
  * Commands to execute - bitwise OR together
  * TCL script write_sflash.tcl must match these defines
@@ -58,10 +73,12 @@
 #define MFG_SPI_FLASH_COMMAND_WRITE_ERASE_IF_NEEDED     (0x00000080)
 
 
-#ifndef MIN
-#define MIN(x,y)  ((x) < (y) ? (x) : (y))
-#endif /* ifndef MIN */
+#define WRITE_CHUNK_SIZE        (8*1024)  /* Writing in chunks is only needed to prevent reset by watchdog */
+#define SECTOR_SIZE             (4096)
 
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 /*
  * Result codes
  * TCL script write_sflash.tcl must match this enum
@@ -80,8 +97,13 @@ typedef enum
     MFG_SPI_FLASH_RESULT_END                       = 0x7fffffff /* force to 32 bits */
 } mfg_spi_flash_result_t;
 
-#define WRITE_CHUNK_SIZE        (8*1024)  /* Writing in chunks is only needed to prevent reset by watchdog */
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 
+/******************************************************
+ *                    Structures
+ ******************************************************/
 /*
  * TCL script write_sflash.tcl must match this structure
  */
@@ -105,16 +127,24 @@ typedef struct
     unsigned char          data[__JTAG_FLASH_WRITER_DATA_BUFFER_SIZE__];
 } data_transfer_area_t;
 
-/* provided by link script */
-#if defined( __ICCARM__ )
-extern void wiced_program_start(void);
-#pragma section="CSTACK"
-extern void* link_stack_end = __section_end("CSTACK");
-#else /* #if defined( __ICCARM__ ) */
-void* reset_handler;
-void* link_stack_end;
-#endif /* #if defined( __ICCARM__ ) */
 
+
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+#ifdef WIPE_SFLASH
+    static void add_wipe_data( void );
+#elif defined( TEST_SFLASH_WRITE )
+    static void add_test_data( void );
+#elif defined( TEST_SFLASH_READ )
+    static void read_test_data2( void );
+#endif /* ifdef TEST_SFLASH_READ */
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+static uint8_t   Rx_Buffer[SECTOR_SIZE +10];   /* A temporary buffer used for reading data from the Serial flash when performing verification */
 
 /******************************************************************************
  * This structure provides configuration parameters, and communication area
@@ -125,21 +155,13 @@ void* link_stack_end;
 /* IAR specific */
 #pragma section= "data_config_section"
 const data_config_area_t data_config @ "data_config_section";
-const data_config_area_t   data_config =
-{
-        .entry_point = (void*)wiced_program_start,
-        .stack_addr  = &link_stack_end,
-        .data_buffer_size = __JTAG_FLASH_WRITER_DATA_BUFFER_SIZE__,
-};
-#else /* #if defined(__ICCARM__) */
-const data_config_area_t   data_config =
-{
-        .entry_point = &reset_handler,
-        .stack_addr  = &link_stack_end,
-        .data_buffer_size = __JTAG_FLASH_WRITER_DATA_BUFFER_SIZE__,
-};
 #endif /* #if defined(__ICCARM__) */
-
+const data_config_area_t   data_config =
+{
+        .entry_point = (void*) ENTRY_ADDRESS,
+        .stack_addr  = &link_stack_end,
+        .data_buffer_size = __JTAG_FLASH_WRITER_DATA_BUFFER_SIZE__,
+};
 
 /******************************************************************************
  * This structure provides a transfer area for communications with the
@@ -156,24 +178,9 @@ data_transfer_area_t data_transfer;
 #endif /* #if defined (__ICCARM__) */
 
 
-#ifdef DEBUG_PRINT
-#define DEBUG_PRINTF(x) printf x
-#else
-#define DEBUG_PRINTF(x)
-#endif /* ifdef DEBUG_PRINT */
-
-#define SECTOR_SIZE  (4096)
-
-/* A temporary buffer used for reading data from the Serial flash when performing verification */
-static uint8_t   Rx_Buffer[SECTOR_SIZE +10];
-
-#ifdef WIPE_SFLASH
-    static void add_wipe_data( void );
-#elif defined( TEST_SFLASH_WRITE )
-    static void add_test_data( void );
-#elif defined( TEST_SFLASH_READ )
-    static void read_test_data2( void );
-#endif /* ifdef TEST_SFLASH_READ */
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 int main( void )
 {
@@ -185,10 +192,8 @@ int main( void )
  * variables have been initialised, so the following init still needs to be done
  * When using GCC, this is done in crt0_GCC.c
  */
-    extern void init_platform( void );
-    extern void init_architecture( void );
-    init_architecture( );
-    init_platform( );
+    platform_init_mcu_infrastructure( );
+    platform_init_external_devices( );
 #endif /* #elif defined ( __IAR_SYSTEMS_ICC__ ) */
 
 #ifdef WIPE_SFLASH
@@ -200,7 +205,6 @@ int main( void )
 #endif /* ifdef TEST_SFLASH_READ */
 
 #ifdef PLATFORM_HAS_OTP
-    extern void platform_setup_otp( void );
     platform_setup_otp( );
 #endif /* ifdef PLATFORM_HAS_OTP */
 
@@ -260,7 +264,7 @@ int main( void )
 
             if ( 0 != sflash_read( &sflash_handle, (unsigned long) (pos + data_transfer.sflash_address) , data_transfer.data, (unsigned int) data_transfer.size ) )
             {
-                /* Verify Error - Chip not erased properly */
+                /* Read failed */
                 data_transfer.result = MFG_SPI_FLASH_RESULT_READ_FAILED;
                 DEBUG_PRINTF(( "Read error - abort!\n" ));
                 goto back_to_idle;
@@ -472,7 +476,6 @@ back_to_idle:
         data_transfer.command = MFG_SPI_FLASH_COMMAND_NONE;
         data_transfer.sflash_address = 0;
         data_transfer.size = 0;
-        memset( data_transfer.data, 0, (size_t) __JTAG_FLASH_WRITER_DATA_BUFFER_SIZE__ );
     }
 
     return 0;
@@ -481,7 +484,6 @@ back_to_idle:
 
 #if defined(__ICCARM__)
 #pragma section="CSTACK"
-extern void iar_set_msp(void*);
 __root void _wiced_iar_program_start(void)
 {
     /* When the execution of the program is initiated from an external debugger */

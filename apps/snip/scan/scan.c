@@ -53,7 +53,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 wiced_result_t scan_result_handler( wiced_scan_handler_result_t* malloced_scan_result );
@@ -92,10 +92,10 @@ wiced_result_t scan_result_handler( wiced_scan_handler_result_t* malloced_scan_r
 {
     malloc_transfer_to_curr_thread( malloced_scan_result );
 
-    if (malloced_scan_result->scan_complete != WICED_TRUE)
+    if ( malloced_scan_result->status == WICED_SCAN_INCOMPLETE )
     {
         wiced_scan_result_t* record = &malloced_scan_result->ap_details;
-        record->SSID.val[record->SSID.len] = 0; /* Ensure the SSID is null terminated */
+        record->SSID.value[record->SSID.length] = 0; /* Ensure the SSID is null terminated */
 
         WPRINT_APP_INFO( ( "%3d ", record_count ) );
         print_scan_result(record);

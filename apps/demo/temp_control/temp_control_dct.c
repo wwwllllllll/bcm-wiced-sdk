@@ -21,9 +21,9 @@
  ******************************************************/
 
 /* Put your Xively feed ID, API key, and channel ID here */
-#define XIVELY_FEED_ID    "xxxxxxxxxx"
-#define XIVELY_API_KEY    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-#define XIVELY_CHANNEL_ID "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#define XIVELY_FEED_ID    ""   /* 5 to 10 digits */
+#define XIVELY_API_KEY    ""   /* 48 characters */
+#define XIVELY_CHANNEL_ID ""   /* up to 50 characters*/
 
 /******************************************************
  *                   Enumerations
@@ -38,12 +38,11 @@
  ******************************************************/
 
 /******************************************************
- *                 Global Variables
+ *               Variable Definitions
  ******************************************************/
 
 DEFINE_APP_DCT(user_dct_data_t)
 {
-    .xively_details_valid = 0,
     .xively_feed_id       = XIVELY_FEED_ID,
     .xively_api_key       = XIVELY_API_KEY,
     .xively_channel_id    = XIVELY_CHANNEL_ID,
@@ -51,5 +50,9 @@ DEFINE_APP_DCT(user_dct_data_t)
 };
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *               Function Definitions
  ******************************************************/

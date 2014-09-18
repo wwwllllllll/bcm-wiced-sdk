@@ -18,6 +18,17 @@
 extern "C" {
 #endif
 
+/******************************************************
+ *                     Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 typedef enum
 {
     ERR_CMD_OK           =  0,
@@ -27,10 +38,14 @@ typedef enum
     ERR_TOO_MANY_ARGS    = -4,
     ERR_ADDRESS          = -5,
     ERR_NO_CMD           = -6,
-    ERR_LAST_ERROR       = -7
+    ERR_BAD_FORMAT       = -7,
+    ERR_LAST_ERROR       = -8
 } cmd_err_t;
 
 
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 typedef int       (*command_function_t)     ( int argc, char *argv[] );
 typedef cmd_err_t (*help_example_function_t)( char* command_name, uint32_t eg_select );
 
@@ -55,6 +70,19 @@ typedef struct
 #define CMD_TABLE_DIV(str) { (char*) "",   NULL, 0, NULL, NULL, str,  NULL }
 
 
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+extern const command_t* console_command_table;
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
 /* helper function */
 int              hex_str_to_int ( const char* hex_str );
 int              str_to_int     ( const char* str );
@@ -66,12 +94,14 @@ void             console_redraw ( void );
 
 
 /* Network functions required */
-extern void network_init  ( uint32_t interface_id, char* ip, char* netmask, char* gw );
-extern void network_deinit( uint32_t interface_id );
-extern void network_print_status( char* ssid, char* ap_ssid );
+void network_init  ( uint32_t interface_id, char* ip, char* netmask, char* gw );
+void network_deinit( uint32_t interface_id );
+void network_print_status( char* ssid, char* ap_ssid );
 
 /* Host time functions required */
-extern uint32_t host_get_time( void ); /* Returns the time in milliseconds */
+uint32_t host_get_time( void ); /* Returns the time in milliseconds */
+
+void console_app_main( void );
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -38,7 +38,8 @@ endif
 
 # Global includes
 GLOBAL_INCLUDES  += . \
-                    ../../libraries/bluetooth/include
+                    ../../libraries/bluetooth/include \
+                    ../../libraries/drivers/nfc/Components/bus
 
 # Global defines
 # HSE_VALUE = STM32 crystal frequency = 26MHz (needed to make UART work correctly)

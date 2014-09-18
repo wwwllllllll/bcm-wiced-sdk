@@ -43,7 +43,7 @@
 static host_semaphore_type_t spi_transfer_finished_semaphore;
 
 /******************************************************
- *             Function declarations
+ *             Static Function Declarations
  ******************************************************/
 
 static void spi_irq_handler( void* arg );

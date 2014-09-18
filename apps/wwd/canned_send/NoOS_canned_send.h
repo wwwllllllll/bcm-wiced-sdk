@@ -21,12 +21,16 @@
 extern "C" {
 #endif
 
+/** @cond */
 /******************************************************
- * @cond       Macros and non-user constants
+ *                     Macros
  ******************************************************/
-
 #define MAKE_IPV4_ADDRESS(a, b, c, d)          ((((uint32_t) (d)) << 24) | (((uint32_t) (c)) << 16) | (((uint32_t) (b)) << 8) | ((uint32_t) (a)))
 #define SWAP16( a )                            ((uint16_t)( ((((uint16_t)(a))&0xff)<<8) + ((((uint16_t)(a))&0xff00)>>8) ))
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
 #define MIN_IOCTL_BUFFER_SIZE                  (120)
 #define PACKET_SIZE                            (sizeof(udp_packet_t) + MAX_PAYLOAD)
 #define ARP_OPERATION_REQUEST                  (1)
@@ -34,14 +38,9 @@ extern "C" {
 #define ARP_PROTOCOL_TYPE_IPV4                 (0x0800)
 #define ARP_HARDWARE_TYPE_ETHERNET             (1)
 
-
-
 /******************************************************
- *        Local Enumerations and Structures
+ *                   Enumerations
  ******************************************************/
-
-#pragma pack(1)
-
 typedef enum
 {
     ETHER_TYPE_IPv4  = 0x0800,
@@ -49,6 +48,14 @@ typedef enum
     ETHER_TYPE_IPv6  = 0x86DD,
 } ether_type_t;
 
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+#pragma pack(1)
 
 typedef struct
 {
@@ -95,8 +102,6 @@ typedef struct
 } udp_header_t;
 
 
-
-
 typedef struct
 {
     char              reserved[WICED_LINK_OVERHEAD_BELOW_ETHERNET_FRAME];
@@ -115,6 +120,18 @@ typedef struct
 } udp_packet_t;
 
 #pragma pack()
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+
+/******************************************************
+ *        Local Enumerations and Structures
+ ******************************************************/
 
 
 /** @endcond */

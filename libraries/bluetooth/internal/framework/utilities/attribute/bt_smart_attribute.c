@@ -53,11 +53,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const uint16_t fixed_attribute_size_list[] =
@@ -96,14 +96,14 @@ static uint32_t attributes_deleted = 0;
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t print_uuid( const wiced_bt_uuid_t* uuid );
 static wiced_result_t print_type( const wiced_bt_uuid_t* uuid );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************

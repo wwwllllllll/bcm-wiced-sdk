@@ -71,11 +71,11 @@ do \
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static volatile wiced_bool_t bus_initialised = WICED_FALSE;

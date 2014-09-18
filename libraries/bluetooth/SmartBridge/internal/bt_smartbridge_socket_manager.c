@@ -37,14 +37,14 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_bool_t smartbridge_socket_manager_find_socket_by_handle_callback  ( bt_list_node_t* node_to_compare, void* user_data );
 static wiced_bool_t smartbridge_socket_manager_find_socket_by_address_callback ( bt_list_node_t* node_to_compare, void* user_data );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* Socket Management Globals */

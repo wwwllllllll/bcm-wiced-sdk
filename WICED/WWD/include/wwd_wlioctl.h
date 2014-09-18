@@ -369,39 +369,42 @@ typedef struct
     uint16_t flags;
     uint8_t key[WSEC_MAX_PSK_LEN];
 } wsec_pmk_t;
-#define WEP_ENABLED        0x0001
-#define TKIP_ENABLED        0x0002
-#define AES_ENABLED        0x0004
-#define WSEC_SWFLAG        0x0008
+
+#define OPEN_AUTH                   0x0000
+#define SHARED_AUTH                 0x0001
+#define WEP_ENABLED                 0x0001
+#define TKIP_ENABLED                0x0002
+#define AES_ENABLED                 0x0004
+#define WSEC_SWFLAG                 0x0008
 #ifdef BCMCCX
-#define CKIP_KP_ENABLED        0x0010
-#define CKIP_MIC_ENABLED    0x0020
+#define CKIP_KP_ENABLED             0x0010
+#define CKIP_MIC_ENABLED            0x0020
 #endif
-#define SES_OW_ENABLED        0x0040
+#define SES_OW_ENABLED              0x0040
 #ifdef WLFIPS
-#define FIPS_ENABLED    0x0080
+#define FIPS_ENABLED                0x0080
 #endif
 #ifdef BCMWAPI_WPI
-#define SMS4_ENABLED        0x0100
+#define SMS4_ENABLED                0x0100
 #endif
-#define WPA_AUTH_DISABLED    0x0000
-#define WPA_AUTH_NONE        0x0001
-#define WPA_AUTH_UNSPECIFIED    0x0002
-#define WPA_AUTH_PSK        0x0004
+#define WPA_AUTH_DISABLED           0x0000
+#define WPA_AUTH_NONE               0x0001
+#define WPA_AUTH_UNSPECIFIED        0x0002
+#define WPA_AUTH_PSK                0x0004
 #if defined(BCMCCX) || defined(BCMEXTCCX)
-#define WPA_AUTH_CCKM        0x0008
-#define WPA2_AUTH_CCKM        0x0010
+#define WPA_AUTH_CCKM               0x0008
+#define WPA2_AUTH_CCKM              0x0010
 #endif
-#define WPA2_AUTH_UNSPECIFIED    0x0040
-#define WPA2_AUTH_PSK        0x0080
-#define BRCM_AUTH_PSK           0x0100
-#define BRCM_AUTH_DPT        0x0200
+#define WPA2_AUTH_UNSPECIFIED       0x0040
+#define WPA2_AUTH_PSK               0x0080
+#define BRCM_AUTH_PSK               0x0100
+#define BRCM_AUTH_DPT               0x0200
 #ifdef BCMWAPI_WPI
-#define WPA_AUTH_WAPI        0x0400
+#define WPA_AUTH_WAPI               0x0400
 #endif
-#define WPA_AUTH_PFN_ANY    0xffffffff
-#define    MAXPMKID        16
-#define WPA2_PMKID_LEN    16
+#define WPA_AUTH_PFN_ANY            0xffffffff
+#define    MAXPMKID                 16
+#define WPA2_PMKID_LEN              16
 typedef struct _pmkid
 {
     wl_ether_addr_t BSSID;
@@ -625,7 +628,6 @@ typedef struct wlc_iov_trx_s
 #define IOVAR_STR_ALLMULTI               "allmulti"
 #define IOVAR_STR_COUNTRY                "country"
 #define IOVAR_STR_EVENT_MSGS             "event_msgs"
-#define IOVAR_STR_RAND                   "rand"
 #define IOVAR_STR_ESCAN                  "escan"
 #define IOVAR_STR_SUP_WPA                "sup_wpa"
 #define IOVAR_STR_CUR_ETHERADDR          "cur_etheraddr"
@@ -665,6 +667,10 @@ typedef struct wlc_iov_trx_s
 #define IOVAR_STR_P2P_STATE              "p2p_state"
 #define IOVAR_STR_P2P_SSID               "p2p_ssid"
 
+#define IOVAR_STR_2G_MULTICAST_RATE      "2g_mrate"
+#define IOVAR_STR_AMPDU_BA_WINDOW_SIZE   "ampdu_ba_wsize"
+#define IOVAR_STR_AMPDU_MPDU             "ampdu_mpdu"
+#define IOVAR_STR_AMPDU_RX_FACTOR        "ampdu_rx_factor"
 
 #define WLC_IOCTL_MAGIC                    ( 0x14e46c77 )
 #define WLC_IOCTL_VERSION                  (          1 )
@@ -953,7 +959,8 @@ typedef struct wlc_iov_trx_s
 #define WLC_SET_NUM_PEERS                  ( (uint32_t) 305 )
 #define WLC_GET_NUM_BSS                    ( (uint32_t) 306 )
 #define WLC_GET_WSEC_PMK                   ( (uint32_t) 318 )
-#define WLC_LAST                           ( (uint32_t) 319 )
+#define WLC_GET_RANDOM_BYTES               ( (uint32_t) 319 )
+#define WLC_LAST                           ( (uint32_t) 320 )
 
 #ifndef EPICTRL_COOKIE
 #define EPICTRL_COOKIE        0xABADCEDE
@@ -1308,7 +1315,8 @@ typedef struct tx_inst_power
 #define WL_WDS_WPA_ROLE_AUTH    0
 #define WL_WDS_WPA_ROLE_SUP    1
 #define WL_WDS_WPA_ROLE_AUTO    255
-#define WL_EVENTING_MASK_LEN    16
+#define WL_EVENTING_MASK_LEN    ((WLC_E_LAST + 7) / 8)
+
 #define VNDR_IE_CMD_LEN        4
 #define VNDR_IE_BEACON_FLAG    0x1
 #define VNDR_IE_PRBRSP_FLAG    0x2

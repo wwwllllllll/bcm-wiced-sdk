@@ -38,11 +38,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************
@@ -57,18 +57,31 @@ extern void dma_isrHandler( void );
  *            Interrupt Handler Definitions
  ******************************************************/
 
+/**
+ * Interrupt handler for DMA
+ */
 WWD_RTOS_DEFINE_ISR( dma_done_irq )
 {
 #ifdef DMA_ENABLED
     dma_isrHandler();
 #endif
 }
+WWD_RTOS_MAP_ISR( dma_done_irq, DmaDoneInt_irq )
 
+/**
+ * Interrupt handler for GPIOA
+ */
 WWD_RTOS_DEFINE_ISR( gpioa_irq )
 {
     platform_gpio_irq( );
 }
+WWD_RTOS_MAP_ISR( gpioa_irq, GPIOA_BANK0_irq ) /* Map all GPIOA Bank 0 interrupts to gpioa_irq */
+WWD_RTOS_MAP_ISR( gpioa_irq, GPIOA_BANK1_irq ) /* Map all GPIOA Bank 1 interrupts to gpioa_irq */
 
-WWD_RTOS_MAP_ISR( dma_done_irq, DmaDoneInt_irq  )
-WWD_RTOS_MAP_ISR( gpioa_irq,    GPIOA_BANK0_irq )
-WWD_RTOS_MAP_ISR( gpioa_irq,    GPIOA_BANK1_irq )
+/**
+ * Interrupt handler for MCU wake up from power-down-sleep (PDS) mode
+ */
+WWD_RTOS_DEFINE_ISR( WAKEUP_irq )
+{
+    platform_mcu_powersave_wakeup_irq( );
+}

@@ -121,7 +121,7 @@ static void low_level_init( /*@partial@*/ struct netif *netif )
     netif->hwaddr_len = (u8_t) ETHARP_HWADDR_LEN;
 
     /* Setup the physical address of this IP instance. */
-    if ( wwd_wifi_get_mac_address( (wiced_mac_t*) ( netif->hwaddr ) ) != WWD_SUCCESS )
+    if ( wwd_wifi_get_mac_address( (wiced_mac_t*) ( netif->hwaddr ), WWD_STA_INTERFACE ) != WWD_SUCCESS )
     {
         WPRINT_NETWORK_DEBUG(("Couldn't get MAC address\n"));
         return;

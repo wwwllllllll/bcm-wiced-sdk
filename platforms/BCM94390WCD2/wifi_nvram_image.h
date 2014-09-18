@@ -28,7 +28,7 @@ extern "C" {
  * Character array of NVRAM image
  */
 
-// Sample variables file for BCM94390 module (internal dev version) based on SPIL SB-WM-N03 SiP (2.4GHz ONLY)
+// Sample variables file for BCM94390 module based on SPIL SB-WM-N03 SiP (2.4GHz ONLY)
 // To be used with BCM9WCD3EVAL1 eval board
 static const char wifi_nvram_image[] =
         "NVRAMRev=$Rev: 387583 $"                                                                      "\x00"
@@ -37,7 +37,7 @@ static const char wifi_nvram_image[] =
         "boardtype=0x0704"                                                                             "\x00"
         "boardflags=0x00480c01"                                                                        "\x00"
         "# iLNA bypass disabled:"                                                                      "\x00"
-        "boardflags2=0x00000000"                                                                       "\x00"
+        "boardflags2=0x00002000"                                                                       "\x00"
         "# for iLNA bypass actiavted - boardflags2=0xc0000000"                                         "\x00"
         "boardflags3=0x8101188"                                                                        "\x00"
         "#boardnum=57410"                                                                              "\x00"
@@ -94,6 +94,7 @@ static const char wifi_nvram_image[] =
         "swctrlmapext_2g=0x00000000,0x00000000,0x00000000,0x000000,0x000"                              "\x00"
         "swctrlmap_5g=0x00000000,0x00000000,0x00000000,0x0,0x0"                                        "\x00"
         "swctrlmapext_5g=0x00000000,0x00000000,0x00000000,0x000000,0x000"                              "\x00"
+        "paparambwver=1"                                                                               "\x00"
         "\x00\x00";
 
 #ifdef __cplusplus

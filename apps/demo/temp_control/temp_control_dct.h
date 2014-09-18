@@ -43,7 +43,6 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t  xively_details_valid;
     char     xively_feed_id[MAX_FEED_ID_LEN + 1];       /* With terminating null */
     char     xively_api_key[API_KEY_LEN + 1];           /* With terminating null */
     char     xively_channel_id[MAX_CHANNEL_ID_LEN + 1]; /* With terminating null */
@@ -51,15 +50,11 @@ typedef struct
 } user_dct_data_t;
 
 /******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
  *               Function Declarations
- ******************************************************/
-
-/******************************************************
- *               Variables Definitions
- ******************************************************/
-
-/******************************************************
- *               Function Definitions
  ******************************************************/
 
 #ifdef __cplusplus

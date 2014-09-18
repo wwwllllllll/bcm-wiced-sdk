@@ -31,7 +31,7 @@
         <td style="width:117px"><img src="brcmlogo.png" alt="Broadcom Logo" /></td>
         <td style="width:20px;background-image:url('brcmlogo_line.png');"></td>
         <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('brcmlogo_line.png');">
-        WICED&trade; v3.0.1 - API Reference Guide
+        WICED&trade; v3.1.0 - API Reference Guide
         </td>
         <td style="width:20px"></td>
         <td style="width:1px"><img src="wiced_logo.png" alt="WICED Logo" /></td>
@@ -121,24 +121,24 @@ Functions</h2></td></tr>
 <tr class="memitem:ga4b55fc908c514de84df8ad55d547dadb"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga4b55fc908c514de84df8ad55d547dadb">rsa_check_privkey</a> (rsa_context *ctx)</td></tr>
 <tr class="memdesc:ga4b55fc908c514de84df8ad55d547dadb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check a private RSA key.  <a href="#ga4b55fc908c514de84df8ad55d547dadb">More...</a><br/></td></tr>
 <tr class="separator:ga4b55fc908c514de84df8ad55d547dadb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab3e07cec489e90688307f058d15441d3"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#gab3e07cec489e90688307f058d15441d3">rsa_public</a> (rsa_context *ctx, unsigned char *input, unsigned char *output)</td></tr>
-<tr class="memdesc:gab3e07cec489e90688307f058d15441d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA public key operation.  <a href="#gab3e07cec489e90688307f058d15441d3">More...</a><br/></td></tr>
-<tr class="separator:gab3e07cec489e90688307f058d15441d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga91e903d2b7d1fdb8a9eb76a487c15005"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga91e903d2b7d1fdb8a9eb76a487c15005">rsa_private</a> (rsa_context *ctx, unsigned char *input, unsigned char *output)</td></tr>
-<tr class="memdesc:ga91e903d2b7d1fdb8a9eb76a487c15005"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA private key operation.  <a href="#ga91e903d2b7d1fdb8a9eb76a487c15005">More...</a><br/></td></tr>
-<tr class="separator:ga91e903d2b7d1fdb8a9eb76a487c15005"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga83660114e357a3ecb8b0759f9da882e5"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga83660114e357a3ecb8b0759f9da882e5">rsa_pkcs1_encrypt</a> (rsa_context *ctx, int32_t mode, int32_t ilen, unsigned char *input, unsigned char *output)</td></tr>
-<tr class="memdesc:ga83660114e357a3ecb8b0759f9da882e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add the message padding, then do an RSA operation.  <a href="#ga83660114e357a3ecb8b0759f9da882e5">More...</a><br/></td></tr>
-<tr class="separator:ga83660114e357a3ecb8b0759f9da882e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga52edf417adca2632d0cd52726a9490e0"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga52edf417adca2632d0cd52726a9490e0">rsa_pkcs1_decrypt</a> (rsa_context *ctx, int32_t mode, int32_t *olen, unsigned char *input, unsigned char *output, int32_t output_max_len)</td></tr>
-<tr class="memdesc:ga52edf417adca2632d0cd52726a9490e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA operation, then remove the message padding.  <a href="#ga52edf417adca2632d0cd52726a9490e0">More...</a><br/></td></tr>
-<tr class="separator:ga52edf417adca2632d0cd52726a9490e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8d2ad430d921610985314fb75fff7e9a"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga8d2ad430d921610985314fb75fff7e9a">rsa_pkcs1_sign</a> (rsa_context *ctx, int32_t mode, int32_t hash_id, int32_t hashlen, unsigned char *hash, unsigned char *sig)</td></tr>
-<tr class="memdesc:ga8d2ad430d921610985314fb75fff7e9a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do a private RSA to sign a message digest.  <a href="#ga8d2ad430d921610985314fb75fff7e9a">More...</a><br/></td></tr>
-<tr class="separator:ga8d2ad430d921610985314fb75fff7e9a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga305e8d1f7a13cde232c7330009182a79"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga305e8d1f7a13cde232c7330009182a79">rsa_pkcs1_verify</a> (rsa_context *ctx, int32_t mode, int32_t hash_id, int32_t hashlen, unsigned char *hash, unsigned char *sig)</td></tr>
-<tr class="memdesc:ga305e8d1f7a13cde232c7330009182a79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do a public RSA and check the message digest.  <a href="#ga305e8d1f7a13cde232c7330009182a79">More...</a><br/></td></tr>
-<tr class="separator:ga305e8d1f7a13cde232c7330009182a79"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad0ca8a6ae5505a97c09355ca33554dd0"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#gad0ca8a6ae5505a97c09355ca33554dd0">rsa_public</a> (rsa_context *ctx, const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:gad0ca8a6ae5505a97c09355ca33554dd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA public key operation.  <a href="#gad0ca8a6ae5505a97c09355ca33554dd0">More...</a><br/></td></tr>
+<tr class="separator:gad0ca8a6ae5505a97c09355ca33554dd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga42f9ac8ede1571dd76aa3b4159b51ad5"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga42f9ac8ede1571dd76aa3b4159b51ad5">rsa_private</a> (rsa_context *ctx, const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:ga42f9ac8ede1571dd76aa3b4159b51ad5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA private key operation.  <a href="#ga42f9ac8ede1571dd76aa3b4159b51ad5">More...</a><br/></td></tr>
+<tr class="separator:ga42f9ac8ede1571dd76aa3b4159b51ad5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga26e98584635674d29f3d71c2f96d45a5"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga26e98584635674d29f3d71c2f96d45a5">rsa_pkcs1_encrypt</a> (rsa_context *ctx, int32_t mode, int32_t ilen, const unsigned char *input, unsigned char *output)</td></tr>
+<tr class="memdesc:ga26e98584635674d29f3d71c2f96d45a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add the message padding, then do an RSA operation.  <a href="#ga26e98584635674d29f3d71c2f96d45a5">More...</a><br/></td></tr>
+<tr class="separator:ga26e98584635674d29f3d71c2f96d45a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga351768edafba33a5a1cdb3e419b39f2d"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga351768edafba33a5a1cdb3e419b39f2d">rsa_pkcs1_decrypt</a> (rsa_context *ctx, int32_t mode, int32_t *olen, const unsigned char *input, unsigned char *output, int32_t output_max_len)</td></tr>
+<tr class="memdesc:ga351768edafba33a5a1cdb3e419b39f2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do an RSA operation, then remove the message padding.  <a href="#ga351768edafba33a5a1cdb3e419b39f2d">More...</a><br/></td></tr>
+<tr class="separator:ga351768edafba33a5a1cdb3e419b39f2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6a50c341bbec36bdbf57a9d57ccd9f56"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#ga6a50c341bbec36bdbf57a9d57ccd9f56">rsa_pkcs1_sign</a> (rsa_context *ctx, int32_t mode, int32_t hash_id, int32_t hashlen, const unsigned char *hash, unsigned char *sig)</td></tr>
+<tr class="memdesc:ga6a50c341bbec36bdbf57a9d57ccd9f56"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do a private RSA to sign a message digest.  <a href="#ga6a50c341bbec36bdbf57a9d57ccd9f56">More...</a><br/></td></tr>
+<tr class="separator:ga6a50c341bbec36bdbf57a9d57ccd9f56"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae357e4a1028ff5fe1fac2236cf39d105"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#gae357e4a1028ff5fe1fac2236cf39d105">rsa_pkcs1_verify</a> (rsa_context *ctx, int32_t mode, int32_t hash_id, int32_t hashlen, const unsigned char *hash, const unsigned char *sig)</td></tr>
+<tr class="memdesc:gae357e4a1028ff5fe1fac2236cf39d105"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do a public RSA and check the message digest.  <a href="#gae357e4a1028ff5fe1fac2236cf39d105">More...</a><br/></td></tr>
+<tr class="separator:gae357e4a1028ff5fe1fac2236cf39d105"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabb5d26b09e183c8a885eaee270c38fc7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="gabb5d26b09e183c8a885eaee270c38fc7"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__rsa.html#gabb5d26b09e183c8a885eaee270c38fc7">rsa_free</a> (rsa_context *ctx)</td></tr>
 <tr class="memdesc:gabb5d26b09e183c8a885eaee270c38fc7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free the components of an RSA key. <br/></td></tr>
@@ -300,7 +300,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="ga52edf417adca2632d0cd52726a9490e0"></a>
+<a class="anchor" id="ga351768edafba33a5a1cdb3e419b39f2d"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -325,7 +325,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
         </tr>
         <tr>
@@ -365,7 +365,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="ga83660114e357a3ecb8b0759f9da882e5"></a>
+<a class="anchor" id="ga26e98584635674d29f3d71c2f96d45a5"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -390,7 +390,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
         </tr>
         <tr>
@@ -423,7 +423,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="ga8d2ad430d921610985314fb75fff7e9a"></a>
+<a class="anchor" id="ga6a50c341bbec36bdbf57a9d57ccd9f56"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -454,7 +454,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>hash</em>, </td>
         </tr>
         <tr>
@@ -488,7 +488,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="ga305e8d1f7a13cde232c7330009182a79"></a>
+<a class="anchor" id="gae357e4a1028ff5fe1fac2236cf39d105"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -519,13 +519,13 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>hash</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>sig</em>&#160;</td>
         </tr>
         <tr>
@@ -553,7 +553,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="ga91e903d2b7d1fdb8a9eb76a487c15005"></a>
+<a class="anchor" id="ga42f9ac8ede1571dd76aa3b4159b51ad5"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -566,7 +566,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
         </tr>
         <tr>
@@ -597,7 +597,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="gab3e07cec489e90688307f058d15441d3"></a>
+<a class="anchor" id="gad0ca8a6ae5505a97c09355ca33554dd0"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -610,7 +610,7 @@ RSA_PKCS_V21 padding is not supported. </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
         </tr>
         <tr>

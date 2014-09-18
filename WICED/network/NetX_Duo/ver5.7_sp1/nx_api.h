@@ -2998,8 +2998,8 @@ UINT    nxd_nd_cache_entry_delete(NX_IP *ip_ptr, ULONG *dest_ip);
 UINT    nxd_nd_cache_ip_address_find(NX_IP *ip_ptr, NXD_ADDRESS *ip_address, ULONG physical_msw, ULONG physical_lsw, UINT *interface_index);
 UINT    nxd_nd_cache_hardware_address_find(NX_IP *ip_ptr, NXD_ADDRESS *ip_address, ULONG *physical_msw, ULONG *physical_lsw, UINT *interface_index);
 UINT    nxd_ipv6_address_change_notify(NX_IP *ip_ptr, VOID (*ip_address_change_notify)(NX_IP *, UINT, UINT, UINT, ULONG*));
-UINT    nxd_ipv6_stateless_address_autoncifg_enable(NX_IP *ip_ptr, UINT interface_index);
-UINT    nxd_ipv6_stateless_address_autconfig_disable(NX_IP *ip_ptr, UINT interface_index);
+UINT    nxd_ipv6_stateless_address_autoconfig_enable(NX_IP *ip_ptr, UINT interface_index);
+UINT    nxd_ipv6_stateless_address_autoconfig_disable(NX_IP *ip_ptr, UINT interface_index);
 
 #ifdef NX_IPV6_MULTICAST_ENABLE
 UINT    nxd_ipv6_multicast_interface_join(NX_IP *ip_ptr, NXD_ADDRESS *group_address, UINT interface_index);

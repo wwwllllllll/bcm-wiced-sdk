@@ -3,7 +3,7 @@
  *
  * $Copyright (C) 2008 Broadcom Corporation$
  *
- * $Id: wlu_client_shared.c 385622 2013-02-16 03:40:23Z jwang $
+ * $Id: wlu_client_shared.c 412222 2013-07-12 08:07:23Z jwang $
  */
 #ifdef WIN32
 #define NEED_IR_TYPES
@@ -1057,12 +1057,14 @@ rwl_usage(int remote_type)
 			fprintf(stderr, "\t\t shell command usage: sh <command>\n");
 		break;
 	case REMOTE_SOCKET:
-			fprintf(stderr, " Usage: wl/dhd --socket <IP ADDRESS> <PORT>\n");
+			fprintf(stderr, " Usage: "
+				"wl/dhd --socket <IP ADDRESS> [<PORT>] <command>\n");
 			fprintf(stderr, "\t<IPADDRESS> IP address of server machine\n");
 			fprintf(stderr, "\t<PORT> Port no of server\n");
 			fprintf(stderr, "\t<command> - wl, shell or dhd command\n");
 			fprintf(stderr, "\tDepending on the client you are using(wl or dhd)\n");
 			fprintf(stderr, "\t\t shell command usage: sh <command>\n");
+			fprintf(stderr, "\t If <PORT> is omitted, use default port number 8000\n");
 		break;
 	case REMOTE_WIFI:
 			fprintf(stderr, " Usage: wl/dhd --wifi <MAC Address> <command>\n");
@@ -1232,6 +1234,17 @@ int rwl_detect(void *wl, bool debug, int* os_type_ptr)
 	fprintf(stderr, "Autodetect failed, rwl server is either "
 			"too old or unreachable. Use --nodetect to disable autodetect.\n");
 	return FAIL;
+}
+
+int rwl_check_port_number(char *s, int len)
+{
+	int i;
+
+	for (i = 0; i < len; i++) {
+		if (!isdigit(s[i]))
+			return FAIL;
+	}
+	return SUCCESS;
 }
 
 #endif // if 0

@@ -10,6 +10,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -144,8 +145,15 @@ typedef struct _x509_buf
 {
     int32_t tag;
     uint32_t len;
-    unsigned char *p;
+    const unsigned char *p;
 } x509_buf;
+
+typedef struct _x509_buf_allocated
+{
+    int32_t tag;
+    uint32_t len;
+    unsigned char *p;
+} x509_buf_allocated;
 
 typedef struct _x509_name
 {
@@ -162,7 +170,7 @@ typedef struct _x509_time
 
 typedef struct _x509_cert
 {
-    x509_buf raw;
+    x509_buf_allocated raw;
     x509_buf tbs;
 
     int32_t version;
@@ -271,11 +279,46 @@ sha2_context;
 
 typedef struct
 {
+    int64_t total[2];    /*!< number of bytes processed  */
+    int64_t state[8];    /*!< intermediate digest state  */
+    unsigned char buffer[128];  /*!< data block being processed */
+
+    unsigned char ipad[128];    /*!< HMAC: inner padding        */
+    unsigned char opad[128];    /*!< HMAC: outer padding        */
+    int32_t is384;                  /*!< 0 => SHA-512, else SHA-384 */
+}
+sha4_context;
+
+typedef struct
+{
     int32_t x;                      /*!< permutation index */
     int32_t y;                      /*!< permutation index */
     unsigned char m[256];       /*!< permutation table */
 }
 arc4_context;
+
+typedef struct poly1305_context {
+    size_t aligner;
+    unsigned char opaque[136];
+} poly1305_context;
+
+typedef struct
+{
+  uint32_t input[16];
+} chacha_context_t;
+
+typedef struct {
+    int nr;         /*!<  number of rounds  */
+    unsigned long rk[68];   /*!<  CAMELLIA round keys    */
+} camellia_context;
+
+typedef struct {
+    uint32_t data[32];
+} seed_context_t;
+
+typedef unsigned char ed25519_signature[64];
+typedef unsigned char ed25519_public_key[32];
+typedef unsigned char ed25519_secret_key[32];
 
 /******************************************************
  *                 Global Variables

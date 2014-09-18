@@ -161,8 +161,8 @@ extern int strnicmp(const char *s1, const char *s2, size_t len);
 
 #include <usbrdl.h>
 
-#ifdef SERDOWNLOAD
 #include <sys/stat.h>
+#ifdef SERDOWNLOAD
 #include <trxhdr.h>
 #include <stdio.h>
 #include <errno.h>
@@ -367,9 +367,9 @@ static cmd_func_t wl_p2p_ops;
 static cmd_func_t wl_p2p_noa;
 #endif
 
+int debug = 0;
 #ifdef SERDOWNLOAD
 static cmd_func_t dhd_upload;
-int debug = 0;
 #endif
 static void wl_txpwr_array_print(uint8 *pwr, int cck, int mimo, int reg_power);
 static void wl_txpwr_range_print(uint8 *pwr, int start, int count, const char* label, int *newline);
@@ -2225,11 +2225,13 @@ cmd_t wl_cmds[] = {
 	"\tInitialize the chip.\n"
 	"\tCurrently only 4325, 4329, 43291, 4330a1 and 4330 (b1) are supported\n"
 	},
+#endif /* ifdef SERDOWNLOAD */
 	{ "download", dhd_download, WLC_GET_VAR, WLC_SET_VAR,
 	"download  <binfile> <varsfile>\n"
 	"\tdownload file to dongle ram and start CPU\n"
 	"\tvars file will replace vars parsed from the CIS\n"
 	},
+#ifdef SERDOWNLOAD
 	{ "hsic_download", hsic_download, WLC_GET_VAR, WLC_SET_VAR,
 	"hsic_download  <binfile> <varsfile>\n"
 	"\thsic_download file to dongle ram and start CPU\n"
@@ -22761,8 +22763,11 @@ static int dhd_hsic_download(void *dhd, char *fwname, char *nvname);
 static int ReadFiles(char *fwfile, char *nvfile, unsigned char ** buffer);
 static int check_file(unsigned char *headers);
 
+#endif /* ifdef SERDOWNLOAD */
 /* XXX this shouldn't be a global... */
-static char* chip_select = "none";
+static char* chip_select = "43362";
+
+#ifdef SERDOWNLOAD
 
 int
 dhd_init(void *dhd, cmd_t *cmd, char **argv)
@@ -22813,6 +22818,8 @@ dhd_init(void *dhd, cmd_t *cmd, char **argv)
 	return ret;
 }
 
+#endif /* ifdef SERDOWNLOAD */
+
 int
 dhd_download(void *dhd, cmd_t *cmd, char **argv)
 {
@@ -22837,7 +22844,10 @@ dhd_download(void *dhd, cmd_t *cmd, char **argv)
 		goto exit;
 	}
 
-	if (!strcmp(chip_select, "4325")) {
+	if (!strcmp(chip_select, "43362")) {
+        fprintf(stdout, "using 43362 ram_info\n");
+        ram_size = RAM_SIZE_43362;
+    } else if (!strcmp(chip_select, "4325")) {
 		fprintf(stdout, "using 4325 ram_info\n");
 		ram_size = RAM_SIZE_4325;
 	} else if (!strcmp(chip_select, "4329")) {
@@ -22882,7 +22892,7 @@ dhd_download(void *dhd, cmd_t *cmd, char **argv)
 			printf("dongle var file is %s\n", vname);
 	}
 
-
+#if 0
 	/* do the download on hsic */
 	/* merge the firmware and the nvram */
 	if (!strcmp(chip_select, "hsic")) {
@@ -22890,6 +22900,7 @@ dhd_download(void *dhd, cmd_t *cmd, char **argv)
 		ret = dhd_hsic_download(dhd, fname, vname);
 		return ret;
 	}
+#endif
 
 	if (!(fp = fopen(fname, "rb"))) {
 		perror(fname);
@@ -23083,6 +23094,8 @@ exit:
 
 	return ret;
 }
+
+#ifdef SERDOWNLOAD
 
 int
 hsic_download(void *dhd, cmd_t *cmd, char **argv)

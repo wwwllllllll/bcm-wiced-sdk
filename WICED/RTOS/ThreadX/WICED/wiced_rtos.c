@@ -63,7 +63,7 @@ typedef struct
 } wiced_event_message_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void application_thread_main    ( ULONG thread_input );
@@ -71,7 +71,7 @@ static void application_thread_cleanup ( TX_THREAD* thread_ptr, UINT condition )
 extern void system_monitor_thread_main ( void* arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 const uint32_t        ms_to_tick_ratio = 1000 / SYSTICK_FREQUENCY;
@@ -155,36 +155,6 @@ void application_thread_main( ULONG thread_input )
     malloc_leak_check(NULL, LEAK_CHECK_THREAD);
 }
 
-//wiced_result_t wiced_rtos_init( void )
-//{
-//    wiced_result_t result = WICED_SUCCESS;
-//
-//    WPRINT_RTOS_INFO(("Started ThreadX " ThreadX_VERSION "\n"));
-//
-//    result = wiced_rtos_create_worker_thread( WICED_HARDWARE_IO_WORKER_THREAD, WICED_DEFAULT_WORKER_PRIORITY, HARDWARE_IO_WORKER_THREAD_STACK_SIZE, HARDWARE_IO_WORKER_THREAD_QUEUE_SIZE );
-//    if ( result != WICED_SUCCESS )
-//    {
-//        WPRINT_RTOS_ERROR(("Failed to create WICED_HARDWARE_IO_WORKER_THREAD\n"));
-//        return result;
-//    }
-//
-//    result = wiced_rtos_create_worker_thread( WICED_NETWORKING_WORKER_THREAD,  WICED_NETWORK_WORKER_PRIORITY,  NETWORKING_WORKER_THREAD_STACK_SIZE,  NETWORKING_WORKER_THREAD_QUEUE_SIZE  );
-//    if ( result != WICED_SUCCESS )
-//    {
-//        WPRINT_RTOS_ERROR(("Failed to create WICED_NETWORKING_WORKER_THREAD\n"));
-//    }
-//
-//    return result;
-//}
-//
-//wiced_result_t wiced_rtos_deinit( void )
-//{
-//    wiced_rtos_delete_worker_thread(WICED_HARDWARE_IO_WORKER_THREAD);
-//    wiced_rtos_delete_worker_thread(WICED_NETWORKING_WORKER_THREAD);
-//
-//    return WICED_SUCCESS;
-//}
-
 wiced_result_t wiced_rtos_create_thread( wiced_thread_t* thread, uint8_t priority, const char* name, wiced_thread_function_t function, uint32_t stack_size, void* arg )
 {
     wiced_result_t result;
@@ -257,11 +227,7 @@ wiced_result_t wiced_rtos_is_current_thread( wiced_thread_t* thread )
 
 wiced_result_t wiced_rtos_check_stack( void )
 {
-    // TODO: Add stack checking here.
-
-    // TX_THREAD* current_thread;
-    // TX_THREAD_GET_CURRENT(current_thread);
-    // TX_THREAD_STACK_CHECK(current_thread);
+    /* TODO: Add stack checking here. */
 
     return WICED_SUCCESS;
 }

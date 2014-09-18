@@ -22,8 +22,18 @@
 #include "wicedfs.h"
 #include "wicedfs_create.h"
 
-#define  INSIDE_WICEDFS_C_
+#define INSIDE_WICEDFS_C_
 #include "wicedfs_internal.h"
+
+/******************************************************
+ *                      Macros
+ ******************************************************/
+#ifndef _WIN32
+/*define_style_exception_start*/
+#define off64_t __off64_t
+#define _stati64 stat64
+/*define_style_exception_end*/
+#endif /* ifndef _WIN32 */
 
 /******************************************************
  *                    Constants
@@ -31,26 +41,29 @@
 #define WICEDFS_CREATE_BUFFER_SIZE (1024*1024)
 
 /******************************************************
- *            Compatibility Macros
+ *                   Enumerations
  ******************************************************/
-#ifndef _WIN32
-#define off64_t __off64_t
-#define _stati64 stat64
-#endif /* ifndef _WIN32 */
 
 /******************************************************
- *               Static Variable Definitions
+ *                 Type Definitions
  ******************************************************/
-static char buffer[WICEDFS_CREATE_BUFFER_SIZE];
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
 
 /******************************************************
  *               Static Function Declarations
  ******************************************************/
-
 static int     get_sorted_filelist ( const char* dir_name, char** list, unsigned long* item_len, unsigned long* item_count );
 static int64_t fsize               ( const char* filename );
 static char    isdir               ( const char* filename );
 static int     write_dir           ( FILE* output_handle, const char* dir_name, uint64_t* bytes_written );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+static char buffer[WICEDFS_CREATE_BUFFER_SIZE];
 
 /******************************************************
  *               Function Definitions

@@ -11,5 +11,3 @@
 NAME := Keep_Alive
 
 $(NAME)_SOURCES := keep_alive.c
-
-WIFI_CONFIG_DCT_H := wifi_config_dct.h

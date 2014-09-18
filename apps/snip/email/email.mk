@@ -10,11 +10,7 @@
 
 NAME := App_email
 
-$(NAME)_SOURCES := email.c
+$(NAME)_SOURCES    := email.c
 
 $(NAME)_COMPONENTS := protocols/SMTP \
 				      protocols/SNTP
-
-GLOBAL_DEFINES :=
-
-WIFI_CONFIG_DCT_H := wifi_config_dct.h

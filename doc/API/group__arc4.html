@@ -31,7 +31,7 @@
         <td style="width:117px"><img src="brcmlogo.png" alt="Broadcom Logo" /></td>
         <td style="width:20px;background-image:url('brcmlogo_line.png');"></td>
         <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('brcmlogo_line.png');">
-        WICED&trade; v3.0.1 - API Reference Guide
+        WICED&trade; v3.1.0 - API Reference Guide
         </td>
         <td style="width:20px"></td>
         <td style="width:1px"><img src="wiced_logo.png" alt="WICED Logo" /></td>
@@ -109,9 +109,9 @@ $(document).ready(function(){initNavTree('group__arc4.html','');});
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:ga045e1a327296adbd8fdae41de48804c8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__arc4.html#ga045e1a327296adbd8fdae41de48804c8">arc4_setup</a> (arc4_context *ctx, unsigned char *key, int32_t keylen)</td></tr>
-<tr class="memdesc:ga045e1a327296adbd8fdae41de48804c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">ARC4 key schedule.  <a href="#ga045e1a327296adbd8fdae41de48804c8">More...</a><br/></td></tr>
-<tr class="separator:ga045e1a327296adbd8fdae41de48804c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab8e8617b289d74c9b48da17dcc421d47"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__arc4.html#gab8e8617b289d74c9b48da17dcc421d47">arc4_setup</a> (arc4_context *ctx, const unsigned char *key, int32_t keylen_bits)</td></tr>
+<tr class="memdesc:gab8e8617b289d74c9b48da17dcc421d47"><td class="mdescLeft">&#160;</td><td class="mdescRight">ARC4 key schedule.  <a href="#gab8e8617b289d74c9b48da17dcc421d47">More...</a><br/></td></tr>
+<tr class="separator:gab8e8617b289d74c9b48da17dcc421d47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga327d970599a3d2f21b4fd7d3b7fac8b6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__arc4.html#ga327d970599a3d2f21b4fd7d3b7fac8b6">arc4_crypt</a> (arc4_context *ctx, unsigned char *buf, int32_t buflen)</td></tr>
 <tr class="memdesc:ga327d970599a3d2f21b4fd7d3b7fac8b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">ARC4 cipher function.  <a href="#ga327d970599a3d2f21b4fd7d3b7fac8b6">More...</a><br/></td></tr>
 <tr class="separator:ga327d970599a3d2f21b4fd7d3b7fac8b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -161,7 +161,7 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ga045e1a327296adbd8fdae41de48804c8"></a>
+<a class="anchor" id="gab8e8617b289d74c9b48da17dcc421d47"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -174,14 +174,14 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">unsigned char *&#160;</td>
+          <td class="paramtype">const unsigned char *&#160;</td>
           <td class="paramname"><em>key</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int32_t&#160;</td>
-          <td class="paramname"><em>keylen</em>&#160;</td>
+          <td class="paramname"><em>keylen_bits</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -196,7 +196,7 @@ Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">ctx</td><td>ARC4 context to be initialized </td></tr>
     <tr><td class="paramname">key</td><td>the secret key </td></tr>
-    <tr><td class="paramname">keylen</td><td>length of the key </td></tr>
+    <tr><td class="paramname">keylen</td><td>length of the key in bits </td></tr>
   </table>
   </dd>
 </dl>

@@ -55,7 +55,6 @@ typedef struct
     unsigned int li   : 2;
     uint8_t      stratum;
     int8_t       poll;
-//    int8_t       precision;
     uint32_t     root_delay;
     uint32_t     root_dispersion;
     uint32_t     reference_identifier;
@@ -70,13 +69,13 @@ typedef struct
 } ntp_packet_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static wiced_result_t sync_ntp_time( void* arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static wiced_timed_event_t sync_ntp_time_event;

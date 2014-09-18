@@ -16,6 +16,7 @@
 #include <string.h>
 #include "wiced.h"
 #include "http_stream.h"
+#include "base64.h"
 
 /******************************************************
  *                      Macros
@@ -49,13 +50,11 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
-extern int b64_ntop(unsigned char const *src, size_t srclength, char *target, size_t targsize);
-
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static const char* http_methods[] =
@@ -126,7 +125,7 @@ wiced_result_t http_init_stream( http_stream_t* session, const char* host_name, 
     }
 
     /* Open connection to the HTTP server */
-    if (wiced_tcp_connect( &session->socket, &session->host_ip, port, TCP_CONNECTION_TIMEOUT ) != WICED_SUCCESS)
+    if ( wiced_tcp_connect( &session->socket, &session->host_ip, port, TCP_CONNECTION_TIMEOUT ) != WICED_SUCCESS )
     {
         goto return_error_with_socket;
     }
@@ -269,7 +268,7 @@ wiced_result_t http_send_basic_authorization( http_stream_t* session, char* user
     /* Add Authorisation basic field */
     strcpy( basic_auth.value, BASIC_STR );
 
-    base64_datalen = b64_ntop( (unsigned char*) username_password, strlen( username_password ), &basic_auth.value[sizeof( BASIC_STR ) - 1], value_size - ( sizeof( BASIC_STR ) - 1 ) );
+    base64_datalen = base64_encode( (unsigned char*) username_password, strlen( username_password ), (unsigned char*)&basic_auth.value[sizeof( BASIC_STR ) - 1], value_size - ( sizeof( BASIC_STR ) - 1 ), BASE64_ENC_STANDARD );
     if ( base64_datalen < 0 )
     {
         free( basic_auth.value );
@@ -284,53 +283,6 @@ wiced_result_t http_send_basic_authorization( http_stream_t* session, char* user
 
 }
 
-
-#if 0 /* unreferenced */
-wiced_result_t http_extract_header( const char* header, char* value, unsigned int sz, wiced_packet_t* packet )
-{
-    uint8_t* data;
-    uint16_t data_length;
-    uint16_t available_data_length;
-    char* s;
-    char* s_tmp;
-    //http_client_session_t* _sh= (http_client_session_t*)session;
-
-    /* get data pointer from the packet */
-    wiced_packet_get_data( packet, 0, &data, &data_length, &available_data_length );
-    /* try towiced_packet_get_data find a header in the response */
-    if( ! ( s = strstr((const char*)data, header) ) )
-    {
-        /* can't find the header in the response */
-        return WICED_NOT_FOUND;
-    }
-
-    memset( value, 0x00, sz );
-    /* extract header value following header name and and ": " : "Connection: Keep-Alive\r\n\" */
-
-
-    s += ( strlen( header ) + strlen( ":" ) );
-    /* find out what is the length of the header value, we will look for the first \r occurence */
-    s_tmp = strchr( s, '\r' );
-    if( !s_tmp )
-    {
-        /* cant find this header end, the response is probably corrupted */
-        return WICED_NOT_FOUND;
-    }
-    /* get the length of the header value and check it with a value length given by the caller */
-    if( sz < (unsigned int) ( s_tmp - s ) )
-    {
-        /* buffer to store header's value string is not enough, we will return with an error */
-        return WICED_ERROR;
-    }
-    /* copy header value to the buffer which came from the caller */
-    strncpy( value, s, (size_t) ( s_tmp - s ) );
-
-    /* value is extracted, we are done */
-
-    /* return with no error */
-    return WICED_SUCCESS;
-}
-#endif /* if 0 unreferenced */
 
 /* Extract a header value from the HTTP response received from the server */
 wiced_result_t http_extract_headers( wiced_packet_t* packet, http_header_t* headers, uint16_t number_of_headers )
@@ -462,11 +414,5 @@ wiced_result_t http_process_response( wiced_packet_t* packet, http_status_code_t
     }
     *response_code = atoi( response_status );
 
-    /* Extract connection header from the response, and override the value of our keepalive */
-//    if ( http_client_response_extract_header_value( session, "Connection", keep_alive_string, sizeof(keep_alive_string), *packet ) == WICED_SUCCESS )
-//    {
-//        /* check type of the connection and override the keepalive parameter */
-//        session->keep_alive = ( strncmp( keep_alive_string, KEEP_ALIVE_STR, sizeof( KEEP_ALIVE_STR ) - 1 ) == 0 );
-//    }
     return WICED_SUCCESS;
 }

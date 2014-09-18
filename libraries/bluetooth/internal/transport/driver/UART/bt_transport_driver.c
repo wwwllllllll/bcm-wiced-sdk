@@ -44,13 +44,13 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void bt_transport_driver_uart_thread_main  ( uint32_t arg );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 static bt_transport_driver_event_handler_t    driver_event_handler    = NULL;

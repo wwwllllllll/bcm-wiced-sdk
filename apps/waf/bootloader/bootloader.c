@@ -13,22 +13,42 @@
 #include "platform_dct.h"
 #include "elf.h"
 #include "wiced_framework.h"
+#include "wiced_utilities.h"
 #include "platform_config.h"
 #include "platform_resource.h"
 
+/******************************************************
+ *                      Macros
+ ******************************************************/
 
+/******************************************************
+ *                    Constants
+ ******************************************************/
 
-#define FILESYSTEM_BASE_ADDR (0x00020000)
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
 
-wiced_result_t platform_copy_external_to_internal( void* destination,
-                                                    platform_copy_src_t* copy_src,
-                                                    uint32_t size );
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 
+/******************************************************
+ *                    Structures
+ ******************************************************/
 
-#define OFFSET(type, member)                          ((uint32_t)&((type *)0)->member)
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static void load_program( const load_details_t * load_details, uint32_t* new_entry_point );
 
-void load_program( const load_details_t * load_details, uint32_t* new_entry_point );
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
 
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 int main( void )
 {
     const load_details_t * load_details;
@@ -59,8 +79,9 @@ int main( void )
 
 
 
-void load_program( const load_details_t * load_details, uint32_t* new_entry_point )
+static void load_program( const load_details_t * load_details, uint32_t* new_entry_point )
 {
+
     /* Image copy has been requested */
     if ( load_details->destination.id == EXTERNAL_FIXED_LOCATION)
     {
@@ -83,7 +104,7 @@ void load_program( const load_details_t * load_details, uint32_t* new_entry_poin
                                             &copy_src,
                                             load_details->destination.detail.internal_fixed.size );
     }
-#ifdef USES_RESOURCE_FILESYSTEM
+#ifdef BOOTLOADER_LOAD_MAIN_APP_FROM_FILESYSTEM
     else
     {
         int i;

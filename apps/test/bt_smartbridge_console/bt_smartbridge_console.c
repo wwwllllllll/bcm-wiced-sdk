@@ -27,6 +27,8 @@
 #include "wiced_bt_smartbridge.h"
 #include "wiced_bt_smartbridge_gatt.h"
 #include "bt_smartbridge_dct.h"
+#include "bt_transport_thread.h"
+#include "bt_stack.h"
 #include "console.h"
 
 /******************************************************
@@ -66,14 +68,8 @@ typedef struct
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
-
-extern wiced_result_t bt_transport_thread_enable_packet_dump  ( void );
-extern wiced_result_t bt_transport_thread_disable_packet_dump ( void );
-extern wiced_result_t bt_stack_enable_debug_trace             ( void );
-extern wiced_result_t bt_stack_disable_debug_trace            ( void );
-extern void           app_main                                ( void );
 static wiced_result_t scan_complete_handler                   ( void );
 static wiced_result_t scan_advertising_report_handler         ( const wiced_bt_smart_advertising_report_t* advertising_report );
 static wiced_result_t disconnection_handler                   ( wiced_bt_smartbridge_socket_t* socket );
@@ -147,7 +143,7 @@ void application_start( )
     /* Initialise DCT mutex */
     wiced_rtos_init_mutex( &dct_mutex );
 
-    app_main( );
+    console_app_main( );
 }
 
 /* Scan complete handler. Scan complete event reported via this callback.

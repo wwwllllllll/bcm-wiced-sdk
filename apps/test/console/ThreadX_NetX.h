@@ -17,24 +17,41 @@
 extern "C" {
 #endif
 
-//#define _POSIX_SOURCE /* NetX tries to be POSIX-compliant */
-
+/*******************************************************
+ * Fixes before includes to ensure NetX BSD sockets work
+ *******************************************************/
 /* NetX should really do this itself... *sigh* */
-//#define __time_t_defined /* prevents time_t being defined in <sys/types.h> because "netx_bsd_layer/nx_bsd.h" will define this */
-//#define _TIMEVAL_DEFINED /* prevents struct timeval being defined in <sys/time.h> because "netx_bsd_layer/nx_bsd.h" will define this */
+/*define_style_exception_start*/
 #define __suseconds_t_defined /* To prevent conflicting declaration of 'typedef ULONG suseconds_t' in "netx_bsd_layer/nx_bsd.h" */
+/*define_style_exception_end*/
 
 /* Enable extended BSD socket support */
 #define NX_EXTENDED_BSD_SOCKET_SUPPORT
 
 /* socklen_t */
 #ifndef socklen_t
-    #define socklen_t INT
+/*define_style_exception_start*/
+#define socklen_t INT
+/*define_style_exception_end*/
 #endif /* socklen_t */
+
+/*define_style_exception_start*/
+#define h_addr h_addr_list[0] /* for backward compatibility */
+/*define_style_exception_end*/
+
 
 #include <tx_api.h> /* so that "tx_api.h" is included, which defines ThreadX BSD data structures */
 #include <nx_api.h>
 #include <netx_bsd_layer/nx_bsd.h>
+
+
+/******************************************************
+ *                     Macros
+ ******************************************************/
+
+/******************************************************
+ *                    Constants
+ ******************************************************/
 
 /** <inet.h> */
 /* 255.255.255.255 */
@@ -46,6 +63,17 @@ extern "C" {
 /** 255.255.255.255 */
 #define INADDR_BROADCAST    IP_ADDRESS( 255, 255, 255, 255 )
 
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
 /** <netdb.h> */
 struct hostent {
     char  *h_name;      /* Official name of the host. */
@@ -55,10 +83,13 @@ struct hostent {
     int    h_length;    /* The length, in bytes, of the address. */
     char **h_addr_list; /* A pointer to an array of pointers to network addresses (in
                            network byte order) for the host, terminated by a null pointer. */
-#define h_addr h_addr_list[0] /* for backward compatibility */
 };
 
 #include <netx_applications/dns/nx_dns.h>
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
 extern NX_DNS *dns_ptr;
 /**
  * Returns an entry containing addresses of address family AF_INET
@@ -69,6 +100,10 @@ extern NX_DNS *dns_ptr;
  * @return an entry containing addresses of address family AF_INET
  *         for the host with name name
  */
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
 struct hostent*
 gethostbyname(const char *name)
 {
@@ -97,28 +132,6 @@ gethostbyname(const char *name)
 
     return &s_hostent;
 }
-
-
-
-
-
-/** DNS server IP address */
-//#ifndef DNS_SERVER_IP
-//#define DNS_SERVER_IP           IP_ADDRESS(208,67,222,222) /* resolver1.opendns.com */
-//#endif
-
-#if 0
-/** Errors used by the DNS API functions, h_errno can be one of them */
-#define EAI_NONAME      200
-#define EAI_SERVICE     201
-#define EAI_FAIL        202
-#define EAI_MEMORY      203
-
-#define HOST_NOT_FOUND  210
-#define NO_DATA         211
-#define NO_RECOVERY     212
-#define TRY_AGAIN       213
-#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

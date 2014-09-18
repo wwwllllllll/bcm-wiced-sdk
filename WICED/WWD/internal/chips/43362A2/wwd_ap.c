@@ -28,6 +28,13 @@
  ******************************************************/
 
 #define WLC_EVENT_MSG_LINK      (0x01)
+#define RATE_SETTING_11_MBPS    (11000000 / 500000)
+
+/* HT/AMPDU specific define */
+#define AMPDU_RX_FACTOR_8K  0   /* max rcv ampdu len (8kb) */
+#define AMPDU_RX_FACTOR_16K 1   /* max rcv ampdu len (16kb) */
+#define AMPDU_RX_FACTOR_32K 2   /* max rcv ampdu len (32kb) */
+#define AMPDU_RX_FACTOR_64K 3   /* max rcv ampdu len (64kb) */
 
 typedef enum
 {
@@ -66,8 +73,8 @@ static const wwd_event_num_t apsta_events[] = { WLC_E_IF, WLC_E_LINK, WLC_E_NONE
  ******************************************************/
 
 static void*        wwd_handle_apsta_event ( const wwd_event_header_t* event_header, const uint8_t* event_data, /*@returned@*/ void* handler_user_data );
-static wwd_result_t internal_ap_init       ( const char* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel );
-wwd_result_t        wwd_wifi_ap_init       ( const char* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel );
+static wwd_result_t internal_ap_init       ( wiced_ssid_t* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel );
+wwd_result_t        wwd_wifi_ap_init       ( wiced_ssid_t* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel );
 wwd_result_t        wwd_wifi_ap_up         ( void );
 
 /******************************************************
@@ -97,7 +104,7 @@ static void* wwd_handle_apsta_event( const wwd_event_header_t* event_header, con
     return handler_user_data;
 }
 
-static wwd_result_t internal_ap_init( const char* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel )
+static wwd_result_t internal_ap_init( wiced_ssid_t* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel )
 {
     wiced_bool_t   wait_for_interface = WICED_FALSE;
     wwd_result_t   result;
@@ -113,6 +120,11 @@ static wwd_result_t internal_ap_init( const char* ssid, wiced_security_t auth_ty
          ( ( key_length < (uint8_t) 8 ) || ( key_length > (uint8_t) 64 ) ) )
     {
         return WWD_WPA_KEYLEN_BAD;
+    }
+
+    if ( wwd_wifi_set_block_ack_window_size( WWD_AP_INTERFACE ) != WWD_SUCCESS )
+    {
+        return WWD_SET_BLOCK_ACK_WINDOW_FAIL;
     }
 
     /* Query bss state (does it exist? if so is it UP?) */
@@ -149,8 +161,8 @@ static wwd_result_t internal_ap_init( const char* ssid, wiced_security_t auth_ty
     data = (uint32_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 40, IOVAR_STR_BSSCFG_SSID );
     CHECK_IOCTL_BUFFER_WITH_SEMAPHORE( data, &wwd_wifi_sleep_flag );
     data[0] = (uint32_t) CHIP_AP_INTERFACE; /* Set the bsscfg index */
-    data[1] = strlen( ssid ); /* Set the ssid length */
-    memcpy( &data[2], (uint8_t*) ssid, data[1] );
+    data[1] = ssid->length; /* Set the ssid length */
+    memcpy( &data[2], (uint8_t*) ssid->value, ssid->length );
     CHECK_RETURN_WITH_SEMAPHORE( wwd_sdpcm_send_iovar( SDPCM_SET, buffer, 0, WWD_STA_INTERFACE ), &wwd_wifi_sleep_flag );
 
     /* Check if we need to wait for interface to be created */
@@ -195,7 +207,7 @@ static wwd_result_t internal_ap_init( const char* ssid, wiced_security_t auth_ty
         memcpy( psk->key, security_key, key_length );
         psk->key_len = key_length;
         psk->flags   = (uint16_t) WSEC_PASSPHRASE;
-        host_rtos_delay_milliseconds( 1 ); // Delay required to allow radio firmware to be ready to receive PMK and avoid intermittent failure
+        host_rtos_delay_milliseconds( 1 ); /* Delay required to allow radio firmware to be ready to receive PMK and avoid intermittent failure */
         CHECK_RETURN_WITH_SEMAPHORE( wwd_sdpcm_send_ioctl( SDPCM_SET, WLC_SET_WSEC_PMK, buffer, 0, WWD_AP_INTERFACE ), &wwd_wifi_sleep_flag );
     }
 
@@ -212,6 +224,13 @@ static wwd_result_t internal_ap_init( const char* ssid, wiced_security_t auth_ty
         (void) host_rtos_deinit_semaphore( &wwd_wifi_sleep_flag );
         return result;
     }
+
+    /* Set the multicast transmission rate to 11 Mbps rather than the default 1 Mbps */
+    data = (uint32_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 4, IOVAR_STR_2G_MULTICAST_RATE );
+    CHECK_IOCTL_BUFFER( data );
+    *data = (uint32_t) RATE_SETTING_11_MBPS;
+    result = wwd_sdpcm_send_iovar( SDPCM_SET, buffer, NULL, WWD_AP_INTERFACE );
+    wiced_assert("start_ap: Failed to set multicast transmission rate\r\n", result == WWD_SUCCESS );
 
     /* Set DTIM period */
     data = wwd_sdpcm_get_ioctl_buffer( &buffer, (uint16_t) 4 );
@@ -230,16 +249,16 @@ static wwd_result_t internal_ap_init( const char* ssid, wiced_security_t auth_ty
     return WWD_SUCCESS;
 }
 
-wwd_result_t wwd_wifi_ap_init( const char* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel )
+wwd_result_t wwd_wifi_ap_init( wiced_ssid_t* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel )
 {
     wwd_result_t result;
 
     /* Keep WLAN awake while setting up softAP */
-    wwd_wlan_status.keep_wlan_awake++;
+    WWD_WLAN_KEEP_AWAKE( );
 
     result = internal_ap_init( ssid, auth_type, security_key, key_length, channel );
 
-    wwd_wlan_status.keep_wlan_awake--;
+    WWD_WLAN_LET_SLEEP( );
 
     return result;
 }
@@ -277,7 +296,7 @@ wwd_result_t wwd_wifi_ap_up( void )
  * @return    WWD_SUCCESS : if successfully creates an AP
  *            Error code  : if an error occurred
  */
-wwd_result_t wwd_wifi_start_ap( const char* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel )
+wwd_result_t wwd_wifi_start_ap( wiced_ssid_t* ssid, wiced_security_t auth_type, const uint8_t* security_key, uint8_t key_length, uint8_t channel )
 {
     CHECK_RETURN( wwd_wifi_ap_init( ssid, auth_type, security_key, key_length, channel ) );
 
@@ -356,4 +375,74 @@ wiced_bool_t wwd_wifi_is_packet_from_ap( uint8_t flags2 )
     {
         return WICED_FALSE;
     }
+}
+
+/** Sets the chip specific AMPDU parameters for AP and STA
+ *  For SDK 3.0, and beyond, each chip will need it's own function for setting AMPDU parameters.
+ */
+
+wwd_result_t wwd_wifi_set_ampdu_parameters( void )
+{
+    wiced_buffer_t buffer;
+    wwd_result_t retval;
+
+    /* Set AMPDU Block ACK window size */
+    uint32_t* data = (uint32_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 4, IOVAR_STR_AMPDU_BA_WINDOW_SIZE );
+    CHECK_IOCTL_BUFFER( data );
+    *data = (uint32_t) 8;
+    retval = wwd_sdpcm_send_iovar( SDPCM_SET, buffer, NULL, WWD_STA_INTERFACE );
+
+    wiced_assert("set_ampdu_parameters: Failed to set block ack window size\r\n", retval == WWD_SUCCESS );
+
+    /* Set number of MPDUs available for AMPDU */
+    data = (uint32_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 4, IOVAR_STR_AMPDU_MPDU );
+    CHECK_IOCTL_BUFFER( data );
+    *data = (uint32_t) 4;
+    retval = wwd_sdpcm_send_iovar( SDPCM_SET, buffer, NULL, WWD_STA_INTERFACE );
+
+    wiced_assert("set_ampdu_parameters: Failed to set number of MPDUs\r\n", retval == WWD_SUCCESS );
+
+    /* Set size of advertised receive AMPDU */
+    data = (uint32_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 4, IOVAR_STR_AMPDU_RX_FACTOR );
+    CHECK_IOCTL_BUFFER( data );
+    *data = (uint32_t) AMPDU_RX_FACTOR_8K;
+    retval = wwd_sdpcm_send_iovar( SDPCM_SET, buffer, NULL, WWD_STA_INTERFACE );
+
+    wiced_assert("set_ampdu_parameters: Failed to set advertised receive AMPDU size\r\n", retval == WWD_SUCCESS );
+
+    return retval;
+}
+
+/** Sets the chip specific AMPDU parameters for AP and STA
+ *  For SDK 3.0, and beyond, each chip will need it's own function for setting AMPDU parameters.
+ */
+
+wwd_result_t wwd_wifi_set_block_ack_window_size( wwd_interface_t interface )
+{
+    wiced_buffer_t buffer;
+    wwd_result_t retval;
+    uint32_t block_ack_window_size = 2;
+    uint32_t* data = NULL;
+
+    /* If the AP interface is already up then don't change the Block Ack window size */
+    if ( wwd_wifi_is_ready_to_transceive( WWD_AP_INTERFACE ) == WWD_SUCCESS )
+    {
+        return WWD_SUCCESS;
+    }
+
+    /* AP can handle BA window size of 1 but STA can handle BA window size of 8 */
+    if ( interface == WWD_STA_INTERFACE )
+    {
+        block_ack_window_size = 8;
+    }
+
+    /* Set AMPDU Block ACK window size */
+    data = (uint32_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 4, IOVAR_STR_AMPDU_BA_WINDOW_SIZE );
+    CHECK_IOCTL_BUFFER( data );
+    *data = block_ack_window_size;
+    retval = wwd_sdpcm_send_iovar( SDPCM_SET, buffer, NULL, WWD_STA_INTERFACE );
+
+    wiced_assert("set_block_ack_window_size: Failed to set block ack window size\r\n", retval == WWD_SUCCESS );
+
+    return retval;
 }

@@ -44,7 +44,7 @@ typedef enum
 }rtc_clock_state_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 static platform_result_t stm32f2_rtc_change_clock                   ( rtc_clock_state_t* current, rtc_clock_state_t target );
 static uint32_t          convert_rtc_calendar_values_to_units_passed( void );
@@ -57,7 +57,7 @@ static void              subtract_second_from_time                  ( wiced_rtc_
 #endif /* #ifndef WICED_DISABLE_MCU_POWERSAVE */
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /* Default RTC time. Set to 12:20:30 08/04/2013 Monday */

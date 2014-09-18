@@ -1,17 +1,11 @@
 =====================================================================
-Broadcom WICED Software Development Kit 3.0.1 - README
+Broadcom WICED Software Development Kit 3.1.0 BETA1 - README
 =====================================================================
 
 ---------------------------------------------------------------------
 \\\\\\\\\\\\\\\\\\\\\\\\\ IMPORTANT NOTICE //////////////////////////
 ---------------------------------------------------------------------
-WICED SDK 3.0.0 is a major new release of the WICED SDK. Every attempt 
-has been made to minimize changes compared to earlier SDK releases, 
-however some architectural aspects of the SDK and some APIs have been 
-changed to accommodate new features and to improve SDK usability. The 
-accompanying CHANGELOG.txt provides a brief summary of the major changes.
-
-Early 3.0.x versions may not include all functionality provided 
+Early 3.1.x versions may not include all functionality provided 
 in previous SDK releases. KNOWN LIMITATIONS for this release are 
 described in the 'Known Limitations & Notes' section of this document.
 
@@ -184,7 +178,7 @@ Hardware Platforms
 Known Limitations & Notes
 ---------------------------------------------------------------------
 
- * Features not yet supported in WICED-SDK-3.0.0
+ * Features not yet supported in WICED-SDK-3.1.0
    - Wi-Fi Direct
    - OTA upgrade functionality
    - IAR Embedded Workspace native support
@@ -203,24 +197,25 @@ Known Limitations & Notes
    Real Time Clock  |     N     |     Y     |     N     |     N     |  N  |    N    |    N    |
    -----------------+-----------+-----------+-----------+-----------+-----+---------+---------+  
    
-   * WICED-SDK-3.0.0 Platform Restrictions
+   * WICED-SDK-3.1.0 Platform Restrictions
        STM32F1xx is not yet supported
-       Atmel SAM4S is not yet supported
        Freescale K60 is not yet supported
        BCM94390
          - Powersave for the applications processor is not yet supported
-         - The UART3, SPI Slave, I2S peripherals are not yet supported
+         - The SPI Slave peripherals are not yet supported
+       BCM943341WCD1
+         - WPS is not supported (unreliable)
 
-   * BCM943362WCD2 Platform Restrictions
+   * BCM943362WCD2 Platform Restrictions (not applicable to WICED-SDK-3.1.0)
        The STM32F103 MCU on this platform only has 64kB RAM and 512kB Flash.
        Many applications that include more advanced networking features
        will NOT run on this platform! Either the application will not fit into
        Flash, or the application may run out of RAM at runtime and hang.
        Tips to use this platform:
-         - Store the Wi-Fi firmware in external serial flash (or use the Wi-Fi 
+         - Store the Wi-Fi firmware in external serial flash (or use the Wi-Fi
            firmware inside the Factory Reset image in serial flash)
-         - Do not use advanced networking features like TLS & mDNS      
-         - Do not build applications using debug mode     
+         - Do not use advanced networking features like TLS & mDNS
+         - Do not build applications using debug mode
      
    * Wi-Fi Powersave (1)
        The WLAN chip requires an external 32kHz sleep clock input during powersave.
@@ -228,11 +223,6 @@ Known Limitations & Notes
        not capable of driving the WLAN sleep clock. An external 32kHz clock is 
        required for these platforms.
 
- * Wi-Fi Powersave Max. Sleep Time
-   The WLAN firmware sleep time is limited to a maxium of 1 second. Attempts to 
-   set the Wi-Fi listen interval longer than 1 second using the 
-   wiced_wifi_set_listen_interval() function will be ignored. 
- 
  * libc does not include support for printing uint64_t (long long)
    
  * RTOS detection may cause OpenOCD to crash in the following situation:
@@ -242,8 +232,6 @@ Known Limitations & Notes
      SOLUTION : Remove " -rtos auto " from the <WICED-SDK>/Tools/OpenCD/OpenOCD 
                 .cfg file that matches your hardware debugger 
                 (ie. BCM9WCD1EVAL1.cfg for WICED Evaluation Boards) 
-
- * Support for IAR toolchain is available for STM32F2xx platform only (support for other platforms TBD)
 
  * AP mode when running with WPA/WPA2 encryption is limited to 4 STA clients
 

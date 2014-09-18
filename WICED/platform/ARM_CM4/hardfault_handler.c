@@ -78,13 +78,13 @@ typedef enum EXC_RETURN_enum
 } EXC_RETURN_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 void HardFaultException_handler( uint32_t MSP, uint32_t PSP, uint32_t LR );
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 /******************************************************

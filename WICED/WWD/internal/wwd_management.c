@@ -15,6 +15,7 @@
 
 #include <string.h>
 #include "wwd_management.h"
+#include "wwd_events.h"
 #include "wwd_wlioctl.h"
 #include "wwd_assert.h"
 #include "wwd_wifi.h"
@@ -181,7 +182,7 @@ wwd_result_t wwd_management_wifi_on( void )
     *data = (uint32_t) 1;
     /* This will fail on manufacturing test build since it does not have APSTA available */
     retval = wwd_sdpcm_send_iovar( SDPCM_SET, buffer, 0, WWD_STA_INTERFACE );
-    if ( ( retval != WWD_SUCCESS ) &&  ( retval != WWD_UNSUPPORTED ) )  /* Manufacturing Test WLAN firmware does not have APSTA ability */
+    if ( ( retval != WWD_SUCCESS ) && ( retval != WWD_UNSUPPORTED ) )
     {
         /* Could not turn on APSTA */
         WPRINT_WWD_DEBUG( ("Could not turn on APSTA\n") );
@@ -207,6 +208,13 @@ wwd_result_t wwd_management_wifi_on( void )
         }
     }
 #endif
+
+    retval = wwd_wifi_set_ampdu_parameters();
+    if ( retval != WWD_SUCCESS )
+    {
+        WPRINT_WWD_ERROR(("Could not set AMPDU parameters\r\n"));
+        return retval;
+    }
 
 #ifdef WICED_STARTUP_DELAY
     (void) host_rtos_delay_milliseconds( (uint32_t) WWD_STARTUP_DELAY );
@@ -244,23 +252,22 @@ wwd_result_t wwd_management_wifi_on( void )
         return retval;
     }
 
-    /* NOTE: The set country command requires time to process on the wlan firmware and the following IOCTL may fail on initial attempts therefore we try a few times */
+    /* NOTE: The set country command requires time to process on the WLAN firmware and the following IOCTL may fail on initial attempts therefore we try a few times */
 
     /* Set the event mask, indicating initially we do not want any asynchronous events */
     for ( counter = 0, retval = WWD_PENDING; retval != WWD_SUCCESS && counter < (uint32_t)MAX_POST_SET_COUNTRY_RETRY; ++counter )
     {
-        event_mask = (uint8_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) 16, IOVAR_STR_EVENT_MSGS );
+        event_mask = (uint8_t*) wwd_sdpcm_get_iovar_buffer( &buffer, (uint16_t) WL_EVENTING_MASK_LEN, IOVAR_STR_EVENT_MSGS );
         if ( event_mask == NULL )
         {
             wiced_assert( "Could not get buffer for IOVAR", 0 != 0 );
             return WWD_BUFFER_ALLOC_FAIL;
         }
-        memset( event_mask, 0, (size_t) 16 );
+        memset( event_mask, 0, (size_t) WL_EVENTING_MASK_LEN );
         retval = wwd_sdpcm_send_iovar( SDPCM_SET, buffer, 0, WWD_STA_INTERFACE );
     }
     if ( retval != WWD_SUCCESS )
     {
-        /* Could not set the event mask */
         WPRINT_WWD_ERROR(("Could not set Event mask\n"));
         return retval;
     }
@@ -275,8 +282,8 @@ wwd_result_t wwd_management_wifi_on( void )
     retval = wwd_sdpcm_send_ioctl( SDPCM_SET, (uint32_t) WLC_UP, buffer, 0, WWD_STA_INTERFACE );
     if ( retval != WWD_SUCCESS )
     {
-        /* Could not bring wifi up */
-        WPRINT_WWD_ERROR(("Error enabling 802.11\n")); /* May time out here if bus interrupts are not working properly */
+        /* Note: System may time out here if bus interrupts are not working properly */
+        WPRINT_WWD_ERROR(("Error enabling 802.11\n"));
         return retval;
     }
 
@@ -292,6 +299,7 @@ wwd_result_t wwd_management_wifi_on( void )
     wiced_assert("Failed to set GMode\n", retval == WWD_SUCCESS );
 
     wwd_wlan_status.state = WLAN_UP;
+
     return WWD_SUCCESS;
 }
 

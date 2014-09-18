@@ -75,7 +75,7 @@ typedef struct
 } wiced_event_message_t;
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 static void application_thread_main( void *arg );
@@ -88,7 +88,7 @@ void __malloc_unlock(struct _reent *ptr);
 #endif /* ifdef __GNUC__ */
 
 /******************************************************
- *               Variables Definitions
+ *               Variable Definitions
  ******************************************************/
 
 extern const uint32_t ms_to_tick_ratio;
@@ -197,7 +197,7 @@ wiced_result_t wiced_rtos_is_current_thread( wiced_thread_t* thread )
 
 wiced_result_t wiced_rtos_check_stack( void )
 {
-    // TODO: Add stack checking here.
+    /* TODO: Add stack checking here. */
 
     return WICED_SUCCESS;
 }

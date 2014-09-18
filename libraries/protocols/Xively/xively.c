@@ -49,7 +49,7 @@
  ******************************************************/
 
 /******************************************************
- *               Function Declarations
+ *               Static Function Declarations
  ******************************************************/
 
 /******************************************************
@@ -65,41 +65,39 @@ static wiced_bool_t       is_ip_address_resolved = WICED_FALSE;
 
 wiced_result_t xively_open_feed( xively_feed_t* feed )
 {
+    wiced_result_t result;
     if ( is_ip_address_resolved == WICED_FALSE )
     {
-        if ( wiced_hostname_lookup( HOST_NAME, &xively_server_ip_address, DNS_TIMEOUT ) == WICED_SUCCESS )
-        {
-            is_ip_address_resolved = WICED_TRUE;
-        }
-        else
-        {
-            return WICED_ERROR;
-        }
+        WICED_VERIFY( wiced_hostname_lookup( HOST_NAME, &xively_server_ip_address, DNS_TIMEOUT ) );
+
+        is_ip_address_resolved = WICED_TRUE;
     }
 
     wiced_tls_init_simple_context( &feed->tls_context, NULL );
 
     WICED_VERIFY( wiced_tcp_create_socket( &feed->socket, WICED_STA_INTERFACE ) );
 
-    if ( wiced_tcp_bind( &feed->socket, WICED_ANY_PORT ) != WICED_SUCCESS )
+    result = wiced_tcp_bind( &feed->socket, WICED_ANY_PORT );
+    if ( result != WICED_SUCCESS )
     {
         wiced_tcp_delete_socket( &feed->socket );
-        return WICED_ERROR;
+        return result;
     }
 
-    if ( wiced_tcp_enable_tls( &feed->socket, &feed->tls_context ) != WICED_SUCCESS )
+    result = wiced_tcp_enable_tls( &feed->socket, &feed->tls_context );
+    if ( result != WICED_SUCCESS )
     {
         wiced_tls_deinit_context( &feed->tls_context );
         wiced_tcp_delete_socket( &feed->socket );
-        return WICED_ERROR;
+        return result;
     }
 
-    if ( wiced_tcp_connect( &feed->socket, &xively_server_ip_address, HTTPS_PORT, SOCKET_CONNECT_TIMEOUT ) != WICED_SUCCESS )
+    result = wiced_tcp_connect( &feed->socket, &xively_server_ip_address, HTTPS_PORT, SOCKET_CONNECT_TIMEOUT );
+    if ( result != WICED_SUCCESS )
     {
         wiced_tcp_delete_socket( &feed->socket );
-        return WICED_ERROR;
+        return result;
     }
-
 
     return WICED_SUCCESS;
 }

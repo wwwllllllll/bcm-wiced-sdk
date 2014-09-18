@@ -19,7 +19,7 @@ extern "C" {
  *            Enumerations
  ******************************************************/
 
-/// Email encryption
+/* Email encryption */
 typedef enum
 {
     WICED_EMAIL_NO_ENCRYPTION,  /* Email is not encrypted when transmitted over the network       */
@@ -30,7 +30,7 @@ typedef enum
  *             Structures
  ******************************************************/
 
-/// Email account structure
+/* Email account structure */
 typedef struct
 {
     /* Public */
@@ -45,7 +45,7 @@ typedef struct
     struct wiced_email_account_internal* internal;
 } wiced_email_account_t;
 
-/// Email structure
+/* Email structure */
 typedef struct
 {
     /* Public */

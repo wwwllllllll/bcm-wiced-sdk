@@ -2,7 +2,7 @@
  * Automatically generated IOVariable merge information
  * $Copyright: (c) 2006, Broadcom Corp.
  * All Rights Reserved.$
- * $Id: wlu_iov.c 341344 2012-06-27 10:30:23Z tigran $
+ * $Id: wlu_iov.c 399026 2013-04-27 00:44:07Z yongfang $
  *
  * Contains user IO variable information
  * Note that variable type information comes from the driver
@@ -1176,6 +1176,16 @@ wlu_iov_info_t wlu_iov_info[] = {
 		"radarargs40", CMD_UNCAT,
 		0, 0,
 		"no desc"
+	},
+	{
+		"radar_status", CMD_PHY,
+		WLU_IOVI_READ_ONLY, 0,
+		"Report the status of radar detection"
+	},
+	{
+		"clear_radar_status", CMD_PHY,
+		0, 0,
+		"Clear the status of radar detection"
 	},
 	{
 		"rand", CMD_ADMIN + CMD_DEV,

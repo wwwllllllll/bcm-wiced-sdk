@@ -14,12 +14,15 @@
 extern "C" {
 #endif
 
-#ifdef CONSOLE_ENABLE_P2P
+/******************************************************
+ *                     Macros
+ ******************************************************/
 
-extern int start_p2p( int argc, char* argv[] );
-extern int stop_p2p( int argc, char* argv[] );
-extern int p2p_peer_list( int argc, char* argv[] );
-extern int p2p_invite( int argc, char* argv[] );
+/******************************************************
+ *                    Constants
+ ******************************************************/
+
+#ifdef CONSOLE_ENABLE_P2P
 
 #define P2P_COMMANDS \
     { (char*) "p2p_invite",   p2p_invite, 1,  DELIMIT, NULL, (char*) "<device id>", (char*) "Invite P2P peer"}, \
@@ -31,6 +34,30 @@ extern int p2p_invite( int argc, char* argv[] );
 #else /* ifdef CONSOLE_ENABLE_P2P */
 #define P2P_COMMANDS
 #endif /* ifdef CONSOLE_ENABLE_P2P */
+
+/******************************************************
+ *                   Enumerations
+ ******************************************************/
+
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
+
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *                 Global Variables
+ ******************************************************/
+
+/******************************************************
+ *               Function Declarations
+ ******************************************************/
+int start_p2p    ( int argc, char* argv[] );
+int stop_p2p     ( int argc, char* argv[] );
+int p2p_peer_list( int argc, char* argv[] );
+int p2p_invite   ( int argc, char* argv[] );
 
 #ifdef __cplusplus
 } /*extern "C" */

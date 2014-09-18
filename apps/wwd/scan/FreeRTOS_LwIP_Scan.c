@@ -33,17 +33,9 @@
 #include "lwip/tcpip.h"
 
 /******************************************************
- *        Settable Constants
+ *                      Macros
  ******************************************************/
-
-#define COUNTRY                       WICED_COUNTRY_AUSTRALIA
-#define CIRCULAR_RESULT_BUFF_SIZE     (40)
-#define APP_THREAD_STACKSIZE          (4096)
-
-/******************************************************
- * @cond       Macros
- ******************************************************/
-
+/** @cond */
 /* Macros for comparing MAC addresses */
 #define CMP_MAC( a, b )  (((a[0])==(b[0]))&& \
                           ((a[1])==(b[1]))&& \
@@ -58,29 +50,48 @@
                         ((a[3])==0)&& \
                         ((a[4])==0)&& \
                         ((a[5])==0))
-
 /** @endcond */
 
 /******************************************************
- *             Static Variables
+ *                    Constants
  ******************************************************/
 
-static xTaskHandle startup_thread_handle;
-static wiced_mac_t bssid_list[200]; /* List of BSSID (AP MAC addresses) that have been scanned */
+#define COUNTRY                       WICED_COUNTRY_AUSTRALIA
+#define CIRCULAR_RESULT_BUFF_SIZE     (40)
+#define APP_THREAD_STACKSIZE          (4096)
 
 /******************************************************
- *             Static Prototypes
+ *                   Enumerations
  ******************************************************/
 
-static void tcpip_init_done( void * arg );
-static void startup_thread( void *arg );
-static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user_data );
+/******************************************************
+ *                 Type Definitions
+ ******************************************************/
 
+/******************************************************
+ *                    Structures
+ ******************************************************/
+
+/******************************************************
+ *               Static Function Declarations
+ ******************************************************/
+static void tcpip_init_done( void* arg );
+static void startup_thread( void* arg );
+static void scan_results_handler( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status );
+
+/******************************************************
+ *               Variable Definitions
+ ******************************************************/
+static xTaskHandle             startup_thread_handle;
+static wiced_mac_t             bssid_list[200]; /* List of BSSID (AP MAC addresses) that have been scanned */
 static host_semaphore_type_t   num_scan_results_semaphore;
 static wiced_scan_result_t     result_buff[CIRCULAR_RESULT_BUFF_SIZE];
 static uint16_t                result_buff_write_pos = 0;
 static uint16_t                result_buff_read_pos  = 0;
 
+/******************************************************
+ *               Function Definitions
+ ******************************************************/
 
 /**
  * Main Scan app
@@ -126,7 +137,7 @@ static void app_main( void )   /*@globals killed num_scan_results_semaphore, und
         result_buff_read_pos = 0;
         result_buff_write_pos = 0;
 
-        if ( WWD_SUCCESS != wwd_wifi_scan( WICED_SCAN_TYPE_ACTIVE, WICED_BSS_TYPE_ANY, NULL, NULL, NULL, NULL, scan_results_handler, (wiced_scan_result_t **) &result_ptr, NULL ) )
+        if ( WWD_SUCCESS != wwd_wifi_scan( WICED_SCAN_TYPE_ACTIVE, WICED_BSS_TYPE_ANY, NULL, NULL, NULL, NULL, scan_results_handler, (wiced_scan_result_t **) &result_ptr, NULL, WWD_STA_INTERFACE ) )
         {
             WPRINT_APP_ERROR(("Error starting scan\n"));
             host_rtos_deinit_semaphore( &num_scan_results_semaphore );
@@ -149,9 +160,9 @@ static void app_main( void )   /*@globals killed num_scan_results_semaphore, und
 
             /* Print SSID */
             WPRINT_APP_INFO(("\n#%03d SSID          : ", record_number ));
-            for ( k = 0; k < (int)record->SSID.len; k++ )
+            for ( k = 0; k < (int)record->SSID.length; k++ )
             {
-                WPRINT_APP_INFO(("%c",(char)record->SSID.val[k]));
+                WPRINT_APP_INFO(("%c",(char)record->SSID.value[k]));
             }
             WPRINT_APP_INFO(("\n" ));
 
@@ -293,7 +304,7 @@ static void tcpip_init_done( void * arg )
  *                      can be updated to cause the next result to be put in a new location.
  *  @param user_data : unused
  */
-static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user_data )
+static void scan_results_handler( wiced_scan_result_t** result_ptr, void* user_data, wiced_scan_status_t status )
 {
     if ( result_ptr == NULL )
     {
@@ -307,9 +318,9 @@ static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user
 
     /* Check the list of BSSID values which have already been printed */
     wiced_mac_t * tmp_mac = bssid_list;
-    while ( !NULL_MAC( tmp_mac->octet ) )
+    while ( NULL_MAC( tmp_mac->octet ) == WICED_FALSE )
     {
-        if ( CMP_MAC( tmp_mac->octet, record->BSSID.octet ) )
+        if ( CMP_MAC( tmp_mac->octet, record->BSSID.octet ) == WICED_TRUE )
         {
             /* already seen this BSSID */
             return;
@@ -330,6 +341,5 @@ static void scan_results_handler( wiced_scan_result_t ** result_ptr, void * user
     host_rtos_set_semaphore( &num_scan_results_semaphore, WICED_FALSE );
 
     wiced_assert( "Circular result buffer overflow", result_buff_write_pos != result_buff_read_pos );
-
 }
 

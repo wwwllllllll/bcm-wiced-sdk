@@ -41,23 +41,33 @@ extern "C" {
  *                 Type Definitions
  ******************************************************/
 
-typedef platform_pin_config_t            wiced_gpio_config_t;
+typedef platform_pin_config_t                   wiced_gpio_config_t;
 
-typedef platform_gpio_irq_trigger_t      wiced_gpio_irq_trigger_t;
+typedef platform_gpio_irq_trigger_t             wiced_gpio_irq_trigger_t;
 
-typedef platform_gpio_irq_callback_t     wiced_gpio_irq_handler_t;
+typedef platform_gpio_irq_callback_t            wiced_gpio_irq_handler_t;
 
-typedef platform_uart_config_t           wiced_uart_config_t;
+typedef platform_uart_config_t                  wiced_uart_config_t;
 
-typedef platform_i2c_bus_address_width_t wiced_i2c_bus_address_width_t;
+typedef platform_i2c_bus_address_width_t        wiced_i2c_bus_address_width_t;
 
-typedef platform_i2c_speed_mode_t        wiced_i2c_speed_mode_t;
+typedef platform_i2c_speed_mode_t               wiced_i2c_speed_mode_t;
 
-typedef platform_i2c_message_t           wiced_i2c_message_t;
+typedef platform_i2c_message_t                  wiced_i2c_message_t;
 
-typedef platform_spi_message_segment_t   wiced_spi_message_segment_t;
+typedef platform_spi_message_segment_t          wiced_spi_message_segment_t;
 
-typedef platform_rtc_time_t              wiced_rtc_time_t;
+typedef platform_rtc_time_t                     wiced_rtc_time_t;
+
+typedef platform_spi_slave_config_t             wiced_spi_slave_config_t;
+
+typedef platform_spi_slave_transfer_direction_t wiced_spi_slave_transfer_direction_t;
+
+typedef platform_spi_slave_transfer_status_t    wiced_spi_slave_transfer_status_t;
+
+typedef platform_spi_slave_command_t            wiced_spi_slave_command_t;
+
+typedef platform_spi_slave_data_buffer_t        wiced_spi_slave_data_buffer_t;
 
 /******************************************************
  *                    Structures
@@ -213,6 +223,69 @@ wiced_result_t wiced_spi_transfer( const wiced_spi_device_t* spi, const wiced_sp
  */
 wiced_result_t wiced_spi_deinit( const wiced_spi_device_t* spi );
 
+
+/** Initialises a SPI slave interface
+ *
+ * @param[in]  spi    : the SPI slave interface to be initialised
+ * @param[in]  config : SPI slave configuration
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_spi_slave_init( wiced_spi_t spi, const wiced_spi_slave_config_t* config );
+
+
+/** De-initialises a SPI slave interface
+ *
+ * @param[in]  spi : the SPI slave interface to be de-initialised
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_spi_slave_deinit( wiced_spi_t spi );
+
+
+/** Receive command from the remote SPI master
+ *
+ * @param[in]   spi         : the SPI slave interface
+ * @param[out]  command     : pointer to the variable which will contained the received command
+ * @param[in]   timeout_ms  : timeout in milliseconds
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_spi_slave_receive_command( wiced_spi_t spi, wiced_spi_slave_command_t* command, uint32_t timeout_ms );
+
+
+/** Transfer data to/from the remote SPI master
+ *
+ * @param[in]  spi         : the SPI slave interface
+ * @param[in]  direction   : transfer direction
+ * @param[in]  buffer      : the buffer which contain the data to transfer
+ * @param[in]  timeout_ms  : timeout in milliseconds
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_spi_slave_transfer_data( wiced_spi_t spi, wiced_spi_slave_transfer_direction_t direction, wiced_spi_slave_data_buffer_t* buffer, uint32_t timeout_ms );
+
+
+/** Send an error status over the SPI slave interface
+ *
+ * @param[in]  spi          : the SPI slave interface
+ * @param[in]  error_status : SPI slave error status
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_spi_slave_send_error_status( wiced_spi_t spi, wiced_spi_slave_transfer_status_t error_status );
+
+
+/** Generate an interrupt on the SPI slave interface
+ *
+ * @param[in]  spi               : the SPI slave interface
+ * @param[in]  pulse_duration_ms : interrupt pulse duration in milliseconds
+ *
+ * @return @ref wiced_result_t
+ */
+wiced_result_t wiced_spi_slave_generate_interrupt( wiced_spi_t spi, uint32_t pulse_duration_ms );
+
+
 /** @} */
 /*****************************************************************************/
 /** @addtogroup i2c       I2C
@@ -262,7 +335,7 @@ wiced_bool_t wiced_i2c_probe_device( wiced_i2c_device_t* device, int retries );
  * @return    WICED_SUCCESS : message structure was initialised properly.
  * @return    WICED_BADARG: one of the arguments is given incorrectly
  */
-wiced_result_t wiced_i2c_init_tx_message( wiced_i2c_message_t* message, void* tx_buffer, uint16_t tx_buffer_length, uint16_t retries, wiced_bool_t disable_dma );
+wiced_result_t wiced_i2c_init_tx_message( wiced_i2c_message_t* message, const void* tx_buffer, uint16_t tx_buffer_length, uint16_t retries, wiced_bool_t disable_dma );
 
 
 /** Initialize the wiced_i2c_message_t structure for i2c rx transaction

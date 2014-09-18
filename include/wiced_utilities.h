@@ -12,7 +12,7 @@
 #include "wiced_result.h"
 #include "wwd_structures.h"
 #include <stdlib.h>
-#include "../libraries/utilities/ring_buffer/ring_buffer.h"
+#include "ring_buffer.h"
 
 #ifdef __cplusplus
 extern "C" {

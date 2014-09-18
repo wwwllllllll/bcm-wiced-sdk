@@ -11,5 +11,3 @@
 NAME := App_Ping_powersave
 
 $(NAME)_SOURCES := ping_powersave.c
-
-WIFI_CONFIG_DCT_H := wifi_config_dct.h
