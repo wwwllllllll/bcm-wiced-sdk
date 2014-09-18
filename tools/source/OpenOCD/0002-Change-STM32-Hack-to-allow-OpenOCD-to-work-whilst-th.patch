@@ -1,0 +1,27 @@
+From 1563ca82f61a8b8261df81f14d1340ae279afd7c Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Fri, 16 Mar 2012 13:05:01 +1100
+Subject: [PATCH 2/5] Change STM32 Hack to allow OpenOCD to work whilst the
+ STM32 is in Stop-Mode
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/target/cortex_m.c |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/target/cortex_m.c b/src/target/cortex_m.c
+index 76e197c..9919ac0 100644
+--- a/src/target/cortex_m.c
++++ b/src/target/cortex_m.c
+@@ -1771,6 +1771,8 @@ int cortex_m3_examine(struct target *target)
+ 	if (!target_was_examined(target)) {
+ 		target_set_examined(target);
+ 
++		target_write_u32(target, 0xE0042004, 3); // HACK!!! - FORCE STM32 to allow debugging whilst sleeping and in stop-mode
++
+ 		/* Read from Device Identification Registers */
+ 		retval = target_read_u32(target, CPUID, &cpuid);
+ 		if (retval != ERROR_OK)
+-- 
+1.7.9.5
+

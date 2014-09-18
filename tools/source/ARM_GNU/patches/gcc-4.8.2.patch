@@ -1,0 +1,334 @@
+diff -Naur gcc-4.8.1/gcc/config/arm/t-arm-elf gcc_patched/gcc/config/arm/t-arm-elf
+--- gcc-4.8.1/gcc/config/arm/t-arm-elf	2013-01-11 07:38:27.000000000 +1100
++++ gcc-4.8.1_patched/gcc/config/arm/t-arm-elf	2013-09-10 15:18:06.569845416 +1000
+@@ -25,22 +25,27 @@
+ #MULTILIB_DIRNAMES    += fa526 fa626 fa606te fa626te fmp626 fa726te
+ #MULTILIB_EXCEPTIONS  += *mthumb*/*mcpu=fa526 *mthumb*/*mcpu=fa626
+ 
+-#MULTILIB_OPTIONS      += march=armv7
+-#MULTILIB_DIRNAMES     += thumb2
+-#MULTILIB_EXCEPTIONS   += march=armv7* marm/*march=armv7*
+-#MULTILIB_MATCHES      += march?armv7=march?armv7-a
+-#MULTILIB_MATCHES      += march?armv7=march?armv7-r
+-#MULTILIB_MATCHES      += march?armv7=march?armv7-m
+-#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a8
+-#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-r4
+-#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m3
++MULTILIB_OPTIONS      += march=armv7/march=armv6-m
++MULTILIB_DIRNAMES     += v7m v6m
++MULTILIB_EXCEPTIONS   += march=armv7* marm/*march=armv7*
++MULTILIB_MATCHES      += march?armv7=march?armv7-a
++MULTILIB_MATCHES      += march?armv7=march?armv7-r
++MULTILIB_MATCHES      += march?armv7=march?armv7-m
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a8
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-r4
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m3
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m4
++
++MULTILIB_EXCEPTIONS   += march=armv6-m
++MULTILIB_MATCHES      += march?armv6-m=mcpu?cortex-m1
++MULTILIB_MATCHES      += march?armv6-m=mcpu?cortex-m0
+ 
+ # Not quite true.  We can support hard-vfp calling in Thumb2, but how do we
+ # express that here?  Also, we really need architecture v5e or later
+ # (mcrr etc).
+-MULTILIB_OPTIONS       += mfloat-abi=hard
+-MULTILIB_DIRNAMES      += fpu
+-MULTILIB_EXCEPTIONS    += *mthumb/*mfloat-abi=hard*
++#MULTILIB_OPTIONS       += mfloat-abi=hard
++#MULTILIB_DIRNAMES      += fpu
++#MULTILIB_EXCEPTIONS    += *mthumb/*mfloat-abi=hard*
+ #MULTILIB_EXCEPTIONS    += *mcpu=fa526/*mfloat-abi=hard*
+ #MULTILIB_EXCEPTIONS    += *mcpu=fa626/*mfloat-abi=hard*
+ 
+@@ -48,9 +53,9 @@
+ # MULTILIB_DIRNAMES   += ep9312
+ # MULTILIB_EXCEPTIONS += *mthumb/*mcpu=ep9312*
+ # 	
+-# MULTILIB_OPTIONS     += mlittle-endian/mbig-endian
+-# MULTILIB_DIRNAMES    += le be
+-# MULTILIB_MATCHES     += mbig-endian=mbe mlittle-endian=mle
++MULTILIB_OPTIONS     += mlittle-endian
++MULTILIB_DIRNAMES    += le
++MULTILIB_MATCHES     += mlittle-endian=mle
+ # 
+ # MULTILIB_OPTIONS    += mfloat-abi=hard/mfloat-abi=soft
+ # MULTILIB_DIRNAMES   += fpu soft
+diff -Naur gcc-4.8.1/gcc/configure gcc_patched/gcc/configure
+--- gcc-4.8.1/gcc/configure	2013-05-08 21:36:36.000000000 +1000
++++ gcc-4.8.1_patched/gcc/configure	2013-09-10 15:18:06.573845576 +1000
+@@ -3386,10 +3386,10 @@
+ fi
+ 
+ if test x"${DEFAULT_LINKER+set}" = x"set"; then
+-  if test ! -x "$DEFAULT_LINKER"; then
+-    as_fn_error "cannot execute: $DEFAULT_LINKER: check --with-ld or env. var. DEFAULT_LINKER" "$LINENO" 5
+-  elif $DEFAULT_LINKER -v < /dev/null 2>&1 | grep GNU > /dev/null; then
++  if $DEFAULT_LINKER -v < /dev/null 2>&1 | grep GNU > /dev/null; then
+     gnu_ld_flag=yes
++  else
++    as_fn_error "cannot execute: $DEFAULT_LINKER: check --with-ld or env. var. DEFAULT_LINKER" "$LINENO" 5
+   fi
+ 
+ cat >>confdefs.h <<_ACEOF
+@@ -3444,10 +3444,10 @@
+ fi
+ 
+ if test x"${DEFAULT_ASSEMBLER+set}" = x"set"; then
+-  if test ! -x "$DEFAULT_ASSEMBLER"; then
+-    as_fn_error "cannot execute: $DEFAULT_ASSEMBLER: check --with-as or env. var. DEFAULT_ASSEMBLER" "$LINENO" 5
+-  elif $DEFAULT_ASSEMBLER -v < /dev/null 2>&1 | grep GNU > /dev/null; then
++  if $DEFAULT_ASSEMBLER -v < /dev/null 2>&1 | grep GNU > /dev/null; then
+     gas_flag=yes
++  else
++    as_fn_error "cannot execute: $DEFAULT_ASSEMBLER: check --with-as or env. var. DEFAULT_ASSEMBLER" "$LINENO" 5
+   fi
+ 
+ cat >>confdefs.h <<_ACEOF
+@@ -9152,16 +9152,16 @@
+ 
+ fi
+ 
+-ac_fn_c_check_type "$LINENO" "caddr_t" "ac_cv_type_caddr_t" "$ac_includes_default"
+-if test "x$ac_cv_type_caddr_t" = x""yes; then :
+-
+-else
+-
+-cat >>confdefs.h <<_ACEOF
+-#define caddr_t char *
+-_ACEOF
+-
+-fi
++#ac_fn_c_check_type "$LINENO" "caddr_t" "ac_cv_type_caddr_t" "$ac_includes_default"
++#if test "x$ac_cv_type_caddr_t" = x""yes; then :
++#
++#else
++#
++#cat >>confdefs.h <<_ACEOF
++##define caddr_t char *
++#_ACEOF
++#
++#fi
+ 
+ 
+ 
+diff -Naur gcc-4.8.1/gcc/Makefile.in gcc_patched/gcc/Makefile.in
+--- gcc-4.8.1/gcc/Makefile.in	2013-05-22 02:00:49.000000000 +1000
++++ gcc-4.8.1_patched/gcc/Makefile.in	2013-09-10 15:18:06.573845576 +1000
+@@ -572,9 +572,9 @@
+ # --------
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_noncanonical)/$(version)
++libsubdir = $(libdir)
+ # Directory in which the compiler finds executables
+-libexecsubdir = $(libexecdir)/gcc/$(target_noncanonical)/$(version)
++libexecsubdir = $(libexecdir)
+ # Directory in which all plugin resources are installed
+ plugin_resourcesdir = $(libsubdir)/plugin
+  # Directory in which plugin headers are installed
+@@ -705,7 +705,7 @@
+ LIBCONVERT =
+ 
+ # Control whether header files are installed.
+-INSTALL_HEADERS=install-headers install-mkheaders
++INSTALL_HEADERS=install-headers
+ 
+ # Control whether Info documentation is built and installed.
+ BUILD_INFO = @BUILD_INFO@
+@@ -2028,8 +2028,8 @@
+ 
+ DRIVER_DEFINES = \
+   -DSTANDARD_STARTFILE_PREFIX=\"$(unlibsubdir)/\" \
+-  -DSTANDARD_EXEC_PREFIX=\"$(libdir)/gcc/\" \
+-  -DSTANDARD_LIBEXEC_PREFIX=\"$(libexecdir)/gcc/\" \
++  -DSTANDARD_EXEC_PREFIX=\"$(libdir)/\" \
++  -DSTANDARD_LIBEXEC_PREFIX=\"$(libexecdir)/\" \
+   -DDEFAULT_TARGET_VERSION=\"$(version)\" \
+   -DDEFAULT_TARGET_MACHINE=\"$(target_noncanonical)\" \
+   -DSTANDARD_BINDIR_PREFIX=\"$(bindir)/\" \
+diff -Naur gcc-4.8.1/lto-plugin/Makefile.in gcc_patched/lto-plugin/Makefile.in
+--- gcc-4.8.1/lto-plugin/Makefile.in	2011-08-10 18:48:37.000000000 +1000
++++ gcc-4.8.1_patched/lto-plugin/Makefile.in	2013-09-10 15:18:06.573845576 +1000
+@@ -227,7 +227,7 @@
+ ACLOCAL_AMFLAGS = -I .. -I ../config
+ AUTOMAKE_OPTIONS = no-dependencies
+ gcc_version := $(shell cat $(top_srcdir)/../gcc/BASE-VER)
+-libexecsubdir := $(libexecdir)/gcc/$(target_noncanonical)/$(gcc_version)
++libexecsubdir := $(libexecdir)
+ AM_CPPFLAGS = -I$(top_srcdir)/../include $(DEFS)
+ AM_CFLAGS = @ac_lto_plugin_warn_cflags@
+ AM_LIBTOOLFLAGS = --tag=disable-static
+diff -Naur gcc-4.8.1/fixincludes/Makefile.in gcc_patched/fixincludes/Makefile.in
+--- gcc-4.8.1/fixincludes/Makefile.in	2013-01-04 23:49:55.000000000 +1100
++++ gcc-4.8.1_patched/fixincludes/Makefile.in	2013-09-10 15:18:06.573845576 +1000
+@@ -178,6 +178,8 @@
+ 	@rm -f ./check.sh
+ 
+ install : all
++
++junk:
+ 	-rm -rf $(DESTDIR)$(itoolsdir)
+ 	$(mkinstalldirs) $(DESTDIR)$(itoolsdir) 
+ 	$(mkinstalldirs) $(DESTDIR)$(itoolsdatadir)/include
+@@ -189,6 +191,8 @@
+ 	$(INSTALL_SCRIPT) mkheaders $(DESTDIR)$(itoolsdir)/mkheaders
+ 
+ install-strip: install
++
++junk2:
+ 	test -z '$(STRIP)' \
+ 	  || $(STRIP) $(DESTDIR)$(itoolsdir)/fixincl@EXEEXT@
+ 
+diff -Naur gcc-4.8.1/configure gcc_patched/configure
+--- gcc-4.8.1/configure	2013-02-16 04:45:54.000000000 +1100
++++ gcc-4.8.1_patched/configure	2013-09-10 15:18:06.577845734 +1000
+@@ -6779,7 +6779,7 @@
+     echo 1>&2 '***' --with-headers is only supported when cross compiling
+     exit 1
+   fi
+-  if test x"${with_headers}" != xyes ; then
++  if test x"${with_headers}" == x ; then
+     x=${gcc_cv_tool_prefix}
+     copy_dirs="${copy_dirs} ${with_headers} $x/${target_noncanonical}/sys-include"
+   fi
+diff -Naur gcc-4.8.1/gcc/gcc.c gcc_patched/gcc/gcc.c
+--- gcc-4.8.1/gcc/gcc.c	2013-05-17 22:24:26.000000000 +1000
++++ gcc-4.8.1_patched/gcc/gcc.c	2013-09-10 15:27:09.611259475 +1000
+@@ -2438,19 +2438,24 @@
+    Return 0 if not found, otherwise return its name, allocated with malloc.  */
+ 
+ static char *
+-find_a_file (const struct path_prefix *pprefix, const char *name, int mode,
++find_a_file (const struct path_prefix *pprefix, const char *myname, int mode,
+ 	     bool do_multi)
+ {
+   struct file_at_path_info info;
++  char* name = (char*)myname;
+ 
+ #ifdef DEFAULT_ASSEMBLER
+-  if (! strcmp (name, "as") && access (DEFAULT_ASSEMBLER, mode) == 0)
+-    return xstrdup (DEFAULT_ASSEMBLER);
++  if (! strcmp (name, "as"))
++  {
++    name= xstrdup ( DEFAULT_ASSEMBLER);
++  }
+ #endif
+ 
+ #ifdef DEFAULT_LINKER
+-  if (! strcmp(name, "ld") && access (DEFAULT_LINKER, mode) == 0)
+-    return xstrdup (DEFAULT_LINKER);
++  if (! strcmp(name, "ld"))
++  {
++    name= xstrdup (DEFAULT_LINKER);
++  }
+ #endif
+ 
+   /* Determine the filename to execute (special case for absolute paths).  */
+@@ -3715,7 +3720,7 @@
+     {
+       gcc_exec_prefix = get_relative_prefix (decoded_options[0].arg,
+ 					     standard_bindir_prefix,
+-					     standard_exec_prefix);
++					     standard_bindir_prefix);
+       gcc_libexec_prefix = get_relative_prefix (decoded_options[0].arg,
+ 					     standard_bindir_prefix,
+ 					     standard_libexec_prefix);
+@@ -4010,25 +4015,23 @@
+ #endif
+       add_prefix (&startfile_prefixes, standard_exec_prefix, "BINUTILS",
+ 		  PREFIX_PRIORITY_LAST, 1, 0);
++      gcc_exec_prefix = xstrdup(tooldir_base_prefix);
+     }
+ 
+-  gcc_assert (!IS_ABSOLUTE_PATH (tooldir_base_prefix));
+-  tooldir_prefix2 = concat (tooldir_base_prefix, spec_machine,
+-			    dir_separator_str, NULL);
++  tooldir_prefix = xstrdup(gcc_exec_prefix);
+ 
+   /* Look for tools relative to the location from which the driver is
+      running, or, if that is not available, the configured prefix.  */
+-  tooldir_prefix
+-    = concat (gcc_exec_prefix ? gcc_exec_prefix : standard_exec_prefix,
+-	      spec_machine, dir_separator_str,
+-	      spec_version, dir_separator_str, tooldir_prefix2, NULL);
+-  free (tooldir_prefix2);
+ 
+   add_prefix (&exec_prefixes,
+-	      concat (tooldir_prefix, "bin", dir_separator_str, NULL),
++	      concat (tooldir_prefix /*, "bin", dir_separator_str*/, NULL),
+ 	      "BINUTILS", PREFIX_PRIORITY_LAST, 0, 0);
+-  add_prefix (&startfile_prefixes,
+-	      concat (tooldir_prefix, "lib", dir_separator_str, NULL),
++
++  tooldir_prefix = get_relative_prefix (decoded_options[0].arg,
++					     standard_bindir_prefix,
++					     standard_exec_prefix);
++
++  add_prefix (&startfile_prefixes, concat (tooldir_prefix, NULL ),
+ 	      "BINUTILS", PREFIX_PRIORITY_LAST, 0, 1);
+   free (tooldir_prefix);
+ 
+@@ -6401,9 +6404,8 @@
+ 
+   /* Read specs from a file if there is one.  */
+ 
+-  machine_suffix = concat (spec_machine, dir_separator_str,
+-			   spec_version, dir_separator_str, NULL);
+-  just_machine_suffix = concat (spec_machine, dir_separator_str, NULL);
++  machine_suffix = xstrdup("");
++  just_machine_suffix = concat (""/*spec_machine, dir_separator_str*/, NULL);
+ 
+   specs_file = find_a_file (&startfile_prefixes, "specs", R_OK, true);
+   /* Read the specs file unless it is a default one.  */
+diff -Naur gcc-4.8.1/libstdc++-v3/python/Makefile.in gcc_patched/libstdc++-v3/python/Makefile.in
+--- gcc-4.8.1/libstdc++-v3/python/Makefile.in	2012-10-16 00:10:30.000000000 +1100
++++ gcc-4.8.1_patched/libstdc++-v3/python/Makefile.in	2013-09-10 15:18:06.581845892 +1000
+@@ -434,7 +434,7 @@
+ 
+ info-am:
+ 
+-install-data-am: install-data-local install-nobase_pythonDATA
++install-data-am:
+ 
+ install-dvi: install-dvi-am
+ 
+diff -Naur gcc-4.8.1/libstdc++-v3/configure gcc_patched/libstdc++-v3/configure
+--- gcc-4.8.1/libstdc++-v3/configure	2013-05-25 04:10:37.000000000 +1000
++++ gcc-4.8.1_patched/libstdc++-v3/configure	2013-09-10 15:18:06.589846203 +1000
+@@ -73113,7 +73113,7 @@
+   if test x"$glibcxx_toolexecdir" = x"no"; then
+     if test -n "$with_cross_host" &&
+        test x"$with_cross_host" != x"no"; then
+-      glibcxx_toolexecdir='${exec_prefix}/${host_alias}'
++      glibcxx_toolexecdir='${exec_prefix}'
+       glibcxx_toolexeclibdir='${toolexecdir}/lib'
+     else
+       glibcxx_toolexecdir='${libdir}/gcc/${host_alias}'
+
+diff -Naur gcc-4.8.1/libgcc/Makefile.in gcc_patched/libgcc/Makefile.in
+--- gcc-4.8.1/libgcc/Makefile.in	2013-02-05 06:06:20.000000000 +1100
++++ gcc-4.8.1_patched/libgcc/Makefile.in	2013-09-10 15:18:06.593846361 +1000
+@@ -179,7 +179,7 @@
+ STRIP_FOR_TARGET = $(STRIP)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(host_noncanonical)/$(version)
++libsubdir = $(libdir)
+ # Used to install the shared libgcc.
+ slibdir = @slibdir@
+ # Maybe used for DLLs on Windows targets.
+
+diff -Naur gcc-4.8.1/libiberty/Makefile.in gcc_patched/libiberty/Makefile.in
+--- gcc-4.8.1/libiberty/Makefile.in	2013-01-02 13:04:42.000000000 +1100
++++ gcc-4.8.1_patched/libiberty/Makefile.in	2013-09-10 15:18:06.593846361 +1000
+@@ -344,7 +344,7 @@
+ @MAINT@	echo stamp > stamp-functions
+ 
+ INSTALL_DEST = @INSTALL_DEST@
+-install: install_to_$(INSTALL_DEST) install-subdir
++install: 
+ install-strip: install
+ 
+ .PHONY: install install-strip
+

@@ -1,0 +1,51 @@
+diff -Naur gdb-7.4/gdb/remote.c gdb-7.4-arm/gdb/remote.c
+--- gdb-7.4/gdb/remote.c	2010-03-08 02:39:54 +1100
++++ gdb-7.4-arm/gdb/remote.c	2011-04-06 15:14:56 +1000
+@@ -3163,7 +3163,7 @@
+   /* If we connected to a live target, do some additional setup.  */
+   if (target_has_execution)
+     {
+-      if (exec_bfd) 	/* No use without an exec file.  */
++//      if (exec_bfd) 	/* No use without an exec file.  */
+ 	remote_check_symbols (symfile_objfile);
+     }
+ 
+diff -Naur gdb-7.4/gdb/sim/Makefile.in gdb-7.4-arm/sim/Makefile.in
+--- gdb-7.4/sim/Makefile.in	2010-03-08 02:39:54 +1100
++++ gdb-7.4-arm/sim/Makefile.in	2011-04-06 15:14:56 +1000
+@@ -158,6 +158,8 @@
+ 	rm -f Makefile config.cache config.log config.status
+ 
+ install:
++
++junk:
+ 	@rootme=`pwd` ; export rootme ; \
+ 	for dir in . ${SUBDIRS}; do \
+ 		if [ "$$dir" = "." ]; then \
+
+diff -Naur gdb-7.4/gdb/gdb/symfile.c gdb-7.4-arm/gdb/symfile.c
+--- gdb-7.4/gdb/symfile.c	2013-03-13 13:12:25 +1100
++++ gdb-7.4-arm/gdb/symfile.c	2013-03-13 13:11:54 +1100
+@@ -986,8 +986,8 @@
+ 
+      We no longer warn if the lowest section is not a text segment (as
+      happens for the PA64 port.  */
+-  if (addrs && addrs->other[0].name)
+-    addr_info_make_relative (addrs, objfile->obfd);
++//  if (addrs && addrs->other[0].name)
++//    addr_info_make_relative (addrs, objfile->obfd);
+ 
+   /* Initialize symbol reading routines for this objfile, allow complaints to
+      appear for this new file, and record how verbose to be, then do the
+
+--- gdb-7.4/gdb/arm-tdep.c	2012-01-06 15:43:04.000000000 +1100
++++ gdb-7.4-arm/gdb/arm-tdep.c	2013-03-14 08:02:05.229153925 +1100
+@@ -9780,7 +9780,7 @@
+ 		  break;
+ 		}
+ 
+-#ifdef HAVE_ELF
++#if 0 // ifdef HAVE_ELF   // This changes the protocol to the remote server without informing it. - breaks OpenOCD
+ 	      /* Detect M-profile programs.  This only works if the
+ 		 executable file includes build attributes; GCC does
+ 		 copy them to the executable, but e.g. RealView does

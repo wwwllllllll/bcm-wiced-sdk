@@ -1,0 +1,57 @@
+From c97f97f3ffc7053a37adf820363f4d9ee3bb4fb2 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Thu, 22 Aug 2013 10:12:43 +1000
+Subject: [PATCH 19/19] libSWD - Add patch for libswd autoreconf error
+
+---
+ 0040-libswd-Fix-autoreconf-error-AM_PROG_AR.patch | 25 +++++++++++++++++++++++
+ bootstrap                                         |  1 +
+ 2 files changed, 26 insertions(+)
+ create mode 100644 0040-libswd-Fix-autoreconf-error-AM_PROG_AR.patch
+
+diff --git a/0040-libswd-Fix-autoreconf-error-AM_PROG_AR.patch b/0040-libswd-Fix-autoreconf-error-AM_PROG_AR.patch
+new file mode 100644
+index 0000000..0975942
+--- /dev/null
++++ b/0040-libswd-Fix-autoreconf-error-AM_PROG_AR.patch
+@@ -0,0 +1,25 @@
++From 3b6587ed6b94717ce040036d8e15863d71aa952a Mon Sep 17 00:00:00 2001
++From: Evan Hunter <ehunter@broadcom.com>
++Date: Thu, 22 Aug 2013 10:09:31 +1000
++Subject: [PATCH] libswd - Fix autoreconf error - AM_PROG_AR
++
++---
++ configure.ac | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/configure.ac b/configure.ac
++index 9e6ae79..67e222d 100644
++--- a/configure.ac
+++++ b/configure.ac
++@@ -8,7 +8,7 @@ DX_PS_FEATURE(OFF)
++ DX_MAN_FEATURE(OFF)
++ DX_INIT_DOXYGEN($PACKAGE_STRING)
++ LT_INIT
++-AM_PROG_AR
+++m4_pattern_allow([AM_PROG_AR], [AM_PROG_AR])
++ AC_PROG_CC
++ AC_CONFIG_HEADERS([config.h])
++ AC_CONFIG_FILES([Makefile src/Makefile])
++-- 
++1.8.0.msysgit.0
++
+diff --git a/bootstrap b/bootstrap
+index 1854beb..5df74c8 100755
+--- a/bootstrap
++++ b/bootstrap
+@@ -35,6 +35,7 @@ fi
+ 
+ cd submodules/libswd
+ git am ../../0020-libSWD-Fix-configure.ac-to-work-with-older-versions-of-auto.patch
++git am ../../0040-libswd-Fix-autoreconf-error-AM_PROG_AR.patch
+ cd ../..
+ 
+ # Bootstrap the autotools (create Makefie.in files and configure script).
+-- 
+1.8.0.msysgit.0
+

@@ -1,0 +1,36 @@
+From 101d13da18486dfdddb8a1ae9edabafc146085ed Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Thu, 29 Nov 2012 13:07:26 +1100
+Subject: [PATCH 12/19] Fixes for latest GCC
+
+---
+ src/jtag/core.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/jtag/core.c b/src/jtag/core.c
+index b726da4..4ad0c3a 100644
+--- a/src/jtag/core.c
++++ b/src/jtag/core.c
+@@ -1255,14 +1255,16 @@ static int jtag_validate_ircapture(void)
+ 		if ((val & tap->ir_capture_mask) != tap->ir_capture_value) {
+ 			LOG_ERROR("%s: IR capture error; saw 0x%0*" PRIx64 " not 0x%0*" PRIx32,
+ 				jtag_tap_name(tap),
+-				(tap->ir_length + 7) / tap->ir_length, val,
+-				(tap->ir_length + 7) / tap->ir_length, tap->ir_capture_value);
++				(tap->ir_length + 7) / tap->ir_length,
++				(unsigned long long) val,
++				(tap->ir_length + 7) / tap->ir_length,
++				(unsigned) tap->ir_capture_value);
+ 
+ 			retval = ERROR_JTAG_INIT_FAILED;
+ 			goto done;
+ 		}
+ 		LOG_DEBUG("%s: IR capture 0x%0*" PRIx64, jtag_tap_name(tap),
+-			(tap->ir_length + 7) / tap->ir_length, val);
++			(tap->ir_length + 7) / tap->ir_length, (unsigned long long) val);
+ 		chain_pos += tap->ir_length;
+ 	}
+ 
+-- 
+1.8.0.msysgit.0
+

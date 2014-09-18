@@ -1,0 +1,36 @@
+From fcc5ab2de0dd843f705917159748a88d04f30bbc Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Fri, 16 Mar 2012 13:08:52 +1100
+Subject: [PATCH 02/19] Add hack to turn off Control-C handling in windows to
+ try to prevent OpenOCD stealing them from GDB
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/server/server.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/server/server.c b/src/server/server.c
+index 01e8441..771da29 100644
+--- a/src/server/server.c
++++ b/src/server/server.c
+@@ -526,7 +526,7 @@ int server_preinit(void)
+ 	}
+ 
+ 	/* register ctrl-c handler */
+-	SetConsoleCtrlHandler(ControlHandler, TRUE);
++	SetConsoleCtrlHandler(NULL, TRUE);
+ 
+ 	signal(SIGINT, sig_handler);
+ 	signal(SIGTERM, sig_handler);
+@@ -552,7 +552,7 @@ int server_quit(void)
+ 
+ #ifdef _WIN32
+ 	WSACleanup();
+-	SetConsoleCtrlHandler(ControlHandler, FALSE);
++	SetConsoleCtrlHandler(NULL, FALSE);
+ #endif
+ 
+ 	return ERROR_OK;
+-- 
+1.8.0.msysgit.0
+

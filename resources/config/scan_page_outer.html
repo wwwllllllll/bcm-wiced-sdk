@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <title>Broadcom WICED Device Scan-Join Config</title>
+    <style  type="text/css"><!--
+      .non_popout { padding:10px; font-weight:bold}
+      tr.highlight .non_popout{ background-color: #ff8f8f;}
+      tr.opened .non_popout{ background-color: #8fff00;}
+      tr.closed .non_popout{ border-bottom-style:solid; border-bottom-width:1px; }
+      .normal { background-color: #cfcfcf; }
+      .popout     { padding:15px;   font-weight:bold; overflow:hidden; background-color: #8fff00; border-bottom-width:1px; border-bottom-style:solid; }
+      tr.unpoppedrow {  display:none; }
+      tr.poppedrow { display:table-row;  }
+
+      #preloadedImages {
+    width: 0px;
+    height: 0px;
+    display: inline;
+    background-image: url(../images/tick.png);
+    background-image: url(../images/cross.png);
+    background-image: url(../images/lock.png);
+    background-image: url(../images/progress.gif);
+    background-image: url(../images/64_0bars.png);
+    background-image: url(../images/64_1bars.png);
+    background-image: url(../images/64_2bars.png);
+    background-image: url(../images/64_3bars.png);
+    background-image: url(../images/64_4bars.png);
+    background-image: url(../images/64_5bars.png);
+    background-image: url();
+    }
+
+    } --></style>
+    <link rel="stylesheet" type="text/css" href="../styles/buttons.css" />
+    <script src="../scripts/general_ajax_script.js" type="text/javascript" ></script>
+    <script type="text/javascript">
+    /* <![CDATA[ */
+    var protocol = '';
+    var result_array = [];
+      function scan_handler( result, data )
+      {
+        var text = "";
+        switch( result )
+        {
+            case AJAX_PARTIAL_PROGRESS:
+                parse_results( data );
+            case AJAX_STARTING:
+                text = "<img src=\"../images/progress.gif\" alt=\"in progress\"/>Scanning";
+                break;
+            case AJAX_FINISHED:
+                text = "<img src=\"../images/tick.png\" height=\"16\">Scan Complete";
+                parse_results( data );
+                break;
+            case AJAX_NO_BROWSER_SUPPORT:
+                text = "Failed - your browser does not support this script";
+                break;
+            case AJAX_FAILED:
+                text = "Failed to get scan results";
+                break;
+        }
+        document.getElementById("scanstatus").innerHTML = text;
+      }
+
+      function parse_results( text )
+      {
+        var line_array = text.split( "\n" );
+        protocol  = line_array[0];
+        for ( var i = 1; i < parseInt(line_array.length/8)*8 + 1; i+=8 )
+        {
+            var id = parseInt( line_array[i+0] );
+            var rssi = parseInt( line_array[i+4] );
+            var remembered = parseInt( line_array[i+7] );
+            var sec_val  = line_array[i+2];
+            var sec_name  = line_array[i+3];
+            var sec  =  (( sec_name.substr(0, 3) == "WPA" ) || ( sec_name.substr(0, 3) == "WEP" ))? 1 : 0;
+            var found = 0;
+            var new_loc = 0;
+            for ( var j = 0; j < result_array.length; j++ )
+            {
+                if ( result_array[j].id == id )
+                {
+                    found = 1;
+                }
+                if ( ( result_array[j].rssi > rssi ) &&
+                     ( result_array[j].remembered >= remembered ) )
+                {
+                    new_loc = j+1;
+                }
+            }
+            if ( found != 1 )
+            {
+                /* find where to put it */
+
+                var x = [];
+                x.id   = id;
+                x.ssid = line_array[i+1];
+                x.sec_name  = sec_name;
+                x.sec  =  sec;
+                x.sec_val = sec_val;
+                x.channel  = parseInt(line_array[i+5]);
+                x.bssid  = line_array[i+6];
+                x.rssi = rssi;
+                x.remembered = remembered;
+                result_array.splice( new_loc, 0, x );
+            }
+        }
+        display_results( );
+      }
+
+      function display_results( )
+      {
+        document.getElementById("scantable").innerHTML = "";
+        for ( var i = 0; i < result_array.length; i++ )
+        {
+            var res = result_array[i];
+
+            var text = "<tr class=\"normal closed\" id=\"res" + res.id + "\"  onmouseover=\"overItem('res" + res.id + "',1)\" onmouseout=\"overItem('res" + res.id + "',0)\" onClick=\"expand_collapse_row(" + res.id + ")\">"
+
+            text += "<td class=\"non_popout\" style=\"width:100%\">" + hex2a( res.ssid ) + "</td>";
+
+            if ( res.sec == 1 )
+                text += "<td class=\"non_popout\" title=\"Secured: " + res.sec_name + "\"><img src=\"../images/lock.png\" height=\"20\" alt=\"Secured: " + res.sec_name + "\" /></td>";
+            else
+                text += "<td class=\"non_popout\" title=\"Unsecured\"></td>";
+
+            if ( res.rssi > -40 )
+                text += "<td class=\"non_popout\" title=\"Excellent Signal " + res.rssi + "dBm\"> <img src=\"../images/64_5bars.png\" height=\"32\" alt=\"Excellent Signal\" /></td>";
+            else if ( res.rssi > -55 )
+                text += "<td class=\"non_popout\" title=\"Very Good Signal " + res.rssi + "dBm\"><img src=\"../images/64_4bars.png\" height=\"32\" alt=\"Very Good Signal\" /></td>";
+            else if ( res.rssi > -70 )
+                text += "<td class=\"non_popout\" title=\"Good Signal " + res.rssi + "dBm\"><img src=\"../images/64_3bars.png\" height=\"32\" alt=\"Good Signal\" /></td>";
+            else if ( res.rssi > -80 )
+                text += "<td class=\"non_popout\" title=\"Poor Signal " + res.rssi + "dBm\"><img src=\"../images/64_2bars.png\" height=\"32\" alt=\"Poor Signal\" /></td>";
+            else if ( res.rssi > -87 )
+                text += "<td class=\"non_popout\" title=\"Very Poor Signal " + res.rssi + "dBm\"><img src=\"../images/64_1bars.png\" height=\"32\" alt=\"Very Poor Signal\" /></td>";
+            else
+                text += "<td class=\"non_popout\" title=\"No Signal " + res.rssi + "dBm\"><img src=\"../images/64_0bars.png\" height=\"32\" alt=\"No Signal\" /></td>";
+
+            if ( res.remembered == 1 )
+                text += "<td class=\"non_popout\" title=\"Remembered\" ><img src=\"../images/tick.png\" height=\"20\" alt=\"Remembered\" /></td>";
+            else
+                text += "<td class=\"non_popout\" title=\"Not Remembered\"></td>";
+
+
+            text += "</tr>";
+
+            text += "<tr class=\"unpoppedrow\" id=\"exp" + res.id + "\">"
+            text += "<td colspan=4 class=\"popout\" >";
+            text += "<form>";
+            if ( res.sec == 1 )
+            {
+                text += default_box( "Password", "pass" + res.id, 64 );
+            }
+            text += "<input type=\"button\" value=\"Connect\" class=\"white bigrounded button\" onClick=\"join(" + res.id + ")\"/>";
+            text += "</form></td></tr>";
+
+
+            document.getElementById("scantable").innerHTML += text;
+        }
+
+        if ( result_array.length == 0 )
+        {
+            /* no results add dummy */
+            var text = "<tr class=\"normal closed\" id=\"res_dummy\"><td class=\"non_popout\" colspan=4 style=\"width:100%\">No broadcasting networks found</td></tr>";
+            document.getElementById("scantable").innerHTML += text;
+        }
+
+        /* Add manual config option */
+        var text = "<tr class=\"normal closed\" id=\"res_manual\"  onmouseover=\"overItem('res_manual',1)\" onmouseout=\"overItem('res_manual',0)\" onClick=\"expand_collapse_row( '_manual')\">"
+        text += "<td class=\"non_popout\" colspan=4 style=\"width:100%\">Add network manually</td></tr>";
+        text += "<tr class=\"unpoppedrow\" id=\"exp_manual\">"
+        text += "<td colspan=4 class=\"popout\" >";
+        text += "<form>" + default_box( "Network Name", "manual_ssid", 32 );
+        text += default_box( "Password", "manual_pass", 64 );
+        text += "Security <select id=\"manual_sec\">";
+        text += "<option value=\"0\" selected >None</option>";
+        text += "<option value=\"1\">WEP</option>";
+        text += "<option value=\"32769\">WEP shared</option>";
+        text += "<option value=\"2097154\">WPA TKIP</option>";
+        text += "<option value=\"2097156\">WPA AES</option>";
+        text += "<option value=\"4194306\">WPA2 TKIP</option>";
+        text += "<option value=\"4194308\">WPA2 AES</option>";
+        text += "<option value=\"4194310\">WPA2 Mixed</option>";
+        text += "<input type=\"button\" value=\"Connect\" class=\"white bigrounded button\" onClick=\"join_manual()\"/>";
+        text += "</form></td></tr>";
+
+        document.getElementById("scantable").innerHTML += text;
+
+        /* Add WPS config option */
+        var text = "<tr class=\"normal closed\" id=\"res_wps\"  onmouseover=\"overItem('res_wps',1)\" onmouseout=\"overItem('res_wps',0)\" onClick=\"expand_collapse_row( '_wps')\">"
+        text += "<td class=\"non_popout\" colspan=4 style=\"width:100%\">Add Via WPS <img src=\"../images/wps_icon.png\" style=\"height:2em;vertical-align:middle\" alt=\"WPS icon\" /></td></tr>";
+        text += "<tr class=\"unpoppedrow\" id=\"exp_wps\">"
+        text += "<td colspan=4 class=\"popout\">";
+        text += "<form>Press the <b>WPS button</b> on your Access Point then click <input type=\"button\" value=\"Connect\" class=\"white bigrounded button\" onClick=\"join_pbc()\"/>";
+        text += "<hr/>OR<hr/>";
+        text += "Enter the <b>WPS PIN</b> from your Access point " + default_box( "WPS PIN", "wpspin", 64 ) + "<br/>";
+        text += "Then click <input type=\"button\" value=\"Connect\" class=\"white bigrounded button\" onClick=\"join_pin()\"/>";
+        text += "</form></td></tr>";
+
+        document.getElementById("scantable").innerHTML += text;
+
+
+      }
+
+      function hex2a( hexstr )
+      {
+        var outstr = "";
+        for ( var i = 0; i < hexstr.length; i+= 2 )
+        {
+            outstr += String.fromCharCode( parseInt( hexstr.substr( i, 2 ), 16 ) );
+        }
+        return outstr;
+      }
+
+      function default_box( defaultval, id, maxlen )
+      {
+        return "<input \"color: #f00\" type=\"text\" id=\"" + id + "\" maxlength=\""+ maxlen +"\" value=\""+ defaultval +"\" style =\"color:#BBB;\" onblur=\"if(this.value == '') { " + id + "changed = 0; this.value='"+ defaultval +"'; this.style.color = '#BBB';} else { " + id + "changed = 1; }\" onfocus=\"this.style.color = '#000'; if (typeof " + id + "changed == 'undefined' || " + id + "changed == 0) {this.value=''}\"/>";
+      }
+      function default_box_ischanged( id )
+      {
+        return ((typeof window[id + "changed"] != 'undefined') && (window[id + "changed"] != 0));
+      }
+
+      function join( id )
+      {
+        var i = 0;
+        while ( result_array[i].id != id )
+        {  i ++ }
+        var res = result_array[i];
+        var s='as0=' + encodeURIComponent(hex2a(res.ssid)) + '&at0=' + res.sec_val
+        if ( res.sec == 1 )
+        {
+          if (default_box_ischanged( 'pass' + res.id ))
+          {
+            s += '&ap0=' + encodeURIComponent(document.getElementById('pass' + res.id).value);
+
+            do_ajax( protocol +'://' + window.location.hostname + '/connect?' + s, join_handler );
+          }
+          else
+          {
+            alert("Please enter a password");
+          }
+        }
+      }
+
+      function join_manual( )
+      {
+        var s='as0=' + encodeURIComponent(hex2a(document.getElementById('manual_ssid').value));
+        s += '&at0=' + document.getElementById('manual_sec').value;
+        if ( document.getElementById('manual_sec').value != 0 )
+          s += '&ap0=' + encodeURIComponent(document.getElementById('manual_pass').value);
+
+         do_ajax(  protocol +'://' + window.location.hostname + '/connect?' + s, join_handler );
+      }
+
+      function join_pbc( )
+      {
+          do_ajax( protocol +'://' + window.location.hostname + '/wps_go', join_handler );
+      }
+
+      function join_pin( )
+      {
+          var s = 'pin=' + encodeURIComponent(document.getElementById('wpspin').value);
+          do_ajax( protocol +'://' + window.location.hostname + '/wps_go?' + s, join_handler );
+      }
+
+      function join_handler( result, data )
+      {
+        var text = "";
+        switch( result )
+        {
+            case AJAX_PARTIAL_PROGRESS:
+                parse_results( data );
+            case AJAX_STARTING:
+                text = "<img src=\"../images/progress.gif\" alt=\"in progress\"/>Joining network...";
+                break;
+            case AJAX_FINISHED:
+                text = "<img src=\"../images/tick.png\" height=\"16\">Join Successful";
+                document.getElementById('dim').style.display = "block";
+                document.getElementById('conndisp').innerHTML = "Device Started<br/>Web server and access point stopped<br/>See UART for further information"
+                break;
+            case AJAX_NO_BROWSER_SUPPORT:
+                text = "Failed - your browser does not support this script";
+                break;
+            case AJAX_FAILED:
+                text = "Join Failed!";
+                break;
+        }
+        document.getElementById("scanstatus").innerHTML = text;
+      }
+
+      var curr_expanded_res=null;
+      var curr_expanded_exp=null;
+          function overItem( elem_name, over )
+        {
+            elem = document.getElementById(elem_name);
+            if ( over )
+            {
+                if ( curr_expanded_res && ( elem == curr_expanded_res ) )
+                {
+                    elem.className='highlight';
+                }
+                else
+                {
+                    elem.className='highlight closed';
+                }
+            }
+            else if ( curr_expanded_res && ( elem == curr_expanded_res ) )
+                elem.className='opened';
+            else
+                elem.className='normal closed';
+        }
+      function expand_collapse_row( name )
+      {
+        var reselem = document.getElementById( 'res' + name );
+        var expelem = document.getElementById( 'exp' + name );
+        if ( reselem == curr_expanded_res )
+        {
+          expelem.className = 'unpoppedrow';
+          curr_expanded_res = null;
+          curr_expanded_exp = null;
+          reselem.className='highlight';
+        }
+        else
+        {
+            if ( curr_expanded_exp )
+            {
+              curr_expanded_exp.className = 'unpoppedrow';
+              curr_expanded_res.className='normal';
+            }
+            expelem.className = "poppedrow";
+            curr_expanded_res = reselem;
+            curr_expanded_exp = expelem;
+            reselem.className='opened';
+        }
+      }
+    /* ]]> */
+    </script>
+  </head>
+  <body style="font-family:verdana;" onload="do_ajax( '../scan_results.txt', scan_handler );" >
+    <table border='0' cellpadding='0' cellspacing='0' width="98%">
+      <tr style="height:20px"><td>&nbsp;</td></tr>
+      <tr style="border-collapse: collapse; padding: 0;">
+        <td style="width:20px"></td>
+        <td style="width:117px"><img src="../images/brcmlogo.png" alt="Broadcom Logo" /></td>
+        <td style="width:20px;background-image:url('../images/brcmlogo_line.png');"></td>
+        <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('../images/brcmlogo_line.png');">
+        WICED&trade; Device Configuration
+        </td>
+        <td style="width:137px;background-image:url('../images/brcmlogo_line.png');"></td>
+      </tr>
+      <tr><td>&nbsp;</td></tr>
+    </table>
+    <noscript><h2>Javascript is required for this page to work correctly.</h2></noscript>
+
+    <div id="scanstatus"></div><br/>
+    <table id="scantable" border="0" cellspacing='0' style="margin-left:5%;width:700px">
+
+    <div id="scanres"></div>
+
+    <p>
+      <br/>
+      <input style="vertical-align:bottom;float:left;margin-left:20px" type="button" value="< Device Setup" onclick="document.location.href='device_settings.html'" />
+    </p>
+
+    <!-- This DIV allows the main part of the page to be disabled with a 'dimmed' effect, and displays a message center-screen -->
+    <div id="dim" style="display: none; background: #000;position: fixed; left: 0; top: 0;width: 100%; height: 100%;opacity: .80;z-index: 9999;text-align: center">
+      <h2 id="conndisp" style="color:#ff0000;position:relative;top:50%"></h2>
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,60 @@
+From 30d600a7c6b401219843a206c797bab993d1e8f0 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Mon, 22 Oct 2012 11:18:52 +1100
+Subject: [PATCH 09/19] Fix libswd configure
+
+---
+ ...re.ac-to-work-with-older-versions-of-auto.patch | 25 ++++++++++++++++++++++
+ bootstrap                                          |  4 ++++
+ 2 files changed, 29 insertions(+)
+ create mode 100644 0020-libSWD-Fix-configure.ac-to-work-with-older-versions-of-auto.patch
+
+diff --git a/0020-libSWD-Fix-configure.ac-to-work-with-older-versions-of-auto.patch b/0020-libSWD-Fix-configure.ac-to-work-with-older-versions-of-auto.patch
+new file mode 100644
+index 0000000..f716917
+--- /dev/null
++++ b/0020-libSWD-Fix-configure.ac-to-work-with-older-versions-of-auto.patch
+@@ -0,0 +1,25 @@
++From ab64f2ac8a6b0f68008067bb3d01cf246135b70d Mon Sep 17 00:00:00 2001
++From: Evan Hunter <ehunter@broadcom.com>
++Date: Mon, 22 Oct 2012 10:48:16 +1100
++Subject: [PATCH] Fix configure.ac to work with older versions of autoconf
++
++---
++ configure.ac | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/configure.ac b/configure.ac
++index 9e6ae79..97240b1 100644
++--- a/configure.ac
+++++ b/configure.ac
++@@ -8,7 +8,7 @@ DX_PS_FEATURE(OFF)
++ DX_MAN_FEATURE(OFF)
++ DX_INIT_DOXYGEN($PACKAGE_STRING)
++ LT_INIT
++-AM_PROG_AR
+++m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
++ AC_PROG_CC
++ AC_CONFIG_HEADERS([config.h])
++ AC_CONFIG_FILES([Makefile src/Makefile])
++-- 
++1.7.11.msysgit.1
++
+diff --git a/bootstrap b/bootstrap
+index 826f48f..1854beb 100755
+--- a/bootstrap
++++ b/bootstrap
+@@ -33,6 +33,10 @@ else
+     exit 1
+ fi
+ 
++cd submodules/libswd
++git am ../../0020-libSWD-Fix-configure.ac-to-work-with-older-versions-of-auto.patch
++cd ../..
++
+ # Bootstrap the autotools (create Makefie.in files and configure script).
+ (
+ set -x
+-- 
+1.8.0.msysgit.0
+

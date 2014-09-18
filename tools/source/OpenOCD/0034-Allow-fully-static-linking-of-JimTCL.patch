@@ -1,0 +1,79 @@
+From a40f8a61f65aa450e1e9e8f2495f7a5421f88677 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Thu, 22 Aug 2013 12:13:40 +1000
+Subject: [PATCH] Allow fully static linking of JimTCL
+
+---
+ auto.def   | 5 +++++
+ jim-aio.c  | 4 +++-
+ jim-load.c | 2 +-
+ 3 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/auto.def b/auto.def
+index fdea132..a3bd957 100644
+--- a/auto.def
++++ b/auto.def
+@@ -13,6 +13,7 @@ options {
+     ipv6            => "include ipv6 support in the aio extension"
+     maintainer      => {enable the [debug] command and JimPanic}
+     full            => "Enable some optional features: ipv6, math, utf8, binary, oo, tree"
++    linkstatic      => "Remove functions that cannot be linked statically"
+     with-jim-shared shared => "build a shared library instead of a static library"
+     jim-regexp=1    => "prefer POSIX regex if over the the built-in (Tcl-compatible) regex"
+     docs=1          => "don't build or install the documentation"
+@@ -171,6 +172,10 @@ if {[opt-bool ipv6 full]} {
+     msg-result "Enabling IPv6"
+     define JIM_IPV6
+ }
++if {[opt-bool linkstatic]} {
++    msg-result "Enabling Static linking"
++    define JIM_STATIC
++}
+ if {[opt-bool lineedit full]} {
+     if {([cc-check-includes termios.h] && [have-feature isatty]) || [have-feature winconsole]} {
+         msg-result "Enabling line editing"
+diff --git a/jim-aio.c b/jim-aio.c
+index 9f3dcc8..669876a 100644
+--- a/jim-aio.c
++++ b/jim-aio.c
+@@ -128,7 +128,7 @@ static int JimMakeChannel(Jim_Interp *interp, FILE *fh, int fd, Jim_Obj *filenam
+ #if !defined(JIM_ANSIC) && !defined(JIM_BOOTSTRAP)
+ static int JimParseIPv6Address(Jim_Interp *interp, const char *hostport, union sockaddr_any *sa, int *salen)
+ {
+-#if IPV6
++#if IPV6 && !defined(JIM_STATIC)
+     /*
+      * An IPv6 addr/port looks like:
+      *   [::1]
+@@ -218,6 +218,7 @@ static int JimParseIpAddress(Jim_Interp *interp, const char *hostport, union soc
+     }
+ 
+     {
++#if !defined(JIM_STATIC)
+ #ifdef HAVE_GETADDRINFO
+         struct addrinfo req;
+         struct addrinfo *ai;
+@@ -246,6 +247,7 @@ static int JimParseIpAddress(Jim_Interp *interp, const char *hostport, union soc
+             }
+         }
+ #endif
++#endif /* if !defined(JIM_STATIC) */
+ 
+         sa->sin.sin_port = htons(atoi(stport));
+     }
+diff --git a/jim-load.c b/jim-load.c
+index f9255dc..51f50b0 100644
+--- a/jim-load.c
++++ b/jim-load.c
+@@ -7,7 +7,7 @@
+  * Dynamic libraries support (WIN32 not supported)
+  * ---------------------------------------------------------------------------*/
+ 
+-#if defined(HAVE_DLOPEN) || defined(HAVE_DLOPEN_COMPAT)
++#if (defined(HAVE_DLOPEN) || defined(HAVE_DLOPEN_COMPAT)) && !defined(JIM_STATIC)
+ 
+ #ifdef HAVE_DLFCN_H
+ #include <dlfcn.h>
+-- 
+1.8.0.msysgit.0
+

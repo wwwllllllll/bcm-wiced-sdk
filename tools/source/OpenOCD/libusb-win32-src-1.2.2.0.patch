@@ -1,0 +1,31 @@
+*** Makefile	Mon Sep 13 10:57:24 2010
+--- Makefile_new	Wed Mar 13 09:50:02 2013
+***************
+*** 61,66 ****
+--- 61,67 ----
+  TARGET = libusb
+  DLL_TARGET = $(TARGET)0
+  LIB_TARGET = $(TARGET)
++ STATIC_LIB_TARGET = $(TARGET)
+  DRIVER_TARGET = $(TARGET)0.sys
+  INSTALL_DIR = /usr
+  VPATH = .:./src:./src/driver:./tests
+***************
+*** 141,146 ****
+--- 142,157 ----
+  %.2.o: %.rc
+  	$(WINDRES) $(CPPFLAGS) $(WINDRES_FLAGS) $< -o $@
+  
++ static_lib: STATIC_ARFLAGS = -rcs
++ static_lib: STATIC_CFLAGS = $(CFLAGS) -DLOG_APPNAME=\"$(STATIC_TARGET)-a\" -DTARGETTYPE=STATICLINK
++ static_lib: $(STATIC_LIB_TARGET).a
++ 
++ $(STATIC_LIB_TARGET).a: usb.22.o error.22.o descriptors.22.o windows.22.o install.22.o registry.22.o resource.2.o
++ 	$(AR) $(STATIC_ARFLAGS) $@ $^
++ 
++ %.22.o: %.c libusb_driver.h driver_api.h error.h
++ 	$(CC) $(STATIC_CFLAGS) -c $< -o $@ $(CPPFLAGS) $(INCLUDES) 
++ 
+  .PHONY: filter
+  filter: FILTER_CFLAGS = $(CFLAGS) -DLOG_APPNAME=\"install-filter\" -DTARGETTYPE=PROGRAMconsole -DLOG_STYLE_SHORT
+  filter: FILTER_LDFLAGS = -s -L. -lgdi32 -luser32 -lcfgmgr32 -lsetupapi

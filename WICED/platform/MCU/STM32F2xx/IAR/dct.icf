@@ -1,0 +1,81 @@
+/*
+ * Copyright 2014, Broadcom Corporation
+ * All Rights Reserved.
+ *
+ * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
+ * the contents of this file may not be disclosed to third parties, copied
+ * or duplicated in any form, in whole or in part, without the prior
+ * written permission of Broadcom Corporation.
+ */
+
+/* Define memory symbols */
+
+/* Define memory symbols */
+
+/* Boot-loader vectors */
+/* bootloader interrupt vectors start at 0x08000000 and ends at address 0x08000200 */
+define symbol __Bootloader_vector_start           = 0x08000000;
+define symbol __Bootloader_vector_length          = 512;
+define symbol __Bootloader_vector_end             = (__Bootloader_vector_start + __Bootloader_vector_length);
+
+
+/* Bootloader APIs */
+/* starts at address 0x08000200 ends at address 0x08000400 */
+define symbol __Bootloader_apis_start           = __Bootloader_vector_end;
+define symbol __Bootloader_apis_length          = 512;
+define symbol __Bootloader_apis_end                 = (__Bootloader_apis_start + __Bootloader_apis_length);
+
+
+/* Bootloader code will also be placed at specific location in memory */
+/* starts at address 0x08000400 ends at address 0x08004000 */
+define symbol __Bootloader_code_start            = __Bootloader_apis_end;
+define symbol __Bootloader_code_length           = 0x3c00; /* 15 k */
+define symbol __Bootloader_code_end                 = (__Bootloader_code_start + __Bootloader_code_length);
+
+
+/* DCT1 symbols */
+/* starts at address 0x08004000 ends at address 0x08008000 */
+define symbol __DCT1_start                        = __Bootloader_code_end;
+define symbol __DCT1_length                       = 0x4000; /* 16 k */
+define symbol __DCT1_end                         = (__DCT1_start + __DCT1_length);
+
+
+/* DCT2 symbols */
+/* starts at address 0x08008000 ends at address 0x0800C000 */
+define symbol __DCT2_start                        = __DCT1_end;
+define symbol __DCT2_length                       = 0x4000; /* 16 k */
+define symbol __DCT2_end                         = (__DCT2_start + __DCT2_length);
+
+
+/* Application header symbols */
+/* starts at address 0x0800C000 ends at address 0x0800C200  */
+define symbol __App_header_start                    = __DCT2_end;
+define symbol __App_header_length                   = 512;
+define symbol __App_header_end                    = (__App_header_start + __App_header_length);
+
+
+/* Application code symbols */
+/* starts at address 0x0800C200 ends at address 0x08100200  */
+define symbol __App_start                        = __App_header_end;
+define symbol __App_length                       = 976k;
+define symbol __App_end                            = (__App_start + __App_length);
+
+
+/* SRAM memory location */
+/* starts at address 0x20000000 ends at address 0x20020000 */
+define symbol __SRAM_start                        = 0x20000000;
+define symbol __SRAM_length                       = 128K;
+define symbol __SRAM_end                        = (__SRAM_start + __SRAM_length);
+
+
+/* define memory regions */
+define memory mem with size = 4G;
+define region DCT_region   = mem:[from __DCT1_start   to __DCT1_end];
+
+keep{ section initial_dct_section };
+place in DCT_region{ readonly section initial_dct_section,
+                     readonly section .text}; /* !!!!! take into account */
+
+
+define symbol dct_full_size_loc = __DCT1_length;
+export symbol dct_full_size_loc;

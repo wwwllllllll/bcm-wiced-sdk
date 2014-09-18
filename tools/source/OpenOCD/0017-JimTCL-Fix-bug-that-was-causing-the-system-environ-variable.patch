@@ -1,0 +1,26 @@
+From ecb140e6bdeaaa872ff1ff13794b60b9bddcd503 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Mon, 8 Oct 2012 15:32:53 +1100
+Subject: [PATCH 2/2] Fix bug that was causing the system "environ" variable
+ to be freed, which caused mayhem in stdio etc.
+
+---
+ jim-exec.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/jim-exec.c b/jim-exec.c
+index e22c220..14f6e20 100644
+--- a/jim-exec.c
++++ b/jim-exec.c
+@@ -1392,7 +1392,7 @@ static char **JimSaveEnv(char **env)
+ 
+ static void JimRestoreEnv(char **env)
+ {
+-    JimFreeEnv(env, NULL);
++    JimFreeEnv(env, Jim_GetEnviron());
+ }
+ 
+ static Jim_Obj *
+-- 
+1.7.11.msysgit.1
+

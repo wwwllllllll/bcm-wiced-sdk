@@ -1,0 +1,27 @@
+From 97fe35a26c57acbef0ac17019cb066672bf46951 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Fri, 28 Sep 2012 20:13:23 +1000
+Subject: [PATCH 06/19] Change trace command to avoid clash with TCL trace
+ command
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/target/trace.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/target/trace.c b/src/target/trace.c
+index 9c2d369..f5f86e3 100644
+--- a/src/target/trace.c
++++ b/src/target/trace.c
+@@ -162,7 +162,7 @@ static const struct command_registration trace_exec_command_handlers[] = {
+ };
+ static const struct command_registration trace_command_handlers[] = {
+ 	{
+-		.name = "trace",
++		.name = "oocd_trace",
+ 		.mode = COMMAND_EXEC,
+ 		.help = "trace command group",
+ 		.usage = "",
+-- 
+1.8.0.msysgit.0
+

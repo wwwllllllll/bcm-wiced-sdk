@@ -1,0 +1,140 @@
+From 061b864fb78f4236583f07366a7013ba999fc4e7 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Thu, 30 May 2013 17:24:13 +1000
+Subject: [PATCH 17/19] Temporary fix of mem_ap_read_buf_u32_swd
+
+---
+ src/target/arm_adi_v5.c | 89 +++++++++++++++++++++++++++----------------------
+ 1 file changed, 50 insertions(+), 39 deletions(-)
+
+diff --git a/src/target/arm_adi_v5.c b/src/target/arm_adi_v5.c
+index 656982c..95e5b13 100644
+--- a/src/target/arm_adi_v5.c
++++ b/src/target/arm_adi_v5.c
+@@ -640,57 +640,68 @@ int mem_ap_read_buf_u32_jtag(struct adiv5_dap *dap, uint8_t *buffer,
+  *	words must be readable by the currently selected MEM-AP.
+  */
+ int mem_ap_read_buf_u32_swd(struct adiv5_dap *dap, uint8_t *buffer,
+-		int count, uint32_t address, bool addr_incr)
++		int count_in, uint32_t address, bool addr_incr)
+ {
+ 	int i, readcount, retval = ERROR_OK;
+ 	uint32_t invalue, adr = address;
+ 	uint8_t *pBuffer = buffer;
++	int x = count_in;
++	int64_t start = timeval_ms();
++//	if (count > 4)
++//		LOG_ERROR("AT THE MOMENT ONLY ONE WORD-PER-READ, SORRY :-)");
++	int count;
++	while ( count_in > 0 )
++	{
++		count = ((count_in-1) % 4) +1;
+ 
+-	if (count > 4)
+-		LOG_ERROR("AT THE MOMENT ONLY ONE WORD-PER-READ, SORRY :-)");
+-
+-	retval = dap_setup_accessport(dap, CSW_32BIT, address);
+-	if (retval != ERROR_OK) {
+-		LOG_ERROR("AP Setup enqueue failed!");
+-		return retval;
+-	}
+-
+-	retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
+-	if (retval != ERROR_OK) {
+-		LOG_ERROR("AP Read Enqueue failed!");
+-		return retval;
+-	}
++		retval = dap_setup_accessport(dap, CSW_32BIT, address);
++		if (retval != ERROR_OK) {
++			LOG_ERROR("AP Setup enqueue failed!");
++			return retval;
++		}
+ 
+-	retval = dap_run(dap);
+-	if (retval != ERROR_OK) {
+-		LOG_ERROR("AP Read queue flush failed!");
+-		return retval;
+-	}
++		retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
++		if (retval != ERROR_OK) {
++			LOG_ERROR("AP Read Enqueue failed!");
++			return retval;
++		}
+ 
+-	int nbytes;
+-	nbytes = MIN((count << 1), 4);
++		retval = dap_run(dap);
++		if (retval != ERROR_OK) {
++			LOG_ERROR("AP Read queue flush failed!");
++			return retval;
++		}
+ 
+-	for (i = 0; i < nbytes; i++) {
+-		*((uint8_t *)buffer) = (invalue >> 8 * (address & 0x3));
+-		buffer++;
+-		address++;
+-	}
++		int nbytes;
++		nbytes = MIN((count << 1), 4);
+ 
+-	/* if we have an unaligned access - reorder data */
+-	if (adr & 0x3u) {
+-		for (readcount = 0; readcount < count; readcount++) {
+-			uint32_t data;
+-			memcpy(&data, pBuffer, sizeof(uint32_t));
++		uint8_t *tmppBuffer = pBuffer;
++		for (i = 0; i < nbytes; i++) {
++			*((uint8_t *)tmppBuffer) = (invalue >> 8 * (address & 0x3));
++			tmppBuffer++;
++			address++;
++		}
+ 
+-			for (i = 0; i < 4; i++) {
+-				*((uint8_t *)pBuffer) =
+-						(data >> 8 * (adr & 0x3));
+-				pBuffer++;
+-				adr++;
++		/* if we have an unaligned access - reorder data */
++		if (adr & 0x3u) {
++			for (readcount = 0; readcount < count; readcount++) {
++				uint32_t data;
++				memcpy(&data, pBuffer, sizeof(uint32_t));
++
++				for (i = 0; i < 4; i++) {
++					*((uint8_t *)pBuffer) =
++							(data >> 8 * (adr & 0x3));
++					pBuffer++;
++					adr++;
++				}
+ 			}
+ 		}
++		count_in -= count;
++		pBuffer += count;
+ 	}
+ 
++	int64_t end = timeval_ms();
++	 printf("read %dms, %d bytes\n", (int)(end-start), x );
+ 	return ERROR_OK;
+ }
+ 
+@@ -1211,7 +1222,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
+ 	 * Writing zeros to SELECT and/or CTRLSTAT produce ACK=FAULT, why???
+ 	 * Make sure SELECT has known values, zero APSEL, APBANKSEL, CTRLSEL.
+ 	 */
+-
++#if 0
+ 	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+@@ -1236,7 +1247,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
+ 	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+-
++#endif
+ 	/* We want to power on the core and debug, also reset them in case they were active. */
+ 	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
+ 	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
+-- 
+1.8.0.msysgit.0
+

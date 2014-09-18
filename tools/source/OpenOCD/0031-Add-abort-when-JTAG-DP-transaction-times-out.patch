@@ -1,0 +1,50 @@
+From 5fe84853547d97ce1cc65a19ef627cc87cfd02f1 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Thu, 17 Jan 2013 18:23:55 +0800
+Subject: [PATCH] Add abort when JTAG-DP transaction times out. Fixes system
+ hang for devices that don't ignore transactions to bad
+ addresses.
+
+Change-Id: Ia98344d7efc12951ef79dbc82b8f792b70a22cee
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/target/adi_v5_jtag.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/src/target/adi_v5_jtag.c b/src/target/adi_v5_jtag.c
+index 9f37bd5..028247f 100644
+--- a/src/target/adi_v5_jtag.c
++++ b/src/target/adi_v5_jtag.c
+@@ -50,6 +50,8 @@
+ #define JTAG_ACK_OK_FAULT	0x2
+ #define JTAG_ACK_WAIT		0x1
+ 
++static int jtag_ap_q_abort(struct adiv5_dap *dap, uint8_t *ack);
++
+ /***************************************************************************
+  *
+  * DPACC and APACC scanchain access through JTAG-DP (or SWJ-DP)
+@@ -235,12 +237,16 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
+ 		while (dap->ack != JTAG_ACK_OK_FAULT) {
+ 			if (dap->ack == JTAG_ACK_WAIT) {
+ 				if ((timeval_ms()-then) > 1000) {
+-					/* NOTE:  this would be a good spot
+-					 * to use JTAG_DP_ABORT.
+-					 */
+ 					LOG_WARNING("Timeout (1000ms) waiting "
+ 						"for ACK=OK/FAULT "
+-						"in JTAG-DP transaction");
++						"in JTAG-DP transaction - aborting");
++
++					uint8_t ack;
++					int abort_ret = jtag_ap_q_abort(dap, &ack);
++
++					if (abort_ret != 0)
++						LOG_WARNING("Abort failed : return=%d ack=%d", abort_ret, ack);
++
+ 					return ERROR_JTAG_DEVICE_ERROR;
+ 				}
+ 			} else {
+-- 
+1.8.0.msysgit.0
+

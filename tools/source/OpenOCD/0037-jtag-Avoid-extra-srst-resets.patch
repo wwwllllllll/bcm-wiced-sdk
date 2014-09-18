@@ -1,0 +1,33 @@
+From 55361e5a04c9e18e8acc4ef12f4d2403f15421d3 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Thu, 30 May 2013 17:20:10 +1000
+Subject: [PATCH 16/19] jtag: Avoid extra srst resets
+
+---
+ src/jtag/core.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/jtag/core.c b/src/jtag/core.c
+index 4ad0c3a..413ab3b 100644
+--- a/src/jtag/core.c
++++ b/src/jtag/core.c
+@@ -1548,12 +1548,15 @@ int jtag_init_reset(struct command_context *cmd_ctx)
+ 	 * REVISIT once Tcl code can read the reset_config modes, this won't
+ 	 * need to be a C routine at all...
+ 	 */
+-	jtag_add_reset(1, 0);	/* TAP_RESET, using TMS+TCK or TRST */
+ 	if (jtag_reset_config & RESET_HAS_SRST) {
+ 		jtag_add_reset(1, 1);
+ 		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0)
+ 			jtag_add_reset(0, 1);
+ 	}
++	else
++	{
++		jtag_add_reset(1, 0);	/* TAP_RESET, using TMS+TCK or TRST */
++	}
+ 
+ 	/* some targets enable us to connect with srst asserted */
+ 	if (jtag_reset_config & RESET_CNCT_UNDER_SRST) {
+-- 
+1.8.0.msysgit.0
+

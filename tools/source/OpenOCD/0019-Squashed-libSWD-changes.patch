@@ -1,0 +1,3607 @@
+From 4997d6db31ea6e1a059d1cdc80abc322b8e452b7 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Mon, 22 Oct 2012 11:41:11 +1100
+Subject: [PATCH 08/19] Squashed libSWD changes:
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+INTERFACE: Adding new place for generic interface driver and routines in src/interface. Adding interface signal definitions and routines. Adding bitbang functionality that works on signals.
+
+JTAG_INTERFACE: Extended jtag_interface API with additional methods to allow other transports reusing existing code. In future this will be moved out to generic interface driver. transfer() for generic read/write bitstream from/to char array. bitbang() for generic interface signal read/write. *signal singly-linked-list for dynamic interface signal list representation. *target may be used to represent active target that interface is connected to.
+
+INTERFACE: Integrating generic interface from src/interface with autotools and build system. Resulting src/interface/libinterface.la is now part of libopenocd.la.
+
+ADAPTER: Fixed transport selection mechanism to support transports other than jtag (if defined).
+
+ADAPTER: Implemented TCL support for interface signal management (interface_signal command that supports add/del/list parameters).
+
+OPENOCD: Register bitbang TCL command.
+
+OPENOCD: Renamed ambiguous main2() into openocd_thread() to show possible solution for thread support in future.
+
+FT2232_DRIVER: Added bitbang() implementation backend to drive signals on FT2*32 chip.
+
+INTERFACE/BITBANG: Fixed strnstr issue, command is now available only after 'init' as it should be, replaced hardcode with define.
+
+INTERFACE/SIGNAL: Added "find" option to tcl command interface_signal. Fixed "del" command. Added syntax check. Minor backend cosmetics.
+
+BOOTSTRAP: Moved git submodule routines before autotools are executed. Added comments.w
+
+SUBMODULE: Added libswd submodule.
+
+TRANSPORT: Added code comments and transport subsystem explanations, minor code updates.
+
+SUBMODULE/LIBSWD: Integrated (conditional) libswd build into source tree configure and build process (just as JimTCL) in configure.in and Makefile.am. By default build is enabled, using switch '--disable-internal-libswd' build can be disabled and use external one. Added compilers flags to use internal libswd source tree in common.mk.
+
+ARM_ADI_V5: Extended adiv5_dap with void *ctx pointer to store transport/operation specific data (this will hold swd_ctx).
+
+ARM_ADI_V5: DAP initialization will select and initialize transport and its function set (functions to talk with DAP using JTAG or SWD). Minor description updates.
+
+TCL/INTERFACE: Added configuration script kt-link-swd.cfg for KT-LINK working in SWD mode.
+
+FT2232: Added test implementation for transfer() function transfering bits in/out of the char array from/to the interface pins.
+
+Fixed linking with innternal/external libswd.
+
+FT2232/BITBANG: Added layout specific bitbang_deny paramater that will block bitbaning selected signals that could damage interface hardware.
+
+FT2232: LT-LINK interface layout initialization routines: renamed existing layout to be ktlink_jtag, added ktlink_swd layout and initialization routine. Updated existing configuration file kt-link.cfg to match ktlink_jtag layout.
+
+TRANSPORT/SWD: Added experimental swd bridge between openocd's arm_adi_v5 and libswd. Not yet functional!
+
+TRANSPORT: Supported transport names lists are now declared by src/transport.h and defined by src/transport.c. Multiple definitions of 'jtag_only' were removed and code was updated to use 'oocd_transport_jtag_only' (also updated headers if necessary) as defined by src/transport.
+
+INTERFACE/FT2232: 'ft2232_swd' interface was created and added to the list of supported interfaces (as for now it is in the list jtag_interfaces, maybe should be separated or the interface list renamed into more general).
+
+TRANSPORT/TARGET: Updated source tree to build and use new swd infrastructure from src/transport not jtag/swd.h nor target/adi_v5_swd.c.
+
+BOOTSTRAP/SUBMODULES: Minor fix for libswd submodule. Placed git init/update in at the top of bootstrap file.
+
+INTERFACE: Minor update in debug messages to be less ambiguous.
+
+TCL/IF: Added some useful signals to kt-link-swd.cfg
+
+IF: Minor update to interface debug messages.
+
+JTAG/ADP: Minor debug message update.
+
+TRSPT: Null transport_list pointer atcreation.
+
+IF/TRANSFER: interface->transfer() function is now fixed and verified to work correctly. Updated prototype to support LSB/MSB-first shift direction.
+
+TRANSPORT/SWD: Driver bridge between OpenOCD and LibSWD if now functional and verified. Transport select does not operate on interface anymore, just prepares memory and configures transport, because signals are not yet definet at this point and interface is not initialized. Transport init operates on interface and reads out IDCODE by default.
+
+TARGET/ARMADIV5: DAP operations are set to SWD if transport name is swd.
+
+HELPER/TYPES: Removed bool definition as it broke build on my bsd box.
+
+TRANSPORT/SWD: Added missing header swd_libswd_drv_openocd.h.
+
+submodule/libswd: updated to use fresh libswd commits.
+
+Another libswd submodule update.
+
+transport/swd: fixed swd context pointer, minor changes.
+
+transport/libswd_drv: swd_log_level_inherit() now returns value of resulting loglevel inherited from openocd.
+
+transport/swd: renamed swd.c into swd_core.c, Makefile.am update.
+
+transport/swd: Introduced swd_tcl.c, a TCL interface for SWD. Commands are registered at transport select. Available commands are 'newdap' currently pointing to jtag_newtap, 'loglevel' that can show/set/inherit loglevel for easier log analysis during development.
+
+transport/swd: SWD Context initialization is now made by transport_init(), after the DAP is created, DAP also holds the swdctx. transport_select() now only marks transport type and registers swd transport commands. Target system now consists of TAP (that is the test access port of the device), DAP (that is the debug access port of the arm system) and the TARGET+FLASH itself that allow to perform operations on the target architecture + memory. Interface and Transport connects to the TAP and allows operations on the TARGET using DAP.
+
+transport/swd: We stay with the name TAP as the 'plug' into DAP.
+
+transport/swd: Changes in logging mechanism: 1. LogLevel is inherited during transport initialization and only if context is created. 2. swd_log() use vprintf as using openocd logging mechanisms caused program crash by va recurrence. 3. Fixed tcl interface to use/update loglevel configuration parameter from swdctx stored within dap.
+
+transport/swd: Minor fix - messages automatic newline termination.
+
+transport/swd: In libswd log messages contain \n as required, so internal swd_log() does not produce endline anymore.
+
+target/arm_adi_v5.c: experimental change in mem_ap_read_buf_u32() to work with SWD and become JTAG independent. This may break ARM target support for JTAG. Original function was renamed to mem_ap_read_buf_u32_old().
+
+Updated LibSWD submodule to match repository updates.
+
+swd/libswd_drv: fixed pointers output in debug strings that produced errors on 64bit machines, now use %p.
+
+SWD: swd tcl commands are now available from CLI and initialized at program startup with other commands.
+
+submodules/libswd: updated to use libswd-0.2 release/branch.
+
+submodules/libswd: openocd's fork master now use libswd master. This will improve development of libswd master.
+
+bootstrap also bootstraps submodules/libswd if necessary (when no configure file exist for that submodule, so git/master is used, not a release).
+
+Added helper script for faster configure execution on my freebsd platform. Will be removed when job is done.
+
+transport/swd_drv: Fixed header issues causing linux build problems. Thanks to PrzemysÅ‚aw WÄ™grzyn for pointing this out :-)
+
+transport/swd: unused variables and headers build fixes for linux ubuntu 11.04. Thanks to Przemyslaw Wegrzyn for pointing this out :-)
+
+driver/ft2232: Added raw-wire level debug of data read/written by ft2232. This might help debug bugs in drivers ;-)
+
+transport/swd_drv: Fixed critical issue with bitswapping of transmitted data. ACK and DATA packets are always transmitted LSb-First, no matter how ARM draws its fuckin timing diagrams!
+
+Fixed bad SWD_ACK values definitions.
+
+Added simple pointer test program to testing/pointertest.c.
+
+transport/swd: Read operation forces queue flush, as multiple operations cannot be queued up and fulshed at later time because OpenOCD use single pointers for data return from function and it is impossible to read out dynamically allocated memory this way in C.
+
+transport/swd: Added SWD_LOGLEVEL_PAYLOAD to be inherited when Debug level is set in OpenOCD.
+
+target/arm_adi_v5: Added SW-DP style sticky error flag hanfling in ahbap_debugport_init().
+
+target/arm_adi_v5.c: Fixed compiler warnings (-Werror=uninitialized) producing compilation errors on ubuntu linux 11.10.
+
+transport/swd_drv: Fixed [-Werror=unused-but-set-variable] build error on ubuntu 11.10.
+
+TODO scratchpad to remember what needs to be done.
+
+submodule/libswd: updated to use recent libswd git master.
+
+submodule/libswd updated again.
+
+target/arm_adi_v5: ahbap_debugport_init() returns error when both CDBGPWRUPACK|CSYSPWRUPACK flags are not set after read retries - this may indicate communication failure.
+
+transport/swd: Fixed critical bugs in AP/DP read code: 1. double pointer did not return data where is should, 2. calling reads with NULL pointer caused program crash.
+
+transport: Transport init now fills jtag_interface->transport value, so both SWD and JTAG work again.
+
+submodules/libswd: Updated submodules/libswd to use updated master.
+
+target/arm_adi_v5: Split mem_ap_read_buf_u32 into mem_ap_read_buf_u32_jtag() the old one and mem_ap_read_buf_u32_swd() for swd targets. This is sill dirty and unworking code.
+
+Minor change in sticky bitnames of ABORT register.
+
+transport/swd_core: Implemented oocd_swd_queue_ap_abort() that sets DAPABORT and all sticky error flags (do we need to clear them anyway even after ABORT?).
+
+target/arm_adi: imagine that this mess worksgit add arm_adi_v5.c now we need to get some conclustions out of it because arm documentation again is a mess.
+
+target/arm_adi: Cleaned up the mem_ap_read_buf_u32_swd(), found practical way to read from MEM-AP with SWD, slightly different than specified in ARM documentation.
+
+interface: minor updates in debug messages.
+
+submodules/libswd: updated to use latest libswd git head.
+
+Minor update of date in file header.
+
+EXPERIMENTAL - many read operations can be enqueued and flushed at once. Target read functions should now work with double pointers in order to return data on flush and not produce flush on read.
+
+EXPERIMENTAL! Introducing infrastructure for automatic retry/error handling by libswd internals. Will change and might not work as expected, feel free to test and feedback results :-) The goal is to have enqueued by openocd operations executed with no need for error handling (which is impossible on multiple operations enqueued and also not supported by openocd anyway) just as they were executed correctly for the first time. Error handling, retries, communication verification, etc should be done by underlying transport library (libswd in this case). swdctx->config.trunccmdqonerror=0 will result in untouched queue on error response from target (before the queue was truncated to make room for manual error handling). work in progres...
+
+Updated submodules/libswd to match current git head.
+
+updated submodules/libswd to use fresh git head.
+
+Updated libswd submodule to match code that can already access DP, AP and MEM-AP in EXECUTE mode.
+
+DRV/FT2232: Updated ft2232_transfer() function to pack bitstream into bytestream (and use different FT MPSSE commands) - this dramatically increases performance over USB link (8x).
+
+TARGET/ARM_ADI_V5: Updated mem_ap_read_buf_u32_swd() to match current libswd_dap functionalities. There is no advanced queue mechanism, but when executing commands directly it works and it is sufficient to start general SWD testing in OpenOCD. Performance will be incresed in future with smarter mechanisms if possible :-)
+
+TRANSPORT/SWD: Updated SWD core functions to match current LibSWD API.
+
+TRANSPORT/SWD_DRV: Minor fixes in openocd-libswd driver code.
+
+updated submodule/libswd to use last head.
+
+SWD/CORE: Fixed DP/AP READ pointer bugs that prevented real value being returned by a (double) reference.
+
+TARGET/ARM_ADI_V5: Fixed mem_ap_read_buf_u32_swd() so it now can read single u32 with underlying LibSWD infrastructure. Larger blocks read and using TAR autoincrement to be done yet, but the code works with flash programming.
+
+submobules/libswd update
+
+Added contrib/helloworlds/arm/arm-cortex-m3/stm32primer2 toggle.bin and toggle.hex to test program flash write into stm32primer2. These simple programs will blink LCD backlight to show that device and programming works.
+
+Fixed src/target/Makefile.am with nobase_dist_pkgdata_DATA instead nobase_dist_pkglib_DATA for proper bootstrap with new autotools.
+
+Updated submodules/libswd.
+
+Updated submodules/libswd to use libswd-0.4 release as stable reference to further works.
+
+Change-Id: I39182e18d37bbd087f7d653476668f2d741a005f
+
+Conflicts:
+	configure.ac
+	src/Makefile.am
+	src/jtag/adapter.c
+	src/jtag/drivers/ft2232.c
+	src/jtag/interface.h
+	src/openocd.c
+	src/target/Makefile.am
+	src/target/adi_v5_jtag.c
+	src/target/arm_adi_v5.c
+	src/target/arm_adi_v5.h
+	src/transport/transport.c
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ .gitmodules                            |   3 +
+ Makefile.am                            |   8 +-
+ TODO                                   |   8 +
+ bootstrap                              |  50 +++--
+ common.mk                              |   5 +
+ configure.ac                           |  15 ++
+ src/Makefile.am                        |   8 +
+ src/interface/Makefile.am              |  27 +++
+ src/interface/bitbang.c                | 157 +++++++++++++++
+ src/interface/bitbang.h                |  30 +++
+ src/interface/interface.c              | 216 ++++++++++++++++++++
+ src/interface/interface.h              |  52 +++++
+ src/jtag/adapter.c                     |  98 +++++++++
+ src/jtag/core.c                        |   2 +-
+ src/jtag/drivers/ft2232.c              | 306 +++++++++++++++++++++++++++-
+ src/jtag/interface.h                   |  41 +++-
+ src/jtag/interfaces.c                  |  12 +-
+ src/openocd.c                          |   3 +
+ src/target/Makefile.am                 |   1 -
+ src/target/adi_v5_swd.c                | 357 ---------------------------------
+ src/target/arm_adi_v5.c                | 151 +++++++++++++-
+ src/target/arm_adi_v5.h                |  28 ++-
+ src/transport/Makefile.am              |  11 +-
+ src/transport/swd.h                    |  53 +++++
+ src/transport/swd_core.c               | 315 +++++++++++++++++++++++++++++
+ src/transport/swd_libswd_drv_openocd.c | 306 ++++++++++++++++++++++++++++
+ src/transport/swd_libswd_drv_openocd.h |  38 ++++
+ src/transport/swd_tcl.c                | 112 +++++++++++
+ src/transport/transport.c              | 111 ++++++----
+ src/transport/transport.h              |  45 ++++-
+ submodules/README                      |   2 +
+ submodules/libswd                      |   1 +
+ tcl/interface/kt-link-swd.cfg          |  18 ++
+ tcl/interface/kt-link.cfg              |   2 +-
+ 34 files changed, 2123 insertions(+), 469 deletions(-)
+ create mode 100644 src/interface/Makefile.am
+ create mode 100644 src/interface/bitbang.c
+ create mode 100644 src/interface/bitbang.h
+ create mode 100644 src/interface/interface.c
+ create mode 100644 src/interface/interface.h
+ delete mode 100644 src/target/adi_v5_swd.c
+ create mode 100644 src/transport/swd.h
+ create mode 100644 src/transport/swd_core.c
+ create mode 100644 src/transport/swd_libswd_drv_openocd.c
+ create mode 100644 src/transport/swd_libswd_drv_openocd.h
+ create mode 100644 src/transport/swd_tcl.c
+ create mode 100644 submodules/README
+ create mode 160000 submodules/libswd
+ create mode 100644 tcl/interface/kt-link-swd.cfg
+
+diff --git a/.gitmodules b/.gitmodules
+index f23a5d4..6b43505 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -4,3 +4,6 @@
+ [submodule "jimtcl"]
+ 	path = jimtcl
+ 	url = http://repo.or.cz/r/jimtcl.git
++[submodule "submodules/libswd"]
++	path = submodules/libswd
++	url = http://repo.or.cz/r/libswd.git/
+diff --git a/Makefile.am b/Makefile.am
+index 722c373..de6a58f 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -12,10 +12,12 @@ nobase_dist_pkgdata_DATA = \
+ 	contrib/libdcc/README \
+ 	contrib/openocd.udev
+ 
+-if INTERNAL_JIMTCL
+-SUBDIRS = jimtcl
+-else
+ SUBDIRS =
++if INTERNAL_JIMTCL
++SUBDIRS += jimtcl
++endif
++if INTERNAL_LIBSWD
++SUBDIRS += submodules/libswd
+ endif
+ 
+ SUBDIRS += src doc
+diff --git a/TODO b/TODO
+index 8aac157..5c221a4 100644
+--- a/TODO
++++ b/TODO
+@@ -373,6 +373,14 @@ to complete:
+   - Add documentation describing the architecture of each module
+   - Provide more Technical Primers to bootstrap contributor knowledge
+ 
++@section LibSWD Tasks
++
++- Tomek Cedro TODO:
++  - create context for openocd thread started from main
++  - context should contain all structures such as transport target etc
++  - interface should be able to init without target to prepare hardware for init (reset, etc).
++  - transport should have its own context so it should prepare bus before target init
++
+ */
+ /** @file
+ This file contains the @ref thelist page.
+diff --git a/bootstrap b/bootstrap
+index 3b60fc6..826f48f 100755
+--- a/bootstrap
++++ b/bootstrap
+@@ -1,9 +1,29 @@
+ #!/bin/sh
+-# Run the autotools bootstrap sequence to create the configure script
++# Bootstrap script fetches external git submodules and run autotools.
++# Autotools create configure script and prepare Makefiles.
+ 
+ # Abort execution on error
+ set -e
+ 
++# Submodules are external libraries downloaded from remote git repositories.
++# To be build automaticaly with OpenOCD. Do we want to skip submodules?
++if [ "$1" = "nosubmodule" ]; then
++    SKIP_SUBMODULE=1
++elif [ -n "$1" ]; then
++    echo "$0: Illegal argument $1"
++    echo "USAGE: $0 [nosubmodule]"
++    exit 1
++fi
++
++if [ -n "$SKIP_SUBMODULE" ]; then
++    echo "Skipping submodule setup"
++else
++    echo "Setting up submodules"
++    git submodule init
++    git submodule update
++fi
++
++# Check if libtool is installed and what version.
+ if which libtoolize > /dev/null; then
+     libtoolize="libtoolize"
+ elif which glibtoolize >/dev/null; then
+@@ -13,15 +33,7 @@ else
+     exit 1
+ fi
+ 
+-if [ "$1" = "nosubmodule" ]; then
+-    SKIP_SUBMODULE=1
+-elif [ -n "$1" ]; then
+-    echo "$0: Illegal argument $1"
+-    echo "USAGE: $0 [nosubmodule]"
+-    exit 1
+-fi
+-
+-# bootstrap the autotools
++# Bootstrap the autotools (create Makefie.in files and configure script).
+ (
+ set -x
+ aclocal
+@@ -31,13 +43,17 @@ autoheader
+ automake --gnu --add-missing --copy
+ )
+ 
+-if [ -n "$SKIP_SUBMODULE" ]; then
+-    echo "Skipping submodule setup"
+-else
+-    echo "Setting up submodules"
+-    git submodule init
+-    git submodule update
+-fi
++# AM_MAINTAINER_MODE requires --enable-maintainer-mode from everyone using
++# current source snapshots (working from GIT, or some source snapshot, etc)
++# otherwise the documentation will fail to build due to missing version.texi
++
++# Bootstrap the submodules/libswd when working with git master not release
++#if [ ! -f submodules/libswd/configure ]; then
++# echo "Info: submodules/libswd needs to be bootstrapped too..."
++echo "Bootstrapping submodules/libswd..."
++cd submodules/libswd; sh autogen.sh
++#fi
++
+ 
+ echo "Bootstrap complete. Quick build instructions:"
+ echo "./configure ...."
+diff --git a/common.mk b/common.mk
+index 1cb0743..dc9a0d4 100644
+--- a/common.mk
++++ b/common.mk
+@@ -10,3 +10,8 @@ if INTERNAL_JIMTCL
+ AM_CPPFLAGS += -I$(top_srcdir)/jimtcl \
+ 			   -I$(top_builddir)/jimtcl
+ endif
++
++if INTERNAL_LIBSWD
++AM_CPPFLAGS += -I$(top_srcdir)/submodules/libswd/src \
++			-I$(top_builddir)/submodules/libswd/src
++endif
+diff --git a/configure.ac b/configure.ac
+index 1a64747..c2cb7e9 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -486,6 +486,10 @@ AC_ARG_ENABLE([aice],
+   AS_HELP_STRING([--enable-aice], [Enable building support for the Andes JTAG Programmer]),
+   [build_aice=$enableval], [build_aice=no])
+ 
++AC_ARG_ENABLE(internal-libswd,
++  AS_HELP_STRING([--disable-internal-libswd], [Disable building internal libswd]),
++  [use_internal_libswd=$enableval], [use_internal_libswd=yes])
++
+ build_minidriver=no
+ AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
+ if test $build_zy1000 = yes; then
+@@ -836,6 +840,15 @@ if test $build_sysfsgpio = yes; then
+ else
+   AC_DEFINE([BUILD_SYSFSGPIO], [0], [0 if you don't want SysfsGPIO driver.])
+ fi
++
++if test "$use_internal_libswd" = yes; then
++  if test -f "$srcdir/submodules/libswd/configure.ac"; then
++    AX_CONFIG_SUBDIR_OPTION([submodules/libswd])
++  else
++    AC_MSG_ERROR([libswd not found, run git submodule init and git submodule update.])
++  fi
++fi
++
+ #-- Deal with MingW/Cygwin FTD2XX issues
+ 
+ if test $is_win32 = yes; then
+@@ -1238,6 +1251,7 @@ AM_CONDITIONAL([MINIDRIVER], [test $build_minidriver = yes])
+ AM_CONDITIONAL([MINIDRIVER_DUMMY], [test $build_minidriver_dummy = yes])
+ 
+ AM_CONDITIONAL([INTERNAL_JIMTCL], [test $use_internal_jimtcl = yes])
++AM_CONDITIONAL([INTERNAL_LIBSWD], [test $use_internal_libswd = yes])
+ 
+ # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
+ AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
+@@ -1343,6 +1357,7 @@ AC_CONFIG_FILES([
+   src/xsvf/Makefile
+   src/svf/Makefile
+   src/target/Makefile
++  src/interface/Makefile
+   src/rtos/Makefile
+   src/server/Makefile
+   src/flash/Makefile
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 5c2081a..a95303c 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -5,6 +5,7 @@ SUBDIRS = \
+ 	helper \
+ 	target \
+ 	transport \
++	interface \
+ 	flash \
+ 	svf \
+ 	xsvf \
+@@ -30,6 +31,12 @@ if ULINK
+ openocd_LDADD += -lm
+ endif
+ 
++if INTERNAL_LIBSWD
++openocd_LDADD += $(top_builddir)/submodules/libswd/src/libswd.la
++else
++openocd_LDADD += -lswd
++endif
++
+ libopenocd_la_SOURCES = \
+ 	hello.c \
+ 	openocd.c \
+@@ -88,6 +95,7 @@ libopenocd_la_LIBADD = \
+ 	$(top_builddir)/src/pld/libpld.la \
+ 	$(top_builddir)/src/jtag/libjtag.la \
+ 	$(top_builddir)/src/transport/libtransport.la \
++	$(top_builddir)/src/interface/libinterface.la \
+ 	$(top_builddir)/src/flash/libflash.la \
+ 	$(top_builddir)/src/target/libtarget.la \
+ 	$(top_builddir)/src/server/libserver.la \
+diff --git a/src/interface/Makefile.am b/src/interface/Makefile.am
+new file mode 100644
+index 0000000..8aa2878
+--- /dev/null
++++ b/src/interface/Makefile.am
+@@ -0,0 +1,27 @@
++include $(top_srcdir)/common.mk
++
++METASOURCES = AUTO
++noinst_LTLIBRARIES = libinterface.la
++
++SUBDIRS =
++DRIVERFILES =
++libinterface_la_LIBADD =
++
++CLEANFILES =
++
++BUILT_SOURCES =
++
++BUILT_SOURCES +=
++CLEANFILES +=
++
++libinterface_la_SOURCES = \
++	interface.c \
++	bitbang.c
++
++noinst_HEADERS = \
++	interface.h \
++	bitbang.h
++
++EXTRA_DIST =
++
++MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+diff --git a/src/interface/bitbang.c b/src/interface/bitbang.c
+new file mode 100644
+index 0000000..d531785
+--- /dev/null
++++ b/src/interface/bitbang.c
+@@ -0,0 +1,157 @@
++/***************************************************************************
++ *   Copyright (C) 2011 Tomasz Boleslaw CEDRO                              *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++/** @file Simple framework to bitbang the interface pins.
++ */
++
++#include <helper/command.h>
++#include <jtag/interface.h>
++#include <interface/interface.h>
++#include "bitbang.h"
++
++extern struct jtag_interface *jtag_interface;
++
++/*-----------------------------------------------------------------------*/
++
++/*
++ * Infrastructure for Tcl interface to bitbang.
++ */
++
++/** Bitbang framework allows operation on interface signals, operating on HEX
++ * values, to read and set their state. When only signal name is given then
++ * read operation is performed and value returned for given port mask defined
++ * by signal mask. Additional '=' parameter with following value with set this
++ * value to the port (again restricted by the signal mask). Therefore it is
++ * possible to set/get more than one bit/pin at once each with its own value.
++ * In addition label 'hi'/'set' equals value 0xFFFFFFFF, 'lo'/'clr' equals 0.
++ * Also note that read/write operation will affect selected port bits direction
++ * as reading values will switch masked bits to input while writing will make
++ * them outputs. This is also good way to change port behavior for some pins,
++ * but beware that reading output may not always bring expected results as it
++ * may impact device connected to that pin (i.e. Hi-Z input gives 1 undriven).
++ * This functionality brings new possibilities to script additional features.
++ */
++COMMAND_HANDLER(handle_bitbang_command)
++{
++	LOG_DEBUG("%s", __func__);
++
++	if (!jtag_interface) {
++		LOG_ERROR("You need to select interface first!");
++		return ERROR_FAIL;
++	}
++
++	if (!jtag_interface->bitbang) {
++		LOG_ERROR("This interface does not support bit-banging!");
++		return ERROR_FAIL;
++	}
++
++	if (CMD_ARGC < 1) {
++		LOG_ERROR("Bad syntax!");
++		return ERROR_COMMAND_SYNTAX_ERROR;
++	}
++
++	if (jtag_interface->signal == NULL) {
++		LOG_ERROR("No signals defined, see 'interface_signal' command for help.");
++		return ERROR_FAIL;
++	}
++
++	static oocd_interface_signal_t *sig;
++	static unsigned int pn;
++	static int retval;
++	static char *mark, *signame, *sigval, pcmd[OOCD_BITBANG_PARAM_CMD_MAX_LEN];
++
++	/* Iterate through list of command parameters */
++	for (pn = 0; pn < CMD_ARGC; pn++) {
++		/* Make a local copy of parameter command to work on */
++		if (!strncpy(pcmd, CMD_ARGV[pn], OOCD_BITBANG_PARAM_CMD_MAX_LEN)) {
++			LOG_ERROR("Cannot copy parameter: %s", CMD_ARGV[pn]);
++			return ERROR_FAIL;
++		}
++		/* Look for '=' mark to see if read or write will happen */
++		mark = strstr(pcmd, "=");
++		if (!mark) {
++			/* If no '=' was found then we read the signal value
++			 * Check if specified signal exists
++			 */
++			sig = oocd_interface_signal_find(pcmd);
++			if (!sig) {
++				LOG_ERROR("Unknown signal specified!");
++				return ERROR_FAIL;
++			}
++			/* Call the driver routine to do the actual signal read */
++			retval = jtag_interface->bitbang(NULL, pcmd, 1, (int *)&sig->value);
++			if (retval != ERROR_OK) {
++				LOG_ERROR("Unable to read signal: %s", pcmd);
++				return ERROR_FAIL;
++			}
++		} else {
++			/* If '=' was found then we write specified value to the specified signal
++			 * Get and verify the signal name first
++			 */
++			signame = strtok(pcmd, "=");
++			sig = oocd_interface_signal_find(signame);
++			if (!sig) {
++				LOG_ERROR("Unknown signal specified!");
++				return ERROR_FAIL;
++			}
++			/* Then read the HEX value or hi (all bits one) / lo (all bits zero) */
++			sigval = strtok(NULL, "=");
++			if (!sigval) {
++				LOG_ERROR("No value specified! Use: hi, set, lo, clr, or HEX port value.");
++				return ERROR_COMMAND_SYNTAX_ERROR;
++			}
++			if (!strncmp(sigval, "hi", 2) || !strncmp(sigval, "set", 3)) {
++				sig->value = 0xffffffff&sig->mask;
++			} else if (!strncmp(sigval, "lo", 2) || !strncmp(sigval, "clr", 3)) {
++				sig->value = 0;
++			} else if (!sscanf(sigval, "%x", (unsigned int *)&sig->value)) {
++				LOG_ERROR("Bad value parameter specified (can be: hi, set, lo, clr, or direct HEX port value)");
++				return ERROR_COMMAND_SYNTAX_ERROR;
++			}
++			retval = jtag_interface->bitbang(NULL, signame, 0, (int *)&sig->value);
++			if (retval != ERROR_OK) {
++				LOG_ERROR("Unable to write signal: %s", signame);
++				return ERROR_FAIL;
++			}
++		}
++		command_print(CMD_CTX, "%s=0x%08X", sig->name, sig->value);
++	}
++	return ERROR_OK;
++}
++
++static const struct command_registration bitbang_commands[] = {
++	{
++		.name = "bitbang",
++		.handler = handle_bitbang_command,
++		.mode = COMMAND_EXEC,
++		.help =  "Perform bit-bang operations on interface signal (mask!).",
++		.usage = "'signal_name' to read, 'signal_name'='port_hex_value' to write.",
++	},
++	COMMAND_REGISTRATION_DONE
++};
++
++int bitbang_register_commands(struct command_context *ctx)
++{
++	return register_commands(ctx, NULL, bitbang_commands);
++}
+diff --git a/src/interface/bitbang.h b/src/interface/bitbang.h
+new file mode 100644
+index 0000000..4a98e16
+--- /dev/null
++++ b/src/interface/bitbang.h
+@@ -0,0 +1,30 @@
++/***************************************************************************
++ *   Copyright (C) 2011 Tomasz Boleslaw CEDRO                              *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++#ifndef OOCD_SIGNAL_H
++#define OOCD_SIGNAL_H
++
++/** @file Simple framework to work with interface signals.
++ */
++
++#define OOCD_BITBANG_PARAM_CMD_MAX_LEN 45
++int bitbang_register_commands(struct command_context *ctx);
++
++#endif
+diff --git a/src/interface/interface.c b/src/interface/interface.c
+new file mode 100644
+index 0000000..846ef09
+--- /dev/null
++++ b/src/interface/interface.c
+@@ -0,0 +1,216 @@
++/***************************************************************************
++ *   Copyright (C) 2011 Tomasz Boleslaw CEDRO                              *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++/** @file: Generic OpenOCD interface. */
++
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <interface/interface.h>
++#include <jtag/interface.h>
++#include <helper/log.h>
++
++extern struct jtag_interface *jtag_interface;
++
++/******************************************************************************
++ * SIGNAL INFRASTRUCTURE AND OPERATIONS
++ ******************************************************************************/
++
++/** Check if specified signal is already defined (case insensitive) and return
++ * its pointer if defined.
++ * @param *name signal name to check
++ * @return pointer to signal structure in memory if found, NULL otherwise.
++ */
++oocd_interface_signal_t *oocd_interface_signal_find(char *name)
++{
++
++    /* LOG_DEBUG("Searching for interface signal \"%s\"", name); */
++
++    /* Check if interface already exists */
++	if (!jtag_interface) {
++		LOG_ERROR("Interface does not yet exist!");
++		return NULL;
++	}
++	/* Check if interface signal to already exists */
++	if (!jtag_interface->signal) {
++		LOG_DEBUG("No interface signals defined (yet?).");
++		return NULL;
++	}
++	/* Check if signal name is correct */
++	if (!name || strncmp(name, " ", 1) == 0) {
++		LOG_ERROR("Interface signal name cannot be empty.");
++		return NULL;
++	}
++	/* Check if signal name already exist */
++	oocd_interface_signal_t *sig;
++	sig = jtag_interface->signal;
++	while (sig) {
++		if (!strncasecmp(sig->name, name, 32)) {
++			LOG_DEBUG("Interface signal %s found.", sig->name);
++			return sig;
++		}
++		sig = sig->next;
++	}
++	/* If signal is not found return null pointer. */
++	LOG_WARNING("Interface signal %s not found.", name);
++	return NULL;
++}
++/** Add new signal to the interface.
++ * Signal will be allocated in memory with provided name and mask.
++ * There is no sense for giving value field at this time because signal create
++ * can take place during initialization where interface is not yet ready, also
++ * they can be used for read and write, so this is higher level script task
++ * to initialize their default value with appropriate 'bitbang' call.
++ * The default value for new signal equals provided mask to maintain Hi-Z.
++ *
++ * @param *name is the signal name (max 32 char).
++ * @param mask is the signal mask (unsigned int).
++ * @param value is the initial value for signal to set.
++ * @return ERROR_OK on success or ERROR_FAIL on failure.
++ */
++int oocd_interface_signal_add(char *name, unsigned int mask)
++{
++	LOG_DEBUG("Adding signal \"%s\"", name);
++	/* Check if interface already exists */
++	if (!jtag_interface) {
++		LOG_ERROR("Interface does not yet exist!");
++		return ERROR_FAIL;
++	}
++
++	/* Check if name is correct string */
++	if (!name || strncmp(name, " ", 1) == 0) {
++		LOG_ERROR("Signal name cannot be empty");
++		return ERROR_FAIL;
++	}
++
++	oocd_interface_signal_t *newsignal, *lastsignal;
++	int snlen;
++
++	/* Check signal length (min=1, max=32 characters) */
++	snlen = strnlen(name, 32);
++	if (snlen < 1 || snlen > 32) {
++		LOG_ERROR("Signal name too short or too long!");
++		return ERROR_FAIL;
++	}
++
++	/* Check if signal name already exist and return error if so */
++	if (oocd_interface_signal_find(name)) {
++		LOG_ERROR("Specified signal already exist!");
++		return ERROR_FAIL;
++	}
++
++	/* Allocate memory for new signal structure */
++	newsignal = (oocd_interface_signal_t *)calloc(1, sizeof(oocd_interface_signal_t));
++	if (!newsignal) {
++		LOG_ERROR("cannot allocate memory for new signal: %s", name);
++		return ERROR_FAIL;
++	}
++	newsignal->name = (char *)calloc(1, snlen+1);
++	if (!newsignal->name) {
++		LOG_ERROR("cannot allocate memory for signal %s name", name);
++		return ERROR_FAIL;
++	}
++
++	/* Initialize structure data and return or break on error */
++	for (;;) {
++		if (!strncpy(newsignal->name, name, snlen)) {
++			LOG_ERROR("cannot copy signal %s name!", name);
++			break;
++		}
++
++		newsignal->mask = mask;
++		newsignal->value = mask;
++
++		if (!jtag_interface->signal) {
++			jtag_interface->signal = newsignal;
++		} else {
++			lastsignal = jtag_interface->signal;
++			while (lastsignal->next)
++				lastsignal = lastsignal->next;
++
++			lastsignal->next = newsignal;
++		}
++		LOG_DEBUG("Signal \"%s\" added.", name);
++		return ERROR_OK;
++	}
++
++	/* If there was an error free up resources and return error */
++	free(newsignal->name);
++	free(newsignal);
++	return ERROR_FAIL;
++}
++
++/** Delete interface signal.
++ * Removes signal from singly linked list of interface signals and free memory.
++ * @param name is the name of the signal to remove.
++ * @return ERROR_OK on success, ERROR_FAIL on failure.
++ */
++int oocd_interface_signal_del(char *name)
++{
++	LOG_DEBUG("Deleting signal \"%s\"", name);
++	/* Check if interface already exists */
++	if (!jtag_interface) {
++		LOG_ERROR("Interface does not yet exist!");
++		return ERROR_FAIL;
++	}
++	/* Check if interface any signal exist */
++	if (!jtag_interface->signal) {
++		LOG_ERROR("Signal list is empty!");
++		return ERROR_FAIL;
++	}
++
++	/* Check if signal name is correct */
++	if (!name || strncmp(name, " ", 1) == 0) {
++		LOG_ERROR("Signal name cannot be empty.");
++		return ERROR_FAIL;
++	}
++
++	oocd_interface_signal_t *delsig = NULL, *prevsig = NULL;
++
++	/* look for the signal name on the list */
++	delsig = oocd_interface_signal_find(name);
++
++	/* return error if signal is not on the list */
++	if (!delsig) {
++		LOG_ERROR("Signal not found!");
++		return ERROR_FAIL;
++	}
++
++	/* detach signal to be removed from the list */
++	prevsig = jtag_interface->signal;
++	if (prevsig == delsig) {
++		/* we need to detach first signal on the list */
++		jtag_interface->signal = jtag_interface->signal->next;
++	} else {
++		for (; prevsig->next; prevsig = prevsig->next) {
++			if (prevsig->next == delsig) {
++				prevsig->next = prevsig->next->next;
++				break;
++			}
++		}
++	}
++
++	/* now free memory of detached element */
++	free(delsig->name);
++	free(delsig);
++	LOG_DEBUG("Signal \"%s\" removed.", name);
++	return ERROR_OK;
++}
+diff --git a/src/interface/interface.h b/src/interface/interface.h
+new file mode 100644
+index 0000000..b90589b
+--- /dev/null
++++ b/src/interface/interface.h
+@@ -0,0 +1,52 @@
++/***************************************************************************
++ *   Copyright (C) 2011 Tomasz Boleslaw CEDRO                              *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++/* THIS FILE IS UNUSABLE AT THE MOMENT BUT WILL BE USED AS GENERIC OPENOCD DRIVER STRUCTURE */
++
++#ifndef OOCD_INTERFACE_H
++#define OOCD_INTERFACE_H
++
++/** Some generic interface signal definitions. */
++
++/** Interface Signal type declaration (single linked list element). */
++typedef struct oocd_interface_signal {
++	/** Signal name string. */
++	char *name;
++	/** Mask value for selected signal. */
++	unsigned int mask;
++	/** Value can be 0,1, or -1 for unknown state. */
++	int value;
++	/** Pointer to the next element on the signals list. */
++	struct oocd_interface_signal *next;
++} oocd_interface_signal_t;
++
++typedef enum oocd_interface_operation {
++	UNDEFINED = 0,
++	READ,
++	WRITE,
++	SET,
++	CLEAR
++} oocd_interface_operation_t;
++
++int oocd_interface_signal_add(char *name, unsigned int mask);
++int oocd_interface_signal_del(char *name);
++oocd_interface_signal_t *oocd_interface_signal_find(char *name);
++
++#endif
+diff --git a/src/jtag/adapter.c b/src/jtag/adapter.c
+index 494d39e..7b7e73e 100644
+--- a/src/jtag/adapter.c
++++ b/src/jtag/adapter.c
+@@ -12,6 +12,9 @@
+  *   Copyright (C) 2009 Zachary T Welch                                    *
+  *   zw@superlucidity.net                                                  *
+  *                                                                         *
++ *   Copyright (C) 2011 Tomasz Boleslaw CEDRO                              *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
+  *   This program is free software; you can redistribute it and/or modify  *
+  *   it under the terms of the GNU General Public License as published by  *
+  *   the Free Software Foundation; either version 2 of the License, or     *
+@@ -185,6 +188,94 @@ COMMAND_HANDLER(handle_interface_command)
+ 	return ERROR_JTAG_INVALID_INTERFACE;
+ }
+ 
++/** Interface signals handling routine that can add, delete and list signals.
++ * Signal ADD requires signal name string and 32-bit mask, optionally a value.
++ * Values are read as HEX. Signal DEL requires only signal name to delete.
++ * Signal LIST will show marvelous table wits signal names, masks and values.
++ * Interfaces should be defined in configuration file by TCL interface.
++ * Parameters are checked before function execution.
++ */
++COMMAND_HANDLER(handle_interface_signal_command)
++{
++	LOG_DEBUG("entering function...");
++
++	if (!jtag_interface) {
++		command_print(CMD_CTX, "You must initialize interface first!");
++		return ERROR_FAIL;
++	}
++
++	if (CMD_ARGC < 1 || CMD_ARGC > 3) {
++		command_print(CMD_CTX, "Bad syntax!");
++		return ERROR_COMMAND_SYNTAX_ERROR;
++	}
++
++	int sigmask;
++	char signame[32];
++
++	if (!strncasecmp(CMD_ARGV[0], "add", 3)) {
++		if (CMD_ARGC < 3) {
++			LOG_ERROR("Usage: interface_signal add signal_name signal_mask");
++			return ERROR_FAIL;
++		}
++		if (!strncpy(signame, CMD_ARGV[1], 32)) {
++			LOG_ERROR("Unable to copy signal name from parameter list!");
++			return ERROR_FAIL;
++		}
++		/* We are going to add interface signal.
++		 * Check the mask parameter.
++		 */
++		if (!sscanf(CMD_ARGV[2], "%x", &sigmask)) {
++			LOG_ERROR("Bad signal mask parameter! Use HEX value.");
++			return ERROR_COMMAND_SYNTAX_ERROR;
++		}
++		/* Now add the inetrface signal with specified parameters. */
++		return oocd_interface_signal_add(signame, sigmask);
++
++	} else if (!strncasecmp(CMD_ARGV[0], "del", 3)) {
++		if (CMD_ARGC < 2) {
++			LOG_ERROR("Usage: interface_signal del signal_name");
++			return ERROR_FAIL;
++		}
++		/* We are going to delete specified signal. */
++		return oocd_interface_signal_del((char *)CMD_ARGV[1]);
++
++	} else if (!strncasecmp(CMD_ARGV[0], "list", 4)) {
++		/* We are going to list available signals. */
++		oocd_interface_signal_t *sig;
++		sig = jtag_interface->signal;
++		command_print(CMD_CTX, "      Interface Signal Name      |    Mask    |   Value   ");
++		command_print(CMD_CTX, "----------------------------------------------------------");
++		while (sig) {
++			command_print(CMD_CTX, "%32s | 0x%08X | 0x%08X", sig->name, sig->mask, sig->value);
++			sig = sig->next;
++		}
++		/* Also print warning if interface driver does not support bit-baning. */
++		if (!jtag_interface->bitbang)
++			command_print(CMD_CTX, "WARNING: This interface does not support bit-baning!");
++
++		return ERROR_OK;
++
++	} else if (!strncasecmp(CMD_ARGV[0], "find", 4)) {
++		if (CMD_ARGC < 2) {
++			LOG_ERROR("Usage: interface_signal find signal_name");
++			return ERROR_FAIL;
++		}
++		/* Find the signal and print its details. */
++		oocd_interface_signal_t *sig;
++		sig = oocd_interface_signal_find((char *)CMD_ARGV[1]);
++		if (sig != NULL) {
++			command_print(CMD_CTX, "%s: mask=0x%08X value=0x%08X", sig->name, sig->mask, sig->value);
++			return ERROR_OK;
++		}
++		/* Or return information and error if not found. */
++		command_print(CMD_CTX, "Signal not found!");
++		return ERROR_FAIL;
++	}
++	/* For unknown parameter print error and return error code. */
++	command_print(CMD_CTX, "Unknown parameter!");
++	return ERROR_COMMAND_SYNTAX_ERROR;
++}
++
+ COMMAND_HANDLER(handle_reset_config_command)
+ {
+ 	int new_cfg = 0;
+@@ -511,6 +602,13 @@ static const struct command_registration interface_command_handlers[] = {
+ 		.help = "List all built-in debug adapter interfaces (drivers)",
+ 	},
+ 	{
++		.name = "interface_signal",
++		.handler = handle_interface_signal_command,
++		.mode = COMMAND_ANY,
++		.help = "List, Find, Remove and Add interface signal mask",
++		.usage = "(add|del|find|list) signal_name [mask]",
++	},
++	{
+ 		.name = "reset_config",
+ 		.handler = handle_reset_config_command,
+ 		.mode = COMMAND_ANY,
+diff --git a/src/jtag/core.c b/src/jtag/core.c
+index b61280c..b726da4 100644
+--- a/src/jtag/core.c
++++ b/src/jtag/core.c
+@@ -1364,7 +1364,7 @@ int adapter_init(struct command_context *cmd_ctx)
+ 		LOG_ERROR("Adapter driver '%s' did not declare "
+ 			"which transports it allows; assuming "
+ 			"JTAG-only", jtag->name);
+-		retval = allow_transports(cmd_ctx, jtag_only);
++		retval = allow_transports(cmd_ctx, oocd_transport_jtag_only);
+ 		if (retval != ERROR_OK)
+ 			return retval;
+ 	}
+diff --git a/src/jtag/drivers/ft2232.c b/src/jtag/drivers/ft2232.c
+index ce6e165..c76f18b 100644
+--- a/src/jtag/drivers/ft2232.c
++++ b/src/jtag/drivers/ft2232.c
+@@ -14,6 +14,9 @@
+ *   Copyright (C) 2008 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
++*   Copyright (C) 2011 Tomasz Boleslaw CEDRO                              *
++*   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++*                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+@@ -186,6 +189,7 @@ struct ft2232_layout {
+ 	int (*init)(void);                   /** Custom initialization function     */
+ 	void (*reset)(int trst, int srst);   /** Custom reset function              */
+ 	void (*blink)(void);                 /** Custom LED blink function          */
++	int bitbang_deny;                    /** Forbid bitbanging selected pins    */
+ 	int channel;                         /** FTDI channel ID                    */
+ 	ft2232_output_pin_t  TRST;           /** TRST pin location                  */
+ 	ft2232_control_pin_t TRST_ctrl;      /** Control method for TRST pin        */
+@@ -216,6 +220,7 @@ static void standard_blink(void);
+ static int signalyzer_h_init(void);
+ static void signalyzer_h_reset(int trst, int srst);
+ static void signalyzer_h_blink(void);
++static int ktlink_init_swd(void);
+ 
+ /* @TODO: The following adapter functions
+  * should be removed in favour of pin definitions
+@@ -237,7 +242,7 @@ static int sheevaplug_init(void);
+ static int icebear_jtag_init(void);
+ static int cortino_jtag_init(void);
+ static int signalyzer_init(void);
+-static int ktlink_init(void);
++static int ktlink_init_jtag(void);
+ static int redbee_init(void);
+ static int lisa_l_init(void);
+ static int flossjtag_init(void);
+@@ -393,10 +398,15 @@ static const struct ft2232_layout  ft2232_layouts[] = {
+ 		.reset = signalyzer_h_reset,
+ 		.blink = signalyzer_h_blink
+ 	},
+-	{ .name = "ktlink",
+-		.init = ktlink_init,
++	{ .name = "ktlink_jtag",
++		.init = ktlink_init_jtag,
++		.reset = ktlink_reset,
++		.blink = ktlink_blink,
++	},
++	{ .name = "ktlink_swd",
++		.init = ktlink_init_swd,
+ 		.reset = ktlink_reset,
+-		.blink = ktlink_blink
++		.blink = ktlink_blink,
+ 	},
+ 	{ .name = "redbee-econotag",
+ 		.init = redbee_init,
+@@ -680,6 +690,213 @@ static int ft2232_read(uint8_t *buf, uint32_t size, uint32_t *bytes_read)
+ 	return ERROR_OK;
+ }
+ 
++/** Generic IO BITBANG Port Manipulation Routine.
++ * It can read and write port state using signal names. Each interface have its
++ * own specific signal names and fields. This function works on those fields
++ * and based on their values talks to the FT*232 chip on the interface device.
++ * ft2232 drivers use {low,high}_{output,direction} global variables to remember
++ * port direction and value, so we need to work on them as well not to change
++ * any other pin with our bit-baning performed only on selected pins.
++ * The function name 'bitbang' reflects ability to change selected pin states.
++ *
++ * @Note: FT2232 has special mechanism called MPSSE for serial communications
++ * that is far more efficient than pure 'bitbang' mode on this device family.
++ * Although our function is named 'bitbang' it does not use bitbang mode.
++ * MPSSE command send value and port bytes on port write, but does not on read.
++ * This happens every time we want to change pin value, so we need to use cache.
++ * On write we want to OR direction mask already set by init() procedure
++ * to mark bit-mask output. On read we want to clear bits given by mask
++ * to mark them input. To read we need to write/update port state first.
++ * Long story short: to read data we first need to set pins to input.
++ *
++ * @Warning: reading and writing will set pin direction input or output,
++ * so it is possible to disable basic data output pins with bad masking,
++ * but also gives chance to create and manage full TCL signal description,
++ * that can be used to take advantage of some additional interface hardware
++ * features installed on some devices (i.e. ADC, power supply, etc).
++ * This gives new way of signal handling that is still backward-compatible.
++ *
++ * @param *device void pointer to pass additional driver information to the routine.
++ * @param signal is the string representation of the signal mask stored in layout structure.
++ * @param GETnSET if zero then perform read operation, write otherwise.
++ * @param *value is the pointer that holds the value.
++ * @return ERROR_OK on success, or ERROR_FAIL on failure.
++ */
++int ft2232_bitbang(void *device, char *signal_name, int GETnSET, int *value)
++{
++	uint8_t  buf[3];
++	int retval, vall = 0, valh = 0;
++	unsigned int sigmask;
++	uint32_t bytes_written, bytes_read;
++	oocd_interface_signal_t *sig;
++
++	/* First get the signal mask, or return error if signal not defined. */
++	sig = oocd_interface_signal_find(signal_name);
++	if (!sig) {
++		LOG_ERROR("Requested signal not found on this interface!");
++		return ERROR_FAIL;
++	}
++	/* Pin mask is also related with port direction and complicates it!!! */
++	sigmask = sig->mask;
++
++	/* First check against restricted port pins defined by the interface layout */
++	if (sigmask & layout->bitbang_deny) {
++		LOG_ERROR("This interface does not allow to bit-bang selected pins (0x%08X)!", layout->bitbang_deny);
++		return ERROR_FAIL;
++	}
++
++	if (!GETnSET) {
++		/* We will SET port pins selected by sigmask.
++		 * Modify our pins value, but remember about other pins and their previous value
++		 */
++		low_output  = (low_output & ~sigmask) | ((*value & sigmask) & 0x0ff);
++		high_output = (high_output & ~(sigmask>>8)) | (((*value & sigmask)>>8) & 0x0ff);
++		/* Modify our pins direction, but remember about other pins and their previous direction */
++		low_direction  |= sigmask & 0x0ff;
++		high_direction |= (sigmask>>8) & 0x0ff;
++		/* Now send those settings to the interface chip */
++		buf[0] = 0x80;	/* Set Data Bits LowByte */
++		buf[1] = low_output;
++		buf[2] = low_direction;
++		retval = ft2232_write(buf, 3, &bytes_written);
++		if (retval != ERROR_OK)
++			return retval;
++		buf[0] = 0x82;   /* Set Data Bits HighByte */
++		buf[1] = high_output;
++		buf[2] = high_direction;
++		retval = ft2232_write(buf, 3, &bytes_written);
++		if (retval != ERROR_OK)
++			return retval;
++		sig->value = ((high_output<<8) | low_output) & sig->mask;
++	} else {
++		/* Modify our pins value, but remember about other pins and their previous value
++		 * DO WE REALLY NEED TO PULL-UP PINS TO READ THEIR STATE OR SIMPLY LEAVE AS IS?
++		 * low_output  = (low_output & ~sigmask) | (sigmask & 0x0ff);
++		 * high_output = (high_output & ~sigmask) | (sigmask>>8) & 0x0ff);
++		 * Modify our pins direction to input, but remember about other pins and their previous direction
++		 */
++		low_direction  &= ~(sigmask);
++		high_direction &= ~(sigmask>>8);
++		/* Now send those settings to the interface chip
++		 * First change desired pins to input
++		 */
++		buf[0] = 0x80;	/* Set Data Bits LowByte */
++		buf[1] = low_output;
++		buf[2] = low_direction;
++		retval = ft2232_write(buf, 3, &bytes_written);
++		if (retval != ERROR_OK)
++			return retval;
++		buf[0] = 0x82;   /* Set Data Bits HighByte */
++		buf[1] = high_output;
++		buf[2] = high_direction;
++		retval = ft2232_write(buf, 3, &bytes_written);
++		if (retval != ERROR_OK)
++			return retval;
++		/* Then read pins designated by a signal mask */
++		buf[0] = 0x81;	/* Read Data Bits LowByte. */
++		retval = ft2232_write(buf, 1, &bytes_written);
++		if (retval != ERROR_OK)
++			return retval;
++		retval = ft2232_read((uint8_t *)&vall, 1, &bytes_read);
++		if (retval != ERROR_OK)
++			return retval;
++		buf[0] = 0x83;	/* Read Data Bits HighByte. */
++		retval = ft2232_write(buf, 1, &bytes_written);
++		if (retval != ERROR_OK)
++			return retval;
++		retval = ft2232_read((uint8_t *)&valh, 1, &bytes_read);
++		if (retval != ERROR_OK)
++			return retval;
++		sig->value = *value = ((valh<<8)|vall) & sig->mask; /* Join result bytes and apply signal bitmask */
++	}
++	return ERROR_OK;
++}
++
++
++/** Transfer bits in/out stored in char array starting from LSB first or MSB first,
++ * alternatively if you want to make MSB-first shift on LSB-first mode put data
++ * in reverse order into input/output array.
++ * @param *device void pointer to pass driver details to the function.
++ * @param bits is the number of bits (char array elements) to transfer.
++ * @param *mosidata pointer to char array with data to be send.
++ * @param *misodata pointer to char array with data to be received.
++ * @param nLSBfirst if zero shift data LSB-first, otherwise MSB-first.
++ * @return number of bits sent on success, or ERROR_FAIL on failure.
++ */
++int ft2232_transfer(void *device, int bits, char *mosidata, char *misodata, int nLSBfirst)
++{
++	static uint8_t buf[65539], databuf;
++	int i, retval, bit = 0, byte = 0, bytes = 0;
++	uint32_t bytes_written, bytes_read;
++
++	LOG_DEBUG("ft2232_transfer(device=@%p, bits=%d, mosidata=@%p, misodata=@%p, nLSDfirst=%d) ",\
++		(void *)device, bits, (void *)mosidata, (void *)misodata, nLSBfirst);
++
++	if (bits > 65535) {
++		LOG_ERROR("Cannot transfer more than 65536 bits at once!");
++		return ERROR_FAIL;
++	}
++
++	if (bits >= 8) {
++		/* Try to pack as many bits into bytes for better performance. */
++		bytes = bits/8;
++		bytes--;                      /* MPSSE starts counting bytes from 0. */
++		buf[0] = (nLSBfirst) ? 0x31 : 0x39; /* Clock Bytes In and Out LSb or MSb first. */
++		buf[1] = (char)bytes&0x0ff;
++		buf[2] = (char)((bytes>>8)&0x0ff);
++		bytes++;
++		for (byte = 0; byte*8 < bits; byte++) {
++			databuf = 0;
++			for (i = 0; i < 8; i++)
++				databuf |= mosidata[byte*8+i] ? (1<<i) : 0;
++
++			buf[byte+3] = databuf;
++		}
++		retval = ft2232_write(buf, bytes+3, &bytes_written);
++		if (retval < 0) {
++			LOG_ERROR("ft2232_write() returns %d", retval);
++			return ERROR_FAIL;
++		}
++		retval = ft2232_read((uint8_t *)buf, bytes, &bytes_read);
++		if (retval < 0) {
++			LOG_ERROR("ft2232_read() returns %d", retval);
++			return ERROR_FAIL;
++		}
++		/* Explode read bytes into bit array. */
++		/* for (bit = 0; bit < bytes*8; bit++) { misodata[bit] = (buf[bit/8]&(1<<bit)) ? 1 : 0; } */
++		for (byte = 0; byte*8 < bits; byte++)
++			for (bit = 0; bit < 8; bit++)
++				misodata[byte*8 + bit] = buf[byte] & (1<<bit) ? 1 : 0;
++	}
++
++	/* Now send remaining bits that cannot be packed as bytes.
++	 * Because "Clock Data Bits In and Out LSB/MSB" of FTDI is a mess, pack single
++	 *  bit read/writes into buffer and then flush it using single USB transfer.
++	 */
++	for (bit = bytes*8; bit < bits; bit++) {
++		buf[3*bit+0] = (nLSBfirst) ? 0x33 : 0x3b;	/* Clock Bits In and Out LSb or MSb first. */
++		buf[3*bit+1] = 0;					/* One bit per element. */
++		buf[3*bit+2] = mosidata[bit] ? 0xff : 0;	/* Take data from supplied array. */
++	}
++	retval = ft2232_write(buf, 3*(bits-(bytes*8)), &bytes_written);
++	if (retval < 0) {
++		LOG_ERROR("ft2232_write() returns %d", retval);
++		return ERROR_FAIL;
++	}
++	retval = ft2232_read((uint8_t *)misodata, bits-(bytes*8), &bytes_read);
++	if (retval < 0) {
++		LOG_ERROR("ft2232_read() returns %d", retval);
++		return ERROR_FAIL;
++	}
++	/* FTDI MPSSE returns shift register value, our bit is MSb */
++	for (bit = bytes*8; bit < bits; bit++)
++		misodata[bit] = (misodata[bit]&(nLSBfirst ? 0x01 : 0x80)) ? 1 : 0;
++	/* USE THIS FOR WIRE-LEVEL DEBUG */
++	/* LOG_DEBUG("read 0x%02X written 0x%02X", misodata[bit], mosidata[bit]); */
++
++	return bit;
++}
++
+ static bool ft2232_device_is_highspeed(void)
+ {
+ #if BUILD_FT2232_FTD2XX == 1
+@@ -4189,10 +4406,10 @@ static void signalyzer_h_blink(void)
+ 
+ /********************************************************************
+  * Support for KT-LINK
+- * JTAG adapter from KRISTECH
++ * JTAG and SWD adapter from KRISTECH
+  * http://www.kristech.eu
+  *******************************************************************/
+-static int ktlink_init(void)
++static int ktlink_init_jtag(void)
+ {
+ 	uint8_t swd_en = 0x20;	/* 0x20 SWD disable, 0x00 SWD enable (ADBUS5) */
+ 
+@@ -4201,7 +4418,7 @@ static int ktlink_init(void)
+ 
+ 	/* initialize low byte for jtag */
+ 	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
+-		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
++		LOG_ERROR("couldn't initialize FT2232 with 'ktlink_jtag' layout");
+ 		return ERROR_JTAG_INIT_FAILED;
+ 	}
+ 
+@@ -4233,10 +4450,65 @@ static int ktlink_init(void)
+ 
+ 	/* initialize high byte for jtag */
+ 	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
+-		LOG_ERROR("couldn't initialize FT2232 with 'ktlink' layout");
++		LOG_ERROR("couldn't initialize FT2232 with 'ktlink_jtag' layout");
+ 		return ERROR_JTAG_INIT_FAILED;
+ 	}
+ 
++	LOG_INFO("KT-LINK JTAG-Mode initialization complete...");
++	return ERROR_OK;
++}
++
++/* KT-LINK SWD Support added by Tomasz Boleslaw CEDRO (http://www.tomek.cedro.info). */
++static int ktlink_init_swd(void)
++{
++	/* High Byte (ACBUS) members. */
++	static uint8_t nSWCLKen  = 0x40;
++	static uint8_t nTDIen    = 0x20;
++	static uint8_t TRST      = 0x01;
++	static uint8_t nTRSTen   = 0x04;
++	static uint8_t SRST      = 0x02;
++	static uint8_t nSRSTen   = 0x08;
++	static uint8_t LED       = 0x80;
++	static uint8_t RnW       = 0x10;
++	/* Low Byte (ADBUS) members. */
++	static uint8_t SWCLK     = 0x01;
++	static uint8_t TDI       = 0x02;
++	static uint8_t TDO       = 0x04;
++	static uint8_t nSWDIOsel = 0x20;
++
++	nTRST    = TRST;
++	nSRST    = SRST;
++	nTRSTnOE = nTRSTen;
++	nSRSTnOE = nSRSTen;
++
++	/* Set ADBUS Port Data: SWCLK=0, TDI=0,TDO=1, nSWDIOsel=0 */
++	low_output = 0 | TDO;
++	/* Set ADBUS Port Direction (1=Output) */
++	low_direction = 0 | SWCLK | TDI | nSWDIOsel;
++
++	/* initialize low byte port (ADBUS) */
++	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
++		LOG_ERROR("couldn't initialize FT2232 ADBUS with 'ktlink_swd' layout");
++		return ERROR_JTAG_INIT_FAILED;
++	}
++
++	/* Set Data Bits High Byte (ACBUS)
++	 * Enable SWD pins  : nTCKen=0, RnW=1, nSRSTen=0, nLED=0, SRST=1
++	 * Disable JTAG pins: nTDIen=1, nSWDIOen=1, nTRSTen=1
++	 */
++	high_output = 0 | RnW | SRST | nTDIen | nTRSTen;
++	/* Set ACBUS Port Direction (1=Output) */
++	high_direction = 0 | RnW | nSWCLKen | nTDIen | nTRSTen | nSRSTen | SRST | LED;
++
++	/* initialize high byte port (ACBUS) */
++	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
++		LOG_ERROR("couldn't initialize FT2232 ACBUS with 'ktlink_swd' layout");
++		return ERROR_JTAG_INIT_FAILED;
++	}
++
++	/* Additional bit-bang signals should be placed in a configuration file. */
++
++	LOG_INFO("KT-LINK SWD-Mode initialization complete...");
+ 	return ERROR_OK;
+ }
+ 
+@@ -4366,7 +4638,7 @@ struct jtag_interface ft2232_interface = {
+ 	.name = "ft2232",
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+ 	.commands = ft2232_command_handlers,
+-	.transports = jtag_only,
++	.transports = oocd_transport_jtag_only,
+ 
+ 	.init = ft2232_init,
+ 	.quit = ft2232_quit,
+@@ -4374,4 +4646,20 @@ struct jtag_interface ft2232_interface = {
+ 	.speed_div = ft2232_speed_div,
+ 	.khz = ft2232_khz,
+ 	.execute_queue = ft2232_execute_queue,
++	.bitbang = ft2232_bitbang,
++};
++
++struct jtag_interface ft2232_interface_swd = {
++	.name = "ft2232_swd",
++	.supported = DEBUG_CAP_TMS_SEQ,
++	.commands = ft2232_command_handlers,
++	.transports = oocd_transport_swd_only,
++
++	.init = ft2232_init,
++	.quit = ft2232_quit,
++	.speed = ft2232_speed,
++	.speed_div = ft2232_speed_div,
++	.khz = ft2232_khz,
++	.transfer = ft2232_transfer,
++	.bitbang = ft2232_bitbang,
+ };
+diff --git a/src/jtag/interface.h b/src/jtag/interface.h
+index ac4eacc..5e7eb60 100644
+--- a/src/jtag/interface.h
++++ b/src/jtag/interface.h
+@@ -8,6 +8,9 @@
+  *   Copyright (C) 2009 Zachary T Welch                                    *
+  *   zw@superlucidity.net                                                  *
+  *                                                                         *
++ *   Copyright (C) 2011 Tomasz Boleslaw CEDRO                              *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
+  *   This program is free software; you can redistribute it and/or modify  *
+  *   it under the terms of the GNU General Public License as published by  *
+  *   the Free Software Foundation; either version 2 of the License, or     *
+@@ -28,6 +31,7 @@
+ #define OPENOCD_JTAG_INTERFACE_H
+ 
+ #include <jtag/jtag.h>
++#include <interface/interface.h>
+ 
+ /* @file
+  * The "Cable Helper API" is what the cable drivers can use to help
+@@ -206,11 +210,9 @@ struct jtag_interface {
+ 	unsigned supported;
+ #define DEBUG_CAP_TMS_SEQ	(1 << 0)
+ 
+-	/** transports supported in C code (NULL terminated vector) */
++	/** supported transport names in C code (NULL terminated vector) */
+ 	const char **transports;
+ 
+-	const struct swd_driver *swd;
+-
+ 	/**
+ 	 * Execute queued commands.
+ 	 * @returns ERROR_OK on success, or an error code on failure.
+@@ -218,7 +220,13 @@ struct jtag_interface {
+ 	int (*execute_queue)(void);
+ 
+ 	/**
+-	 * Set the interface speed.
++	 * Set the transport clock speed code.
++	 * @a speed is usually the internal interface clock source divisor value
++	 * that directly impacts transport TCK/CLK frequency. If you want to
++	 * specify clock frequency in kHz, you must first calculate it with
++	 * @a khz() function. Using speed==-1 enables adaptive clocking based
++	 * on RTCK signal (however not all devices support this feature).
++	 *
+ 	 * @param speed The new interface speed setting.
+ 	 * @returns ERROR_OK on success, or an error code on failure.
+ 	 */
+@@ -252,19 +260,23 @@ struct jtag_interface {
+ 	int (*quit)(void);
+ 
+ 	/**
+-	 * Returns JTAG maxium speed for KHz. 0 = RTCK. The function returns
+-	 *  a failure if it can't support the KHz/RTCK.
++	 * Calculates jtag_speed value for given transport clock frequency
++	 * specified in kHz. @a jtag_speed is usually the internal interface clock
++	 * source divisor value that directly impacts transport TCK/CLK frequency.
++	 * For @a jtag_speed=0 adaptive clocking is used, based on RTCK signal.
++	 * Function returns error code if an interface does not support kHz/RTCK.
+ 	 *
+ 	 *  WARNING!!!! if RTCK is *slow* then think carefully about
+ 	 *  whether you actually want to support this in the driver.
+ 	 *  Many target scripts are written to handle the absence of RTCK
+ 	 *  and use a fallback kHz TCK.
++	 *
+ 	 * @returns ERROR_OK on success, or an error code on failure.
+ 	 */
+ 	int (*khz)(int khz, int *jtag_speed);
+ 
+ 	/**
+-	 * Calculate the clock frequency (in KHz) for the given @a speed.
++	 * Calculates transport clock frequency (in KHz) for given @a speed.
+ 	 * @param speed The desired interface speed setting.
+ 	 * @param khz On return, contains the speed in KHz (0 for RTCK).
+ 	 * @returns ERROR_OK on success, or an error code if the
+@@ -298,6 +310,21 @@ struct jtag_interface {
+ 	 * @returns ERROR_OK on success, or an error code on failure.
+ 	 */
+ 	int (*srst_asserted)(int *srst_asserted);
++
++	/* TC@201105: THESE FUNCTIONS BELOW ARE TEMPORARY UGLY PROOF OF CONCEPT FOR
++	 * TRANSPORTS OTHER THAN JTAG. NO USE OF GLOBALS SHOULD TAKE PLACE ;-)
++	 * Note: This structure should be calloc'ed to NULL all pointers at init.
++	 */
++	/** current transport */
++	struct transport *transport;
++	/** Generic bitstream transfer from/into char bits array. */
++	int (*transfer)(void *device, int bits, char *mosidata, char *misodata, int nLSBfirst);
++	/** Generic signal set/get bitbang operation. */
++	int (*bitbang)(void *device, char *signal, int SETnGET, int *value);
++	/** Signals that are defined at runtime by driver initialization routine. */
++	oocd_interface_signal_t *signal;
++	/** Target device that interface is connected to/working with at the moment. */
++	struct target *target;
+ };
+ 
+ extern const char *jtag_only[];
+diff --git a/src/jtag/interfaces.c b/src/jtag/interfaces.c
+index 579e9e7..7f43f65 100644
+--- a/src/jtag/interfaces.c
++++ b/src/jtag/interfaces.c
+@@ -54,10 +54,10 @@ extern struct jtag_interface parport_interface;
+ extern struct jtag_interface dummy_interface;
+ #endif
+ #if BUILD_FT2232_FTD2XX == 1
+-extern struct jtag_interface ft2232_interface;
++extern struct jtag_interface ft2232_interface, ft2232_interface_swd;
+ #endif
+ #if BUILD_FT2232_LIBFTDI == 1
+-extern struct jtag_interface ft2232_interface;
++extern struct jtag_interface ft2232_interface, ft2232_interface_swd;
+ #endif
+ #if BUILD_FTDI == 1
+ extern struct jtag_interface ftdi_interface;
+@@ -133,6 +133,10 @@ extern struct jtag_interface bcm2835gpio_interface;
+  *
+  * The list should be defined to contain either one minidriver interface
+  * or some number of standard driver interfaces, never both.
++ *
++ * TC: This list also contain swd interface. To be verified is separate list
++ *  is necessary, or rename jtag_interfaces into oocd_interfaces (and use
++ *  transport layer list to select and initialize proper transport...
+  */
+ struct jtag_interface *jtag_interfaces[] = {
+ #if BUILD_ZY1000 == 1
+@@ -147,10 +151,10 @@ struct jtag_interface *jtag_interfaces[] = {
+ 		&dummy_interface,
+ #endif
+ #if BUILD_FT2232_FTD2XX == 1
+-		&ft2232_interface,
++		&ft2232_interface, &ft2232_interface_swd,
+ #endif
+ #if BUILD_FT2232_LIBFTDI == 1
+-		&ft2232_interface,
++		&ft2232_interface, &ft2232_interface_swd,
+ #endif
+ #if BUILD_FTDI == 1
+ 		&ftdi_interface,
+diff --git a/src/openocd.c b/src/openocd.c
+index 71e047f..01a46fb 100644
+--- a/src/openocd.c
++++ b/src/openocd.c
+@@ -31,6 +31,7 @@
+ #include "openocd.h"
+ #include <jtag/driver.h>
+ #include <jtag/jtag.h>
++#include <interface/bitbang.h>
+ #include <transport/transport.h>
+ #include <helper/ioutil.h>
+ #include <helper/util.h>
+@@ -240,6 +241,8 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
+ 		&log_register_commands,
+ 		&transport_register_commands,
+ 		&interface_register_commands,
++		&bitbang_register_commands,
++		&swd_register_commands,
+ 		&target_register_commands,
+ 		&flash_register_commands,
+ 		&nand_register_commands,
+diff --git a/src/target/Makefile.am b/src/target/Makefile.am
+index 027cc8e..09c6ed6 100644
+--- a/src/target/Makefile.am
++++ b/src/target/Makefile.am
+@@ -87,7 +87,6 @@ ARM_DEBUG_SRC = \
+ 	arm_semihosting.c \
+ 	arm_adi_v5.c \
+ 	adi_v5_jtag.c \
+-	adi_v5_swd.c \
+ 	embeddedice.c \
+ 	trace.c \
+ 	etb.c \
+diff --git a/src/target/adi_v5_swd.c b/src/target/adi_v5_swd.c
+deleted file mode 100644
+index 01782e5..0000000
+--- a/src/target/adi_v5_swd.c
++++ /dev/null
+@@ -1,357 +0,0 @@
+-/***************************************************************************
+- *
+- *   Copyright (C) 2010 by David Brownell
+- *
+- *   This program is free software; you can redistribute it and/or modify
+- *   it under the terms of the GNU General Public License as published by
+- *   the Free Software Foundation; either version 2 of the License, or
+- *   (at your option) any later version.
+- *
+- *   This program is distributed in the hope that it will be useful,
+- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- *   GNU General Public License for more details.
+- *
+- *   You should have received a copy of the GNU General Public License
+- *   along with this program; if not, write to the
+- *   Free Software Foundation, Inc.,
+- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+- ***************************************************************************/
+-
+-/**
+- * @file
+- * Utilities to support ARM "Serial Wire Debug" (SWD), a low pin-count debug
+- * link protocol used in cases where JTAG is not wanted.  This is coupled to
+- * recent versions of ARM's "CoreSight" debug framework.  This specific code
+- * is a transport level interface, with "target/arm_adi_v5.[hc]" code
+- * understanding operation semantics, shared with the JTAG transport.
+- *
+- * Single-DAP support only.
+- *
+- * for details, see "ARM IHI 0031A"
+- * ARM Debug Interface v5 Architecture Specification
+- * especially section 5.3 for SWD protocol
+- *
+- * On many chips (most current Cortex-M3 parts) SWD is a run-time alternative
+- * to JTAG.  Boards may support one or both.  There are also SWD-only chips,
+- * (using SW-DP not SWJ-DP).
+- *
+- * Even boards that also support JTAG can benefit from SWD support, because
+- * usually there's no way to access the SWO trace view mechanism in JTAG mode.
+- * That is, trace access may require SWD support.
+- *
+- */
+-
+-#ifdef HAVE_CONFIG_H
+-#include "config.h"
+-#endif
+-
+-#include "arm.h"
+-#include "arm_adi_v5.h"
+-#include <helper/time_support.h>
+-
+-#include <transport/transport.h>
+-#include <jtag/interface.h>
+-
+-#include <jtag/swd.h>
+-
+-static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
+-		uint32_t *data)
+-{
+-	/* REVISIT status return vs ack ... */
+-	return swd->read_reg(swd_cmd(true,  false, reg), data);
+-}
+-
+-static int swd_queue_idcode_read(struct adiv5_dap *dap,
+-		uint8_t *ack, uint32_t *data)
+-{
+-	int status = swd_queue_dp_read(dap, DP_IDCODE, data);
+-	if (status < 0)
+-		return status;
+-	*ack = status;
+-	/* ?? */
+-	return ERROR_OK;
+-}
+-
+-static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
+-		uint32_t data)
+-{
+-	/* REVISIT status return vs ack ... */
+-	return swd->write_reg(swd_cmd(false,  false, reg), data);
+-}
+-
+-
+-static int (swd_queue_ap_read)(struct adiv5_dap *dap, unsigned reg,
+-		uint32_t *data)
+-{
+-	/* REVISIT  APSEL ... */
+-	/* REVISIT status return ... */
+-	return swd->read_reg(swd_cmd(true,  true, reg), data);
+-}
+-
+-static int (swd_queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
+-		uint32_t data)
+-{
+-	/* REVISIT  APSEL ... */
+-	/* REVISIT status return ... */
+-	return swd->write_reg(swd_cmd(false,  true, reg), data);
+-}
+-
+-static int (swd_queue_ap_abort)(struct adiv5_dap *dap, uint8_t *ack)
+-{
+-	return ERROR_FAIL;
+-}
+-
+-/** Executes all queued DAP operations. */
+-static int swd_run(struct adiv5_dap *dap)
+-{
+-	/* for now the SWD interface hard-wires a zero-size queue.  */
+-
+-	/* FIXME but we still need to check and scrub
+-	 * any hardware errors ...
+-	 */
+-	return ERROR_OK;
+-}
+-
+-const struct dap_ops swd_dap_ops = {
+-	.is_swd = true,
+-
+-	.queue_idcode_read = swd_queue_idcode_read,
+-	.queue_dp_read = swd_queue_dp_read,
+-	.queue_dp_write = swd_queue_dp_write,
+-	.queue_ap_read = swd_queue_ap_read,
+-	.queue_ap_write = swd_queue_ap_write,
+-	.queue_ap_abort = swd_queue_ap_abort,
+-	.run = swd_run,
+-};
+-
+-/*
+- * This represents the bits which must be sent out on TMS/SWDIO to
+- * switch a DAP implemented using an SWJ-DP module into SWD mode.
+- * These bits are stored (and transmitted) LSB-first.
+- *
+- * See the DAP-Lite specification, section 2.2.5 for information
+- * about making the debug link select SWD or JTAG.  (Similar info
+- * is in a few other ARM documents.)
+- */
+-static const uint8_t jtag2swd_bitseq[] = {
+-	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
+-	 * putting both JTAG and SWD logic into reset state.
+-	 */
+-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+-	/* Switching sequence enables SWD and disables JTAG
+-	 * NOTE: bits in the DP's IDCODE may expose the need for
+-	 * an old/obsolete/deprecated sequence (0xb6 0xed).
+-	 */
+-	0x9e, 0xe7,
+-	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
+-	 * putting both JTAG and SWD logic into reset state.
+-	 */
+-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+-};
+-
+-/**
+- * Put the debug link into SWD mode, if the target supports it.
+- * The link's initial mode may be either JTAG (for example,
+- * with SWJ-DP after reset) or SWD.
+- *
+- * @param target Enters SWD mode (if possible).
+- *
+- * Note that targets using the JTAG-DP do not support SWD, and that
+- * some targets which could otherwise support it may have have been
+- * configured to disable SWD signaling
+- *
+- * @return ERROR_OK or else a fault code.
+- */
+-int dap_to_swd(struct target *target)
+-{
+-	struct arm *arm = target_to_arm(target);
+-	int retval;
+-
+-	LOG_DEBUG("Enter SWD mode");
+-
+-	/* REVISIT it's ugly to need to make calls to a "jtag"
+-	 * subsystem if the link may not be in JTAG mode...
+-	 */
+-
+-	retval =  jtag_add_tms_seq(8 * sizeof(jtag2swd_bitseq),
+-			jtag2swd_bitseq, TAP_INVALID);
+-	if (retval == ERROR_OK)
+-		retval = jtag_execute_queue();
+-
+-	/* set up the DAP's ops vector for SWD mode. */
+-	arm->dap->ops = &swd_dap_ops;
+-
+-	return retval;
+-}
+-
+-
+-
+-COMMAND_HANDLER(handle_swd_wcr)
+-{
+-	int retval;
+-	struct target *target = get_current_target(CMD_CTX);
+-	struct arm *arm = target_to_arm(target);
+-	struct adiv5_dap *dap = arm->dap;
+-	uint32_t wcr;
+-	unsigned trn, scale = 0;
+-
+-	switch (CMD_ARGC) {
+-	/* no-args: just dump state */
+-	case 0:
+-		/*retval = swd_queue_dp_read(dap, DP_WCR, &wcr); */
+-		retval = dap_queue_dp_read(dap, DP_WCR, &wcr);
+-		if (retval == ERROR_OK)
+-			dap->ops->run(dap);
+-		if (retval != ERROR_OK) {
+-			LOG_ERROR("can't read WCR?");
+-			return retval;
+-		}
+-
+-		command_print(CMD_CTX,
+-			"turnaround=%d, prescale=%d",
+-			WCR_TO_TRN(wcr),
+-			WCR_TO_PRESCALE(wcr));
+-	return ERROR_OK;
+-
+-	case 2:		/* TRN and prescale */
+-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], scale);
+-		if (scale > 7) {
+-			LOG_ERROR("prescale %d is too big", scale);
+-			return ERROR_FAIL;
+-		}
+-		/* FALL THROUGH */
+-
+-	case 1:		/* TRN only */
+-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], trn);
+-		if (trn < 1 || trn > 4) {
+-			LOG_ERROR("turnaround %d is invalid", trn);
+-			return ERROR_FAIL;
+-		}
+-
+-		wcr = ((trn - 1) << 8) | scale;
+-		/* FIXME
+-		 * write WCR ...
+-		 * then, re-init adapter with new TRN
+-		 */
+-		LOG_ERROR("can't yet modify WCR");
+-		return ERROR_FAIL;
+-
+-	default:	/* too many arguments */
+-		return ERROR_COMMAND_SYNTAX_ERROR;
+-	}
+-}
+-
+-static const struct command_registration swd_commands[] = {
+-	{
+-		/*
+-		 * Set up SWD and JTAG targets identically, unless/until
+-		 * infrastructure improves ...  meanwhile, ignore all
+-		 * JTAG-specific stuff like IR length for SWD.
+-		 *
+-		 * REVISIT can we verify "just one SWD DAP" here/early?
+-		 */
+-		.name = "newdap",
+-		.jim_handler = jim_jtag_newtap,
+-		.mode = COMMAND_CONFIG,
+-		.help = "declare a new SWD DAP"
+-	},
+-	{
+-		.name = "wcr",
+-		.handler = handle_swd_wcr,
+-		.mode = COMMAND_ANY,
+-		.help = "display or update DAP's WCR register",
+-		.usage = "turnaround (1..4), prescale (0..7)",
+-	},
+-
+-	/* REVISIT -- add a command for SWV trace on/off */
+-	COMMAND_REGISTRATION_DONE
+-};
+-
+-static const struct command_registration swd_handlers[] = {
+-	{
+-		.name = "swd",
+-		.mode = COMMAND_ANY,
+-		.help = "SWD command group",
+-		.chain = swd_commands,
+-	},
+-	COMMAND_REGISTRATION_DONE
+-};
+-
+-static int swd_select(struct command_context *ctx)
+-{
+-	struct target *target = get_current_target(ctx);
+-	int retval;
+-
+-	retval = register_commands(ctx, NULL, swd_handlers);
+-
+-	if (retval != ERROR_OK)
+-		return retval;
+-
+-	 /* be sure driver is in SWD mode; start
+-	  * with hardware default TRN (1), it can be changed later
+-	  */
+-	if (!swd || !swd->read_reg || !swd->write_reg || !swd->init) {
+-		LOG_DEBUG("no SWD driver?");
+-		return ERROR_FAIL;
+-	}
+-
+-	 retval = swd->init(1);
+-	if (retval != ERROR_OK) {
+-		LOG_DEBUG("can't init SWD driver");
+-		return retval;
+-	}
+-
+-	/* force DAP into SWD mode (not JTAG) */
+-	retval = dap_to_swd(target);
+-
+-	return retval;
+-}
+-
+-static int swd_init(struct command_context *ctx)
+-{
+-	struct target *target = get_current_target(ctx);
+-	struct arm *arm = target_to_arm(target);
+-	struct adiv5_dap *dap = arm->dap;
+-	uint32_t idcode;
+-	int status;
+-
+-	/* FIXME validate transport config ... is the
+-	 * configured DAP present (check IDCODE)?
+-	 * Is *only* one DAP configured?
+-	 *
+-	 * MUST READ IDCODE
+-	 */
+-
+- /* Note, debugport_init() does setup too */
+-
+-	uint8_t ack;
+-
+-	status = swd_queue_idcode_read(dap, &ack, &idcode);
+-
+-	if (status == ERROR_OK)
+-		LOG_INFO("SWD IDCODE %#8.8x", idcode);
+-
+-	return status;
+-
+-}
+-
+-static struct transport swd_transport = {
+-	.name = "swd",
+-	.select = swd_select,
+-	.init = swd_init,
+-};
+-
+-static void swd_constructor(void) __attribute__((constructor));
+-static void swd_constructor(void)
+-{
+-	transport_register(&swd_transport);
+-}
+-
+-/** Returns true if the current debug session
+- * is using SWD as its transport.
+- */
+-bool transport_is_swd(void)
+-{
+-	return get_current_transport() == &swd_transport;
+-}
+diff --git a/src/target/arm_adi_v5.c b/src/target/arm_adi_v5.c
+index ce92f4c..656982c 100644
+--- a/src/target/arm_adi_v5.c
++++ b/src/target/arm_adi_v5.c
+@@ -10,6 +10,9 @@
+  *                                                                         *
+  *   Copyright (C) 2009-2010 by David Brownell                             *
+  *                                                                         *
++ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
+  *   This program is free software; you can redistribute it and/or modify  *
+  *   it under the terms of the GNU General Public License as published by  *
+  *   the Free Software Foundation; either version 2 of the License, or     *
+@@ -73,6 +76,13 @@
+ #include "arm.h"
+ #include "arm_adi_v5.h"
+ #include <helper/time_support.h>
++#include <jtag/interface.h>
++#include <transport/transport.h>
++
++/* We need to have access to information on other layers such as transport etc
++ * these are kept in global interface structure for now. Change ASAP.
++ */
++extern struct jtag_interface *jtag_interface;
+ 
+ /* ARM ADI Specification requires at least 10 bits used for TAR autoincrement  */
+ 
+@@ -118,6 +128,7 @@ void dap_ap_select(struct adiv5_dap *dap, uint8_t ap)
+ /**
+  * Queue transactions setting up transfer parameters for the
+  * currently selected MEM-AP.
++ * This function does not flush the queue, only append elements.
+  *
+  * Subsequent transfers using registers like AP_REG_DRW or AP_REG_BD2
+  * initiate data reads or writes using memory or peripheral addresses.
+@@ -541,7 +552,7 @@ int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count,
+ }
+ 
+ /**
+- * Synchronously read a block of 32-bit words into a buffer
++ * Synchronously read a block of 32-bit words into a buffer using JTAG.
+  * @param dap The DAP connected to the MEM-AP.
+  * @param buffer where the words will be stored (in host byte order).
+  * @param count How many words to read.
+@@ -549,7 +560,7 @@ int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count,
+  * @param addr_incr if true, increment the source address for each u32
+  *	words must be readable by the currently selected MEM-AP.
+  */
+-int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
++int mem_ap_read_buf_u32_jtag(struct adiv5_dap *dap, uint8_t *buffer,
+ 		int count, uint32_t address, bool addr_incr)
+ {
+ 	int wcount, blocksize, readcount, errorcount = 0, retval = ERROR_OK;
+@@ -619,6 +630,91 @@ int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
+ 	return retval;
+ }
+ 
++
++/**
++ * Synchronously read a block of 32-bit words into a buffer using SWD.
++ * @param dap The DAP connected to the MEM-AP.
++ * @param buffer where the words will be stored (in host byte order).
++ * @param count How many words to read.
++ * @param address Memory address from which to read words; all the
++ *	words must be readable by the currently selected MEM-AP.
++ */
++int mem_ap_read_buf_u32_swd(struct adiv5_dap *dap, uint8_t *buffer,
++		int count, uint32_t address, bool addr_incr)
++{
++	int i, readcount, retval = ERROR_OK;
++	uint32_t invalue, adr = address;
++	uint8_t *pBuffer = buffer;
++
++	if (count > 4)
++		LOG_ERROR("AT THE MOMENT ONLY ONE WORD-PER-READ, SORRY :-)");
++
++	retval = dap_setup_accessport(dap, CSW_32BIT, address);
++	if (retval != ERROR_OK) {
++		LOG_ERROR("AP Setup enqueue failed!");
++		return retval;
++	}
++
++	retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
++	if (retval != ERROR_OK) {
++		LOG_ERROR("AP Read Enqueue failed!");
++		return retval;
++	}
++
++	retval = dap_run(dap);
++	if (retval != ERROR_OK) {
++		LOG_ERROR("AP Read queue flush failed!");
++		return retval;
++	}
++
++	int nbytes;
++	nbytes = MIN((count << 1), 4);
++
++	for (i = 0; i < nbytes; i++) {
++		*((uint8_t *)buffer) = (invalue >> 8 * (address & 0x3));
++		buffer++;
++		address++;
++	}
++
++	/* if we have an unaligned access - reorder data */
++	if (adr & 0x3u) {
++		for (readcount = 0; readcount < count; readcount++) {
++			uint32_t data;
++			memcpy(&data, pBuffer, sizeof(uint32_t));
++
++			for (i = 0; i < 4; i++) {
++				*((uint8_t *)pBuffer) =
++						(data >> 8 * (adr & 0x3));
++				pBuffer++;
++				adr++;
++			}
++		}
++	}
++
++	return ERROR_OK;
++}
++
++/**
++ * Synchronously read a block of 32-bit words into a buffer.
++ * @param dap The DAP connected to the MEM-AP.
++ * @param buffer where the words will be stored (in host byte order).
++ * @param count How many words to read.
++ * @param address Memory address from which to read words; all the
++ *	words must be readable by the currently selected MEM-AP.
++ */
++int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
++		int count, uint32_t address, bool addr_incr)
++{
++	if (strncmp(jtag_interface->transport->name, "swd", 3) == 0) {
++		return mem_ap_read_buf_u32_swd(dap, buffer, count, address, addr_incr);
++	} else if (strncmp(jtag_interface->transport->name, "jtag", 4) == 0) {
++		return mem_ap_read_buf_u32_jtag(dap, buffer, count, address, addr_incr);
++	} else {
++		LOG_ERROR("unsupported transport!");
++		return ERROR_FAIL;
++	}
++}
++
+ static int mem_ap_read_buf_packed_u16(struct adiv5_dap *dap,
+ 		uint8_t *buffer, int count, uint32_t address)
+ {
+@@ -1076,6 +1172,8 @@ extern const struct dap_ops jtag_dp_ops;
+  * for SWD transports not just JTAG; that will need to address differences
+  * in layering.  (JTAG is useful without any debug target; but not SWD.)
+  * And this may not even use an AHB-AP ... e.g. DAP-Lite uses an APB-AP.
++ * TC@VI2011: As for now transport specific function set is selected in this
++ *  function, as dap->ops is just a set of commands performed on a transport.
+  */
+ int ahbap_debugport_init(struct adiv5_dap *dap)
+ {
+@@ -1085,12 +1183,19 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
+ 
+ 	LOG_DEBUG(" ");
+ 
+-	/* JTAG-DP or SWJ-DP, in JTAG mode
+-	 * ... for SWD mode this is patched as part
+-	 * of link switchover
++	/** Here we select transport-specific function set to work with the DAP.
++	 * Target must select which transport to use (if supports many of them).
++	 * This function set can also be setup by transport selection routine.
++	 * If SWD (ot other) transport is not selected JTAG is set as default.
+ 	 */
+-	if (!dap->ops)
++	if ((strncmp(jtag_interface->transport->name, "swd", 3) == 0)) {
++		LOG_INFO("Selecting SWD transport command set.");
++		dap->ops = &oocd_dap_ops_swd;
++	} else {
++		LOG_INFO("Selecting JTAG transport command set.");
+ 		dap->ops = &jtag_dp_ops;
++	}
++
+ 
+ 	/* Default MEM-AP setup.
+ 	 *
+@@ -1101,20 +1206,38 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
+ 	dap->ap_current = !0;
+ 	dap_ap_select(dap, 0);
+ 
+-	/* DP initialization */
++	/* DP initialization
++	 * Reset the debug subsystem - CDBGRSTREQ does not work
++	 * Writing zeros to SELECT and/or CTRLSTAT produce ACK=FAULT, why???
++	 * Make sure SELECT has known values, zero APSEL, APBANKSEL, CTRLSEL.
++	 */
+ 
+ 	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+ 
+-	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, SSTICKYERR);
+-	if (retval != ERROR_OK)
+-		return retval;
++	/* Sticky Flags handling is different for JTAG and SWD.
++	 * TODO: Create one function that will take care of error handling based on transport type.
++	 * Abort does not clear sticky error flags.
++	 */
++	if ((strncmp(jtag_interface->transport->name, "swd", 3) == 0)) {
++		/* Clear error flags on SW-DP */
++		retval = dap_queue_dp_write(dap, DP_ABORT, \
++			ORUNERRCLR|WDERRCLR|STKERRCLR|STKCMPCLR);
++		if (retval != ERROR_OK)
++			return retval;
++	} else {
++		/* Clear error flags on JTAG-DP */
++		retval = dap_queue_dp_write(dap, DP_CTRL_STAT, SSTICKYERR);
++		if (retval != ERROR_OK)
++			return retval;
++	}
+ 
+ 	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+ 
++	/* We want to power on the core and debug, also reset them in case they were active. */
+ 	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
+ 	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
+ 	if (retval != ERROR_OK)
+@@ -1164,6 +1287,14 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
+ 
+ 	dap_syssec(dap);
+ 
++	retval = dap_queue_dp_write(dap, DP_SELECT, 0);
++	if (retval != ERROR_OK)
++		return retval;
++	retval = dap_run(dap);
++	if (retval != ERROR_OK)
++		return retval;
++
++	LOG_INFO("AP INIT COMPLETE");
+ 	return ERROR_OK;
+ }
+ 
+diff --git a/src/target/arm_adi_v5.h b/src/target/arm_adi_v5.h
+index e2e83e1..7aeb32a 100644
+--- a/src/target/arm_adi_v5.h
++++ b/src/target/arm_adi_v5.h
+@@ -5,6 +5,8 @@
+  *   Copyright (C) 2008 by Spencer Oliver                                  *
+  *   spen@spen-soft.co.uk                                                  *
+  *                                                                         *
++ *   Copyright (C) 2011 Tomasz Boleslaw CEDRO <cederom@tlen.pl>            *
++ *                                                                         *
+  *   This program is free software; you can redistribute it and/or modify  *
+  *   it under the terms of the GNU General Public License as published by  *
+  *   the Free Software Foundation; either version 2 of the License, or     *
+@@ -40,9 +42,9 @@
+ #define JTAG_DP_APACC		0xB
+ 
+ /* three-bit ACK values for SWD access (sent LSB first) */
+-#define SWD_ACK_OK		0x4
+-#define SWD_ACK_WAIT		0x2
+-#define SWD_ACK_FAULT		0x1
++#define SWD_ACK_OK		0x1
++#define SWD_ACK_WAIT	0x2
++#define SWD_ACK_FAULT	0x4
+ 
+ #define DPAP_WRITE		0
+ #define DPAP_READ		1
+@@ -54,7 +56,7 @@
+  */
+ #define DP_IDCODE		0		/* SWD: read */
+ #define DP_ABORT		0		/* SWD: write */
+-#define DP_CTRL_STAT		0x4		/* r/w */
++#define DP_CTRL_STAT	0x4		/* r/w */
+ #define DP_WCR			0x4		/* SWD: r/w (mux CTRLSEL) */
+ #define DP_RESEND		0x8		/* SWD: read */
+ #define DP_SELECT		0x8		/* JTAG: r/w; SWD: write */
+@@ -138,6 +140,9 @@
+ struct adiv5_dap {
+ 	const struct dap_ops *ops;
+ 
++	/** Context to store DAP specific settings and operations. */
++	void *ctx;
++
+ 	struct arm_jtag *jtag_info;
+ 	/* Control config */
+ 	uint32_t dp_ctrl_stat;
+@@ -183,8 +188,19 @@ struct adiv5_dap {
+ 	 * MEM-AP access before we try to read its status (and/or result).
+ 	 */
+ 	uint32_t	memaccess_tck;
+-
+-	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits */
++	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits.
++	 *
++	 * TC@20110521: According to ARM ADIv5 (page 185) "TAR holds a 32-bit address".
++	 * TC@20110521: According to ARM ADIv5 (page 140) "Automatic address increment
++	 * is only guaranteed to operate on the bottom 10-bits of the
++	 * address held in the TAR. Auto address incrementing of bit [10] and beyond
++	 * is IMPLEMENTATION DEFINED. This means that auto address incrementing at
++	 * a 1KB boundary is IMPLEMENTATION DEFINED. For example, if TAR[31:0] is set
++	 * to 0x14A4, and the access size is word, successive accesses to the DRW
++	 * increment TAR to 0x14A8, 0x14AC, and so on, up to the end of the 1KB range
++	 * at 0x17FC. At this point, the auto-increment behavior on the next DRW access
++	 * is IMPLEMENTATION DEFINED."
++	 */
+ 	uint32_t tar_autoincr_block;
+ };
+ 
+diff --git a/src/transport/Makefile.am b/src/transport/Makefile.am
+index 7c6224a..fc0a055 100644
+--- a/src/transport/Makefile.am
++++ b/src/transport/Makefile.am
+@@ -1,11 +1,16 @@
+ include $(top_srcdir)/common.mk
+ 
+-#METASOURCES = AUTO
++METASOURCES = AUTO
+ noinst_LTLIBRARIES = libtransport.la
+ libtransport_la_SOURCES = \
+-	transport.c
++	transport.c \
++	swd_core.c \
++	swd_tcl.c \
++	swd_libswd_drv_openocd.c
+ 
+ noinst_HEADERS = \
+-	transport.h
++	transport.h \
++	swd.h \
++	swd_libswd_drv_openocd.h
+ 
+ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+diff --git a/src/transport/swd.h b/src/transport/swd.h
+new file mode 100644
+index 0000000..a2ff372
+--- /dev/null
++++ b/src/transport/swd.h
+@@ -0,0 +1,53 @@
++/***************************************************************************
++ *                                                                         *
++ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++/** \file swd.h SWD Transport Header File for OpenOCD. */
++
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#ifndef OOCD_SWD_H
++#define OOCD_SWD_H
++
++#include <libswd.h>
++#include <target/arm.h>
++#include <target/arm_adi_v5.h>
++#include <helper/log.h>
++#include <interface/interface.h>
++#include <jtag/interface.h>
++
++int oocd_swd_queue_idcode_read(struct adiv5_dap *dap, uint8_t *ack, uint32_t *data);
++int oocd_swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg, uint32_t *data);
++int oocd_swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg, uint32_t data);
++int oocd_swd_queue_ap_read(struct adiv5_dap *dap, unsigned reg, uint32_t *data);
++int oocd_swd_queue_ap_write(struct adiv5_dap *dap, unsigned reg, uint32_t data);
++int oocd_swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack);
++int oocd_swd_run(struct adiv5_dap *dap);
++int oocd_swd_transport_init(struct command_context *ctx);
++int oocd_swd_transport_select(struct command_context *ctx);
++
++extern struct transport oocd_transport_swd;
++extern const struct dap_ops oocd_dap_ops_swd;
++
++int swd_register_commands(struct command_context *cmd_ctx);
++
++#endif
+diff --git a/src/transport/swd_core.c b/src/transport/swd_core.c
+new file mode 100644
+index 0000000..90e45eb
+--- /dev/null
++++ b/src/transport/swd_core.c
+@@ -0,0 +1,315 @@
++/***************************************************************************
++ *                                                                         *
++ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++/** @file swd_core.c SWD Transport Core Body File for OpenOCD.
++ * SWD Transport Layer creates bridge between target and the interface driver
++ * functions. Target functions create high level operations on the device's
++ * DAP (Debug Access Port), while interface driver passes electrical signals
++ * in and out of the physical device. Transport is implemented using LibSWD,
++ * and external open-source SWD framework.
++ */
++
++#include <transport/transport.h>
++
++/* Unfortunalety OpenOCD use globals to pass information so we need to use it too. */
++extern struct jtag_interface *jtag_interface;
++
++/** @{ swd_arm_adi_v5 Function set to support existing ARM ADI v5 target's
++ * infrastructure.
++ */
++
++int oocd_swd_queue_idcode_read(struct adiv5_dap *dap, uint8_t *ack, uint32_t *data)
++{
++	int retval;
++	retval = swd_dp_read_idcode(dap->ctx, SWD_OPERATION_EXECUTE, (int **)&data);
++	if (retval < 0) {
++		LOG_ERROR("oocd_swd_queue_idcode_read(*dap=@%p, ack=@%p, data=@%p) error (%s)",
++						(void *)dap, (void *)ack, (void *)data, swd_error_string(retval));
++		return ERROR_FAIL;
++	} else
++		return ERROR_OK;
++}
++
++int oocd_swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg, uint32_t *data)
++{
++	int retval;
++	uint32_t *rdata;
++	retval = swd_dp_read((swd_ctx_t *)dap->ctx, SWD_OPERATION_EXECUTE, (char)reg, (int **)&rdata);
++	if (retval < 0) {
++		LOG_ERROR("oocd_swd_queue_dp_read(dap=@%p, reg=0x%X, data=@%p) error (%s) ",
++					(void *)dap, reg, (void *)data, swd_error_string(retval));
++		return ERROR_FAIL;
++	}
++	if (data != NULL)
++		*data = *rdata;
++	return ERROR_OK;
++}
++
++int oocd_swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg, uint32_t data)
++{
++	int retval;
++	retval = swd_dp_write((swd_ctx_t *)dap->ctx, SWD_OPERATION_EXECUTE, (char)reg, (int *)&data);
++	if (retval < 0) {
++		LOG_ERROR("oocd_swd_queue_dp_write(dap=@%p, reg=0x%X, data=0x%X) error (%s)",
++					(void *)dap, reg, data, swd_error_string(retval));
++		return ERROR_FAIL;
++	}
++	return ERROR_OK;
++}
++
++int oocd_swd_queue_ap_read(struct adiv5_dap *dap, unsigned reg, uint32_t *data)
++{
++	int retval;
++	uint32_t *rdata;
++	retval = swd_ap_read((swd_ctx_t *)dap->ctx, SWD_OPERATION_EXECUTE, (char)reg, (int **)&rdata);
++	if (retval < 0) {
++		LOG_ERROR("oocd_swd_queue_ap_read(dap=@%p, reg=0x%X, data=@%p) error (%s)",
++					(void *)dap, reg, (void *)data, swd_error_string(retval));
++		return ERROR_FAIL;
++	}
++	if (data != NULL)
++		*data = *rdata;
++	return ERROR_OK;
++}
++
++int oocd_swd_queue_ap_write(struct adiv5_dap *dap, unsigned reg, uint32_t data)
++{
++	int retval;
++	retval = swd_ap_write((swd_ctx_t *)dap->ctx, SWD_OPERATION_EXECUTE, (char) reg, (int *) &data);
++	if (retval < 0) {
++		LOG_ERROR("oocd_swd_queue_ap_write(dap=@%p, reg=0x%X, data=0x%X) error (%s)",
++					(void *)dap, reg, data, swd_error_string(retval));
++		return ERROR_FAIL;
++	}
++	return ERROR_OK;
++}
++
++int oocd_swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
++{
++	int retval;
++	int abort_flags = SWD_DP_ABORT_ORUNERRCLR | SWD_DP_ABORT_WDERRCLR | SWD_DP_ABORT_STKERRCLR \
++					| SWD_DP_ABORT_STKCMPCLR | SWD_DP_ABORT_DAPABORT;
++	retval = swd_dp_write((swd_ctx_t *)dap->ctx, SWD_OPERATION_ENQUEUE, SWD_DP_ABORT_ADDR, &abort_flags);
++	if (retval < 0) {
++		LOG_ERROR("oocd_swd_queue_ap_abort(dap=@%p, ack=@%p) error (%s)",
++					(void *)dap, (void *)ack, swd_error_string(retval));
++		return ERROR_FAIL;
++	}
++	return ERROR_OK;
++}
++
++/** This function flushes all enqueued operations into a hardware interface.
++ *  swd_cmdq_flush() is called that calls swd_drv_transmit() which is using
++ *  application specific drivers that are linked into target application binary.
++ *  Because in SWD each operation is confirmed by Target with ACK answer
++ *  we need to react on errors here. OpenOCD was constructed for use with JTAG
++ *  and most functions use series of enqueue functions that are later flushed
++ *  into a hardware interface with high level dap_run() / oocd_swd_run(), so
++ *  this is the only sensible place to place error handling (otherwise code
++ *  would need to be changed in lots of places). Caller function simply want
++ *  to know if transfer succeeded, so we can perform handling such as retry
++ *  on ACK=WAIT unless transfer fail with ACK={FAIL, UNKNOWN}.
++ */
++
++int oocd_swd_run(struct adiv5_dap *dap)
++{
++	int retval;
++	swd_ctx_t *swdctx = (swd_ctx_t *)dap->ctx;
++	retval = swd_cmdq_flush(swdctx, &swdctx->cmdq, SWD_OPERATION_EXECUTE);
++	if (retval < 0) {
++		LOG_ERROR("oocd_swd_run(dap=@%p) error (%s)", (void *) dap, swd_error_string(retval));
++		return ERROR_FAIL;
++	} else
++		return ERROR_OK;
++}
++
++
++/* Transport select prepares selected transport for later use and bus/target initialization.
++ * TODO: We are operating on global interface pointer, change it into function parameter asap.
++ */
++int oocd_swd_transport_init(struct command_context *ctx)
++{
++	LOG_DEBUG("entering function...");
++	int retval, *idcode;
++
++	struct target *target = get_current_target(ctx);
++	struct arm *arm = target_to_arm(target);
++	struct adiv5_dap *dap = arm->dap;
++
++	dap->ops = &oocd_dap_ops_swd;
++
++	/* Create SWD_CTX if nesessary */
++	if (!dap->ctx) {
++		/** Transport was not yet initialized. */
++		dap->ctx = swd_init();
++		if (dap->ctx == NULL) {
++			LOG_ERROR("Cannot initialize SWD context!");
++			return ERROR_FAIL;
++		}
++		LOG_INFO("New SWD context initialized at 0x%p", (void *)dap->ctx);
++		/* Now inherit the log level from OpenOCD settings. */
++		retval = swd_log_level_inherit((swd_ctx_t *)dap->ctx, debug_level);
++		if (retval < 0) {
++			LOG_ERROR("Unable to set log level: %s", swd_error_string(retval));
++			return ERROR_FAIL;
++		}
++	} else
++		LOG_INFO("Working on existing transport context at 0x%p...", (void *)dap->ctx);
++
++	/** We enable automatic error handling on error */
++	swd_ctx_t *swdctx = (swd_ctx_t *)dap->ctx;
++	swdctx->config.autofixerrors = 0;
++
++	/**
++	 * Initialize driver and detect target working with selected transport.
++	 * Because we can work on existing context there is no need to destroy it,
++	 * as it can be used on next try.
++	 */
++	retval = swd_dap_detect((swd_ctx_t *)dap->ctx, SWD_OPERATION_EXECUTE, &idcode);
++	if (retval < 0) {
++		LOG_ERROR("swd_dap_detect() error %d (%s)", retval, swd_error_string(retval));
++		return retval;
++	}
++
++	LOG_INFO("SWD transport initialization complete. Found IDCODE=0x%08X.", *idcode);
++	return ERROR_OK;
++}
++
++/**
++ * Select SWD transport on interface pointed by global *jtag_interface structure.
++ * Select is assumed to be called before transport init. It prepares everything,
++ * including context memory and command set for higher layers, but not hardware
++ * and does not interrogate target device (with IDCODE read that is done by
++ * transport init call). This function does not touch the hardware because
++ * hardware use signals that are not yet read from config file at this point!
++ */
++int oocd_swd_transport_select(struct command_context *ctx)
++{
++	LOG_DEBUG("entering function...");
++	int retval;
++
++	jtag_interface->transport = (struct transport *)&oocd_transport_swd;
++
++	retval = swd_register_commands(ctx);
++	if (retval != ERROR_OK) {
++		LOG_ERROR("Unable to register SWD commands!");
++		return retval;
++	}
++
++	LOG_DEBUG("SWD Transport selection complete...");
++	return ERROR_OK;
++}
++
++
++struct transport oocd_transport_swd = {
++	.name   = "swd",
++	.select = oocd_swd_transport_select,
++	.init   = oocd_swd_transport_init,
++	.ctx    = NULL,
++	.next   = NULL,
++};
++
++const struct dap_ops oocd_dap_ops_swd = {
++	.is_swd            = true,
++
++	.queue_idcode_read = oocd_swd_queue_idcode_read,
++	.queue_dp_read     = oocd_swd_queue_dp_read,
++	.queue_dp_write    = oocd_swd_queue_dp_write,
++	.queue_ap_read     = oocd_swd_queue_ap_read,
++	.queue_ap_write    = oocd_swd_queue_ap_write,
++	.queue_ap_abort    = oocd_swd_queue_ap_abort,
++	.run               = oocd_swd_run,
++};
++
++
++
++
++/** Register SWD Transport at program startup. */
++static void swd_constructor(void) __attribute__((constructor));
++static void swd_constructor(void)
++{
++	transport_register((struct transport *)&oocd_transport_swd);
++}
++
++/** Returns true if the current debug session
++ * is using SWD as its transport.
++ */
++bool transport_is_swd(void)
++{
++	return get_current_transport() == &oocd_transport_swd;
++}
++
++
++
++
++/***************************************************************************
++ * BELOW UGLY FUNCTIONS TO MAKE OLD THINGS WORK/COMPILE, REMOVE THEM ASAP  *
++ ***************************************************************************/
++
++#include <target/arm.h>
++
++/*
++ * This represents the bits which must be sent out on TMS/SWDIO to
++ * switch a DAP implemented using an SWJ-DP module into SWD mode.
++ * These bits are stored (and transmitted) LSB-first.
++ *
++ * See the DAP-Lite specification, section 2.2.5 for information
++ * about making the debug link select SWD or JTAG.  (Similar info
++ * is in a few other ARM documents.)
++ */
++static const uint8_t jtag2swd_bitseq[] = {
++	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
++	 * putting both JTAG and SWD logic into reset state.
++	 */
++	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
++	/* Switching sequence enables SWD and disables JTAG
++	 * NOTE: bits in the DP's IDCODE may expose the need for
++	 * an old/obsolete/deprecated sequence (0xb6 0xed).
++	 */
++	0x9e, 0xe7,
++	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
++	 * putting both JTAG and SWD logic into reset state.
++	 */
++	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
++};
++
++
++
++/**
++ * Put the debug link into SWD mode, if the target supports it.
++ * The link's initial mode may be either JTAG (for example,
++ * with SWJ-DP after reset) or SWD.
++ *
++ * @param target Enters SWD mode (if possible).
++ *
++ * Note that targets using the JTAG-DP do not support SWD, and that
++ * some targets which could otherwise support it may have have been
++ * configured to disable SWD signaling
++ *
++ * @return ERROR_OK or else a fault code.
++ */
++int dap_to_swd(struct target *target)
++{
++	LOG_INFO("dap_to_swd()");
++	return ERROR_OK;
++}
++
++/** @} */
+diff --git a/src/transport/swd_libswd_drv_openocd.c b/src/transport/swd_libswd_drv_openocd.c
+new file mode 100644
+index 0000000..3908a04
+--- /dev/null
++++ b/src/transport/swd_libswd_drv_openocd.c
+@@ -0,0 +1,306 @@
++/***************************************************************************
++ *                                                                         *
++ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++/** @file libswd_drv_openocd.c Driver Bridge between LibSWD and OpenOCD. */
++
++#include <transport/swd.h>
++
++/** OpenOCD as for now use global pointer to driver structure. */
++extern struct jtag_interface *jtag_interface;
++
++/**
++ * Driver code to write 8-bit data (char type).
++ * MOSI (Master Output Slave Input) is a SWD Write Operation.
++ * @param *swdctx swd context to work on.
++ * @param *cmd point to the actual command being sent.
++ * @param *data points to the char data.
++ * @bits tells how many bits to send (at most 8).
++ * @bits nLSBfirst tells the shift direction: 0 = LSB first, other MSB first.
++ * @return data count transferred, or negative SWD_ERROR code on failure.
++ */
++int swd_drv_mosi_8(swd_ctx_t *swdctx, swd_cmd_t *cmd, char *data, int bits, int nLSBfirst)
++{
++	LOG_DEBUG("OpenOCD's swd_drv_mosi_8(swdctx=@%p, cmd=@%p, data=0x%02X, bits=%d, nLSBfirst=0x%02X)",
++				(void *)swdctx, (void *)cmd, *data, bits, nLSBfirst);
++	if (data == NULL)
++		return SWD_ERROR_NULLPOINTER;
++	if (bits < 0 && bits > 8)
++		return SWD_ERROR_PARAM;
++	if (nLSBfirst != 0 && nLSBfirst != 1)
++		return SWD_ERROR_PARAM;
++
++	static unsigned int i;
++	static signed int res;
++	static char misodata[8], mosidata[8];
++
++	/* Split output data into char array. */
++	for (i = 0; i < 8; i++)
++		mosidata[(nLSBfirst == SWD_DIR_LSBFIRST) ? (i) : (bits-1-i)] = ((1<<i)&(*data)) ? 1 : 0;
++
++	/* Then send that array into interface hardware. */
++	res = jtag_interface->transfer(NULL, bits, mosidata, misodata, 0);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++
++	return res; /* ? return i */
++}
++
++/**
++ * Driver code to write 32-bit data (int type).
++ * MOSI (Master Output Slave Input) is a SWD Write Operation.
++ * @param *swdctx swd context to work on.
++ * @param *cmd point to the actual command being sent.
++ * @param *data points to the char buffer array.
++ * @bits tells how many bits to send (at most 32).
++ * @bits nLSBfirst tells the shift direction: 0 = LSB first, other MSB first.
++ * @return data count transferred, or negative SWD_ERROR code on failure.
++ */
++int swd_drv_mosi_32(swd_ctx_t *swdctx, swd_cmd_t *cmd, int *data, int bits, int nLSBfirst)
++{
++	LOG_DEBUG("OpenOCD's swd_drv_mosi_32(swdctx=@%p, cmd=@%p, data=0x%08X, bits=%d, nLSBfirst=0x%02X)",
++				(void *)swdctx, (void *)cmd, *data, bits, nLSBfirst);
++	if (data == NULL)
++		return SWD_ERROR_NULLPOINTER;
++	if (bits < 0 && bits > 8)
++		return SWD_ERROR_PARAM;
++	if (nLSBfirst != 0 && nLSBfirst != 1)
++		return SWD_ERROR_PARAM;
++
++	static unsigned int i;
++	static signed int res;
++	static char misodata[32], mosidata[32];
++
++	/* UrJTAG drivers shift data LSB-First. */
++	for (i = 0; i < 32; i++)
++		mosidata[(nLSBfirst == SWD_DIR_LSBFIRST) ? (i) : (bits-1-i)] = ((1<<i)&(*data)) ? 1 : 0;
++
++	res = jtag_interface->transfer(NULL, bits, mosidata, misodata, 0);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++
++	return res; /* ? return i */
++}
++
++/**
++ * Use UrJTAG's driver to read 8-bit data (char type).
++ * MISO (Master Input Slave Output) is a SWD Read Operation.
++ * @param *swdctx swd context to work on.
++ * @param *cmd point to the actual command being sent.
++ * @param *data points to the char buffer array.
++ * @bits tells how many bits to send (at most 8).
++ * @bits nLSBfirst tells the shift direction: 0 = LSB first, other MSB first.
++ * @return data count transferred, or negative SWD_ERROR code on failure.
++ */
++int swd_drv_miso_8(swd_ctx_t *swdctx, swd_cmd_t *cmd, char *data, int bits, int nLSBfirst)
++{
++	if (data == NULL)
++		return SWD_ERROR_NULLPOINTER;
++	if (bits < 0 && bits > 8)
++		return SWD_ERROR_PARAM;
++	if (nLSBfirst != 0 && nLSBfirst != 1)
++		return SWD_ERROR_PARAM;
++
++	static int i;
++	static signed int res;
++	static char misodata[8], mosidata[8];
++
++	res = jtag_interface->transfer(NULL, bits, mosidata, misodata, SWD_DIR_LSBFIRST);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++	/* Now we need to reconstruct the data byte from shifted in LSBfirst byte array. */
++	*data = 0;
++	for (i = 0; i < bits; i++)
++		*data |= misodata[(nLSBfirst == SWD_DIR_LSBFIRST) ? (i) : (bits-1-i)] ? (1<<i) : 0;
++	LOG_DEBUG("OpenOCD's swd_drv_miso_8(swdctx=@%p, cmd=@%p, data=@%p, "
++				"bits=%d, nLSBfirst=0x%02X) reads: 0x%02X",
++				(void *)swdctx, (void *)cmd, (void *)data, bits, nLSBfirst, *data);
++	return i;
++}
++
++/**
++ * Driver code to read 32-bit data (int type).
++ * MISO (Master Input Slave Output) is a SWD Read Operation.
++ * @param *swdctx swd context to work on.
++ * @param *cmd point to the actual command being sent.
++ * @param *data points to the char buffer array.
++ * @bits tells how many bits to send (at most 32).
++ * @bits nLSBfirst tells the shift direction: 0 = LSB first, other MSB first.
++ * @return data count transferred, or negative SWD_ERROR code on failure.
++ */
++int swd_drv_miso_32(swd_ctx_t *swdctx, swd_cmd_t *cmd, int *data, int bits, int nLSBfirst)
++{
++	if (data == NULL)
++		return SWD_ERROR_NULLPOINTER;
++	if (bits < 0 && bits > 8)
++		return SWD_ERROR_PARAM;
++	if (nLSBfirst != 0 && nLSBfirst != 1)
++		return SWD_ERROR_PARAM;
++
++	static int i;
++	static signed int res;
++	static char misodata[32], mosidata[32];
++
++	res = jtag_interface->transfer(NULL, bits, mosidata, misodata, SWD_DIR_LSBFIRST);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++	/* Now we need to reconstruct the data byte from shifted in LSBfirst byte array. */
++	*data = 0;
++	for (i = 0; i < bits; i++)
++		*data |= (misodata[(nLSBfirst == SWD_DIR_LSBFIRST) ? (i) : (bits-1-i)] ? (1<<i) : 0);
++	LOG_DEBUG("OpenOCD's swd_drv_miso_32(swdctx=@%p, cmd=@%p, "
++				"data=@%p, bits=%d, nLSBfirst=0x%02X) reads: 0x%08X",
++				(void *)swdctx, (void *)cmd, (void *)data, bits, nLSBfirst, *data);
++	LOG_DEBUG("OpenOCD's swd_drv_miso_32() reads: 0x%08X\n", *data);
++
++	return res; /* ? return i */
++}
++
++/**
++ * This function sets interface buffers to MOSI direction.
++ * MOSI (Master Output Slave Input) is a SWD Write operation.
++ * OpenOCD use global "struct jtag_interface" pointer as interface driver.
++ * OpenOCD driver must support "RnW" signal to drive output buffers for TRN.
++ * @param *swdctx is the swd context to work on.
++ * @param bits specify how many clock cycles must be used for TRN.
++ * @return number of bits transmitted or negative SWD_ERROR code on failure.
++ */
++int swd_drv_mosi_trn(swd_ctx_t *swdctx, int bits)
++{
++	LOG_DEBUG("OpenOCD's swd_drv_mosi_trn(swdctx=@%p, bits=%d)\n", (void *)swdctx, bits);
++	if (bits < SWD_TURNROUND_MIN_VAL && bits > SWD_TURNROUND_MAX_VAL)
++		return SWD_ERROR_TURNAROUND;
++
++	int res, val = 0;
++	static char buf[SWD_TURNROUND_MAX_VAL];
++	/* Use driver method to set low (write) signal named RnW. */
++	res = jtag_interface->bitbang(NULL, "RnW", 0, &val);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++
++	/* Clock specified number of bits for proper TRN transaction. */
++	res = jtag_interface->transfer(NULL, bits, buf, buf, 0);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++
++	return bits;
++}
++
++/**
++ * This function sets interface buffers to MISO direction.
++ * MISO (Master Input Slave Output) is a SWD Read operation.
++ * OpenOCD use global "struct jtag_interface" pointer as interface driver.
++ * OpenOCD driver must support "RnW" signal to drive output buffers for TRN.
++ * @param *swdctx is the swd context to work on.
++ * @param bits specify how many clock cycles must be used for TRN.
++ * @return number of bits transmitted or negative SWD_ERROR code on failure.
++ */
++int swd_drv_miso_trn(swd_ctx_t *swdctx, int bits)
++{
++	LOG_DEBUG("OpenOCD's swd_drv_miso_trn(swdctx=@%p, bits=%d)\n", (void *)swdctx, bits);
++	if (bits < SWD_TURNROUND_MIN_VAL && bits > SWD_TURNROUND_MAX_VAL)
++		return SWD_ERROR_TURNAROUND;
++
++	static int res, val = 1;
++	static char buf[SWD_TURNROUND_MAX_VAL];
++
++	/* Use driver method to set high (read) signal named RnW. */
++	res = jtag_interface->bitbang(NULL, "RnW", 0xFFFFFFFF, &val);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++
++	/* Clock specified number of bits for proper TRN transaction. */
++	res = jtag_interface->transfer(NULL, bits, buf, buf, 0);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++
++	return bits;
++}
++
++
++/**
++ * Set SWD debug level according to OpenOCD settings.
++ * @param *swdctx is the context to work on.
++ * @param loglevel is the OpenOCD numerical value of actual loglevel to force
++ *  on LibSWD, or -1 to inherit from actual global settings of OpenOCD.
++ * @return SWD_OK on success, negative SWD_ERROR code on failure.
++ */
++int swd_log_level_inherit(swd_ctx_t *swdctx, int loglevel)
++{
++	LOG_DEBUG("OpenOCD's swd_log_level_inherit(swdctx=@%p, loglevel=%d)\n", (void *)swdctx, loglevel);
++	if (swdctx == NULL) {
++		LOG_WARNING("swd_log_level_inherit(): SWD Context not (yet) initialized...\n");
++		return SWD_OK;
++	}
++
++	swd_loglevel_t new_swdlevel;
++	switch ((loglevel == -1) ? debug_level : loglevel) {
++		case LOG_LVL_DEBUG:
++			new_swdlevel = SWD_LOGLEVEL_PAYLOAD;
++			break;
++		case LOG_LVL_INFO:
++			new_swdlevel = SWD_LOGLEVEL_INFO;
++			break;
++		case LOG_LVL_WARNING:
++			new_swdlevel = SWD_LOGLEVEL_WARNING;
++			break;
++		case LOG_LVL_ERROR:
++			new_swdlevel = SWD_LOGLEVEL_ERROR;
++			break;
++		case LOG_LVL_USER: /* fall through */
++		case LOG_LVL_OUTPUT:
++			new_swdlevel = SWD_LOGLEVEL_NORMAL;
++			break;
++		case LOG_LVL_SILENT:
++			new_swdlevel = SWD_LOGLEVEL_SILENT;
++			break;
++		default:
++			new_swdlevel = SWD_LOGLEVEL_NORMAL;
++	}
++
++	int res = swd_log_level_set(swdctx, new_swdlevel);
++	if (res < 0) {
++		LOG_ERROR("swd_log_level_set() failed (%s)\n", swd_error_string(res));
++		return ERROR_FAIL;
++	}
++	return new_swdlevel;
++}
++
++/** We will use OpenOCD's logging mechanisms to show LibSWD messages.
++  * SWD can have different loglevel set than the OpenOCD itself, so we need to
++  * log all messages at openocd level that will not block swd messages.
++  * It is also possible to 'inherit' loglevel to swd from openocd.
++  */
++int swd_log(swd_ctx_t *swdctx, swd_loglevel_t loglevel, char *msg, ...)
++{
++	if (swdctx == NULL)
++		return SWD_ERROR_NULLCONTEXT;
++	if (loglevel > SWD_LOGLEVEL_MAX)
++		return SWD_ERROR_PARAM;
++
++	if (loglevel > swdctx->config.loglevel)
++		return SWD_OK;
++	va_list ap;
++	va_start(ap, msg);
++	/* Calling OpenOCD log functions here will cause program crash (va recurrent). */
++	vprintf(msg, ap);
++	va_end(ap);
++	return SWD_OK;
++}
+diff --git a/src/transport/swd_libswd_drv_openocd.h b/src/transport/swd_libswd_drv_openocd.h
+new file mode 100644
+index 0000000..1fc07ac
+--- /dev/null
++++ b/src/transport/swd_libswd_drv_openocd.h
+@@ -0,0 +1,38 @@
++/***************************************************************************
++ *                                                                         *
++ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++/** @file libswd_drv_openocd.h Driver Bridge between LibSWD and OpenOCD header file. */
++
++#ifndef OOCD_LIBSWD_H
++#define OOCD_LIBSWD_H
++
++#include <libswd.h>
++
++int swd_drv_mosi_8(swd_ctx_t *swdctx, swd_cmd_t *cmd, char *data, int bits, int nLSBfirst);
++int swd_drv_mosi_32(swd_ctx_t *swdctx, swd_cmd_t *cmd, int *data, int bits, int nLSBfirst);
++int swd_drv_miso_8(swd_ctx_t *swdctx, swd_cmd_t *cmd, char *data, int bits, int nLSBfirst);
++int swd_drv_miso_32(swd_ctx_t *swdctx, swd_cmd_t *cmd, int *data, int bits, int nLSBfirst);
++int swd_drv_mosi_trn(swd_ctx_t *swdctx, int bits);
++int swd_drv_miso_trn(swd_ctx_t *swdctx, int bits);
++int swd_log_level_inherit(swd_ctx_t *swdctx, int loglevel);
++int swd_log(swd_ctx_t *swdctx, swd_loglevel_t loglevel, char *msg, ...);
++
++#endif /* ifndef OOCD_LIBSWD_H */
+diff --git a/src/transport/swd_tcl.c b/src/transport/swd_tcl.c
+new file mode 100644
+index 0000000..77282b9
+--- /dev/null
++++ b/src/transport/swd_tcl.c
+@@ -0,0 +1,112 @@
++/***************************************************************************
++ *                                                                         *
++ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
++
++/** @file swd_tcl.c TCL Interface for SWD Transport.
++ * This file contains TCL interface and functions to work with SWD transport.
++ */
++
++#include <transport/swd.h>
++
++COMMAND_HANDLER(handle_swd_loglevel)
++{
++	int loglevel;
++	struct target *target = get_current_target(CMD_CTX);
++	struct arm *arm = target_to_arm(target);
++	swd_ctx_t *swdctx = (swd_ctx_t *)arm->dap->ctx;
++
++	switch (CMD_ARGC) {
++	case 0:
++		LOG_USER("Current SWD LogLevel[%d..%d] is: %d (%s)",
++					SWD_LOGLEVEL_MIN, SWD_LOGLEVEL_MAX, swdctx->config.loglevel,
++					swd_log_level_string(swdctx->config.loglevel));
++		break;
++	case 1:
++		/* We want to allow inherit current OpenOCD's debuglevel. */
++		if (strncasecmp(CMD_ARGV[0], "inherit", 7) == 0) {
++			loglevel = swd_log_level_inherit(swdctx, debug_level);
++			if (loglevel < 0) {
++				LOG_ERROR("LogLevel inherit failed!");
++				return ERROR_FAIL;
++			} else {
++				LOG_USER("Using OpenOCD settings, SWD LogLevel[%d..%d] set to: %d (%s)",
++							SWD_LOGLEVEL_MIN, SWD_LOGLEVEL_MAX, loglevel, swd_log_level_string(loglevel));
++				return ERROR_OK;
++			}
++		}
++		/* Or we want to set log level for SWD transport by hand. */
++		loglevel = atoi(CMD_ARGV[0]);
++		if (loglevel < SWD_LOGLEVEL_MIN || loglevel > SWD_LOGLEVEL_MAX) {
++			LOG_ERROR("Bad SWD LogLevel value!");
++			return ERROR_FAIL;
++		} else
++			LOG_USER("Setting SWD LogLevel[%d..%d] to: %d (%s)",
++							SWD_LOGLEVEL_MIN, SWD_LOGLEVEL_MAX, loglevel, swd_log_level_string(loglevel));
++		if (swd_log_level_set(swdctx, loglevel) < 0)
++			return ERROR_FAIL;
++		else
++			return ERROR_OK;
++	}
++	LOG_INFO("Available values:");
++	for (int i = 0; i <= SWD_LOGLEVEL_MAX; i++)
++		LOG_INFO(" %d (%s)", i, swd_log_level_string(i));
++	return ERROR_OK;
++}
++
++static const struct command_registration swd_subcommand_handlers[] = {
++	{
++		/*
++		 * Set up SWD and JTAG targets identically, unless/until
++		 * infrastructure improves ...  meanwhile, ignore all
++		 * JTAG-specific stuff like IR length for SWD.
++		 *
++		 * REVISIT can we verify "just one SWD DAP" here/early?
++		 */
++		.name        = "newtap",
++		.jim_handler = jim_jtag_newtap,
++		.mode        = COMMAND_CONFIG,
++		.help        = "declare a new SWD DAP"
++	},
++	{
++		.name        = "loglevel",
++		.handler     = handle_swd_loglevel,
++		.mode        = COMMAND_ANY,
++		.help        = "set/inherit/get loglevel for SWD transport.",
++	},
++
++	COMMAND_REGISTRATION_DONE
++};
++
++static const struct command_registration swd_command_handlers[] = {
++	{
++		.name        = "swd",
++		.mode        = COMMAND_ANY,
++		.help        = "SWD command group",
++		.chain       = swd_subcommand_handlers,
++	},
++	COMMAND_REGISTRATION_DONE
++};
++
++int swd_register_commands(struct command_context *cmd_ctx)
++{
++	return register_commands(cmd_ctx, NULL, swd_command_handlers);
++}
++
++/** @} */
+diff --git a/src/transport/transport.c b/src/transport/transport.c
+index 06f09c9..565706f 100644
+--- a/src/transport/transport.c
++++ b/src/transport/transport.c
+@@ -1,20 +1,25 @@
+-/*
+- * Copyright (c) 2010 by David Brownell
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+-
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+-
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software Foundation,
+- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+- */
++/***************************************************************************
++ *                                                                         *
++ *   Copyright (c) 2010 by David Brownell                                  *
++ *                                                                         *
++ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
++ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, write to the                         *
++ *   Free Software Foundation, Inc.,                                       *
++ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
++ ***************************************************************************/
+ 
+ #ifdef HAVE_CONFIG_H
+ #include "config.h"
+@@ -47,6 +52,9 @@
+ 
+ extern struct command_context *global_cmd_ctx;
+ 
++/* TC: Adding global here in order to set transport when initialized. */
++extern struct jtag_interface *jtag_interface;
++
+ /*-----------------------------------------------------------------------*/
+ 
+ /*
+@@ -64,12 +72,18 @@ static struct transport *transport_list;
+ static const char **allowed_transports;
+ 
+ /** * The transport being used for the current OpenOCD session.  */
+-static struct transport *session;
++static struct transport *session_transport;
++
++/** Transport names definitions. */
++const char *oocd_transport_jtag_only[] = { "jtag", NULL };
++const char *oocd_transport_swd_only[]  = { "swd" , NULL };
+ 
+ static int transport_select(struct command_context *ctx, const char *name)
+ {
+ 	/* name may only identify a known transport;
+-	 * caller guarantees session's transport isn't yet set.*/
++	 * caller guarantees session's transport isn't yet set.
++	 * TODO (TC): Never trust user supplied parameters, verification mechanism needed.
++	 */
+ 	for (struct transport *t = transport_list; t; t = t->next) {
+ 		if (strcmp(t->name, name) == 0) {
+ 			int retval = t->select(ctx);
+@@ -78,7 +92,7 @@ static int transport_select(struct command_context *ctx, const char *name)
+ 			 * forcing it to JTAG or SWD mode.
+ 			 */
+ 			if (retval == ERROR_OK)
+-				session = t;
++				session_transport = t;
+ 			else
+ 				LOG_ERROR("Error selecting '%s' as transport", t->name);
+ 			return retval;
+@@ -106,17 +120,31 @@ int allow_transports(struct command_context *ctx, const char **vector)
+ 	 * of one transport; C code should be definitive about what
+ 	 * can be used when all goes well.
+ 	 */
+-	if (allowed_transports != NULL || session) {
++
++	if (allowed_transports != NULL || session_transport) {
+ 		LOG_ERROR("Can't modify the set of allowed transports.");
+ 		return ERROR_FAIL;
+ 	}
+ 
++	if (vector[0] == NULL) {
++		LOG_ERROR("Transports vector should contain at least one transport.");
++		return ERROR_FAIL;
++	}
++
+ 	allowed_transports = vector;
+ 
+-	/* autoselect if there's no choice ... */
++	/* autoselect if there's only one choice ... */
+ 	if (!vector[1]) {
+ 		LOG_INFO("only one transport option; autoselect '%s'", vector[0]);
+ 		return transport_select(ctx, vector[0]);
++	} else {
++		/* guard against user config errors */
++		LOG_WARNING("Transports added, now select one.");
++		while (*vector) {
++			LOG_DEBUG("allowing transport '%s'", *vector);
++			vector++;
++		}
++		return ERROR_OK;
+ 	}
+ 
+ 	return ERROR_OK;
+@@ -133,18 +161,16 @@ bool transports_are_declared(void)
+ }
+ 
+ /**
+- * Registers a transport.  There are general purpose transports
+- * (such as JTAG), as well as relatively proprietary ones which are
+- * specific to a given chip (or chip family).
++ * Registers a transport and prepend it to the transports list.
+  *
+  * Code implementing a transport needs to register it before it can
+- * be selected and then activated.  This is a dynamic process, so
+- * that chips (and families) can define transports as needed (without
+- * nneeding error-prone static tables).
+- *
+- * @param new_transport the transport being registered.  On a
+- * successful return, this memory is owned by the transport framework.
++ * be selected with @a select() function and then activated with @init() function.
++ * Transport registration is a dynamic process using function pointers
++ * and singly linked lists to avoid static tables.
++ * On successful execution old transport list becomes next element of the
++ * registered transport and new element a new pointer to the transport list.
+  *
++ * @param new_transport transport being registered becomes new transport list.
+  * @returns ERROR_OK on success, else a fault code.
+  */
+ int transport_register(struct transport *new_transport)
+@@ -159,7 +185,8 @@ int transport_register(struct transport *new_transport)
+ 	}
+ 
+ 	if (!new_transport->select || !new_transport->init)
+-		LOG_ERROR("invalid transport %s", new_transport->name);
++		LOG_ERROR("invalid transport %s - no select() and init() defined!",
++					new_transport->name);
+ 
+ 	/* splice this into the list */
+ 	new_transport->next = transport_list;
+@@ -178,7 +205,7 @@ int transport_register(struct transport *new_transport)
+ struct transport *get_current_transport(void)
+ {
+ 	/* REVISIT -- constify */
+-	return session;
++	return session_transport;
+ }
+ 
+ /*-----------------------------------------------------------------------*/
+@@ -238,7 +265,7 @@ fail:
+ COMMAND_HANDLER(handle_transport_init)
+ {
+ 	LOG_DEBUG("%s", __func__);
+-	if (!session) {
++	if (!session_transport) {
+ 		LOG_ERROR("session's transport is not selected.");
+ 
+ 		/* no session transport configured, print transports then fail */
+@@ -250,7 +277,11 @@ COMMAND_HANDLER(handle_transport_init)
+ 		return ERROR_FAIL;
+ 	}
+ 
+-	return session->init(CMD_CTX);
++	/* TC: Transport needs to be set in jtag_interface structure.
++	 * jtag_interface is still global, need to move it into context.
++	 */
++	jtag_interface->transport = session_transport;
++	return session_transport->init(CMD_CTX);
+ }
+ 
+ COMMAND_HANDLER(handle_transport_list)
+@@ -276,16 +307,16 @@ static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *a
+ {
+ 	switch (argc) {
+ 		case 1:		/* return/display */
+-			if (!session) {
++			if (!session_transport) {
+ 				LOG_ERROR("session's transport is not selected.");
+ 				return JIM_ERR;
+ 			} else {
+-				Jim_SetResultString(interp, session->name, -1);
++				Jim_SetResultString(interp, session_transport->name, -1);
+ 				return JIM_OK;
+ 			}
+ 			break;
+ 		case 2:		/* assign */
+-			if (session) {
++			if (session_transport) {
+ 				/* can't change session's transport after-the-fact */
+ 				LOG_ERROR("session's transport is already selected.");
+ 				return JIM_ERR;
+@@ -346,7 +377,7 @@ static const struct command_registration transport_commands[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-static const struct command_registration transport_group[] = {
++static const struct command_registration transport_commands_group[] = {
+ 	{
+ 		.name = "transport",
+ 		.mode = COMMAND_ANY,
+@@ -359,5 +390,5 @@ static const struct command_registration transport_group[] = {
+ 
+ int transport_register_commands(struct command_context *ctx)
+ {
+-	return register_commands(ctx, NULL, transport_group);
++	return register_commands(ctx, NULL, transport_commands_group);
+ }
+diff --git a/src/transport/transport.h b/src/transport/transport.h
+index a7a73d1..69eb179 100644
+--- a/src/transport/transport.h
++++ b/src/transport/transport.h
+@@ -17,10 +17,15 @@
+  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+  */
+ 
+-#ifndef TRANSPORT_H
+-#define TRANSPORT_H
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#ifndef OOCD_TRANSPORT_H
++#define OOCD_TRANSPORT_H
+ 
+ #include "helper/command.h"
++#include "transport/swd.h"
+ 
+ /**
+  * Wrapper for transport lifecycle operations.
+@@ -49,19 +54,34 @@ struct transport {
+ 	const char *name;
+ 
+ 	/**
+-	 * When a transport is selected, this method registers
+-	 * its commands and activates the transport (e.g. resets
+-	 * the link).
++	 * Each transport can have its own context to operate and store internals.
++	 * Transport implementation/library can use it to store config, queue, etc.
++	 * In more advanced modular configuration each component has its own
++	 * context for internal representation and functional data exchange.
++	 * Context is stored using *void type for more flexibility and
++	 * architecture/library independent design.
++	 */
++	void *ctx;
++
++	/**
++	 * Implements transport "select" command, activating the transport to be
++	 * used in this debug session from among the set supported by the debug
++	 * adapter being used.  When a transport is selected, this method registers
++	 * its commands and activates the transport (ie. allocates memory,
++	 * initializes external libraries, prepares queue, resets the link).
++	 * Note that "select" only prepares transport for use, but does not
++	 * operate on target as "init" does (ie. interrogates scan chain) and is
++	 * called before "init". "Select" should be called only once per session.
+ 	 *
+-	 * After those commands are registered, they will often
+-	 * be used for further configuration of the debug link.
++	 * Note (TC@20110524): Should we allow multiple transport switching in future?
+ 	 */
+ 	int (*select)(struct command_context *ctx);
+ 
+ 	/**
+-	 * server startup uses this method to validate transport
+-	 * configuration.  (For example, with JTAG this interrogates
+-	 * the scan chain against the list of expected TAPs.)
++	 * Implements transport "init" used by server startup to validate transport
++	 * configuration (ie. JTAG/SWD interrogates the scan chain against the list
++	 * of expected devices) and must be called after transport is already
++	 * "selected".
+ 	 */
+ 	int (*init)(struct command_context *ctx);
+ 
+@@ -71,6 +91,8 @@ struct transport {
+ 	struct transport *next;
+ };
+ 
++typedef struct transport oocd_transport_t;
++
+ int transport_register(struct transport *new_transport);
+ 
+ struct transport *get_current_transport(void);
+@@ -83,4 +105,7 @@ int allow_transports(struct command_context *ctx, const char **vector);
+ 
+ bool transports_are_declared(void);
+ 
++extern const char *oocd_transport_jtag_only[];
++extern const char *oocd_transport_swd_only[];
++
+ #endif
+diff --git a/submodules/README b/submodules/README
+new file mode 100644
+index 0000000..ef92e1e
+--- /dev/null
++++ b/submodules/README
+@@ -0,0 +1,2 @@
++Submodules are external utilities or libraries downloaded from external git
++repositories to be built with OpenOCD. Submodules are handled by bootstrap.
+diff --git a/submodules/libswd b/submodules/libswd
+new file mode 160000
+index 0000000..52b8402
+--- /dev/null
++++ b/submodules/libswd
+@@ -0,0 +1 @@
++Subproject commit 52b8402822dc3afad78cd9a51d73443ae3653919
+diff --git a/tcl/interface/kt-link-swd.cfg b/tcl/interface/kt-link-swd.cfg
+new file mode 100644
+index 0000000..e6c4a9c
+--- /dev/null
++++ b/tcl/interface/kt-link-swd.cfg
+@@ -0,0 +1,18 @@
++#
++# Kristech KT-Link SWD Mode
++#
++# http://www.kristech.eu
++#
++
++interface ft2232_swd
++ft2232_device_desc "KT-LINK"
++ft2232_layout ktlink_swd
++ft2232_vid_pid 0x0403 0xBBE2
++interface_signal add RnW 0x1000
++interface_signal add LED 0x8000
++interface_signal add SRST 0x0a00
++interface_signal add SRSTin 0x0040
++interface_signal add CLK 0x01
++interface_signal add MOSI 0x02
++interface_signal add MISO 0x04
++interface_signal add nSWDsel 0x20
+diff --git a/tcl/interface/kt-link.cfg b/tcl/interface/kt-link.cfg
+index 93af8e4..e3585ce 100644
+--- a/tcl/interface/kt-link.cfg
++++ b/tcl/interface/kt-link.cfg
+@@ -6,5 +6,5 @@
+ 
+ interface ft2232
+ ft2232_device_desc "KT-LINK"
+-ft2232_layout ktlink
++ft2232_layout ktlink_jtag
+ ft2232_vid_pid 0x0403 0xBBE2
+-- 
+1.8.0.msysgit.0
+

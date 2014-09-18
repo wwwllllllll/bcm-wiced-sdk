@@ -1,0 +1,28 @@
+<WICED:section suffix="_time_start"/>
+<table border="0" cellpadding="20"><tr><td>Current Time :</td><td><b>
+<WICED:section suffix="_time_end"/>
+ UTC</b></td></tr>
+<WICED:section suffix="_date_start"/>
+<tr><td>Current Date :</td><td><b>
+<WICED:section suffix="_date_end"/>
+ UTC</b></td></tr>
+<WICED:section suffix="_temp_start"/>
+<tr><td>Current Temperature :</td><td><b>
+<WICED:section suffix="_temp_mid"/>
+</b> &#176;C / <b>
+<WICED:section suffix="_temp_end"/>
+</b> &#176;F</td></tr>
+<WICED:section suffix="_set_start"/>
+<tr><td>Current Set Point :</td><td><b>
+<WICED:section suffix="_set_mid"/>
+</b> &#176;C / <b>
+<WICED:section suffix="_set_end"/>
+</b> &#176;F</td>
+<WICED:section suffix="_page_end"/>
+<td><form action="" style="display:table-cell; vertical-align:top;">
+<p>
+<input type="button" onclick="do_ajax( '/temp_up', null, null, 0, null, null, null, null );clearTimeout(timeoutID);reloadData();" value="Warmer" class="button red bigrounded" />&nbsp;&nbsp;
+<input type="button" onclick="do_ajax( '/temp_down', null, null, 0, null, null, null, null );clearTimeout(timeoutID);reloadData();" value="Cooler" class="button blue bigrounded" />
+</p>
+</form></td>
+</tr></table>

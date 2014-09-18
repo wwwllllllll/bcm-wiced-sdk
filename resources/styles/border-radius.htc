@@ -1,0 +1,6 @@
+.curved {
+    -moz-border-radius:.5em;    /* Firefox */
+    -webkit-border-radius:.5em; /* Safari and chrome */
+    -khtml-border-radius:.5em;  /* Linux browsers */
+    border-radius:.5em;         /* CSS3 */
+}

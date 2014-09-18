@@ -1,0 +1,35 @@
+From 8263a4fb98805150821f2be76cba476ddf6e4da0 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Tue, 2 Apr 2013 17:35:23 +1100
+Subject: [PATCH] Fix buffer overrun - sprintf appends a terminating null to
+ the data which was overrunning the supplied buffer.
+
+---
+ src/server/gdb_server.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/server/gdb_server.c b/src/server/gdb_server.c
+index be06ad1..d20649e 100644
+--- a/src/server/gdb_server.c
++++ b/src/server/gdb_server.c
+@@ -987,7 +987,7 @@ static int gdb_get_registers_packet(struct connection *connection,
+ 
+ 	assert(reg_packet_size > 0);
+ 
+-	reg_packet = malloc(reg_packet_size);
++	reg_packet = malloc(reg_packet_size + 1); /* plus one for string termination null */
+ 	reg_packet_p = reg_packet;
+ 
+ 	for (i = 0; i < reg_list_size; i++) {
+@@ -1094,7 +1094,7 @@ static int gdb_get_register_packet(struct connection *connection,
+ 	if (!reg_list[reg_num]->valid)
+ 		reg_list[reg_num]->type->get(reg_list[reg_num]);
+ 
+-	reg_packet = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2);
++	reg_packet = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2 + 1); /* plus one for string termination null */
+ 
+ 	gdb_str_to_target(target, reg_packet, reg_list[reg_num]);
+ 
+-- 
+1.8.0.msysgit.0
+

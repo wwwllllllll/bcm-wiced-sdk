@@ -1,0 +1,50 @@
+From 881183cc0b619adc4ba1e8f83649acec8060345d Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Thu, 22 Aug 2013 08:56:09 +1000
+Subject: [PATCH 18/19] Fix FreeRTOS awareness to work with latest FreeRTOS
+ release
+
+---
+ src/rtos/FreeRTOS.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/rtos/FreeRTOS.c b/src/rtos/FreeRTOS.c
+index 346330a..fb6cac5 100644
+--- a/src/rtos/FreeRTOS.c
++++ b/src/rtos/FreeRTOS.c
+@@ -106,7 +106,7 @@ enum FreeRTOS_symbol_values {
+ 	FreeRTOS_VAL_xTasksWaitingTermination = 7,
+ 	FreeRTOS_VAL_xSuspendedTaskList = 8,
+ 	FreeRTOS_VAL_uxCurrentNumberOfTasks = 9,
+-	FreeRTOS_VAL_uxTopUsedPriority = 10,
++	FreeRTOS_VAL_uxTopReadyPriority = 10,
+ };
+ 
+ static char *FreeRTOS_symbol_list[] = {
+@@ -120,7 +120,7 @@ static char *FreeRTOS_symbol_list[] = {
+ 	"xTasksWaitingTermination",
+ 	"xSuspendedTaskList",
+ 	"uxCurrentNumberOfTasks",
+-	"uxTopUsedPriority",
++	"uxTopReadyPriority",
+ 	NULL
+ };
+ 
+@@ -251,12 +251,12 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 	/* Find out how many lists are needed to be read from pxReadyTasksLists, */
+ 	int64_t max_used_priority = 0;
+ 	retval = target_read_buffer(rtos->target,
+-			rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address,
++			rtos->symbols[FreeRTOS_VAL_uxTopReadyPriority].address,
+ 			param->pointer_width,
+ 			(uint8_t *)&max_used_priority);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+-	LOG_DEBUG("FreeRTOS: Read uxTopUsedPriority at 0x%" LOG_PRIx64 ", value %" LOG_PRId64 "\r\n", rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address, max_used_priority );
++	LOG_DEBUG("FreeRTOS: Read uxTopReadyPriority at 0x%" LOG_PRIx64 ", value %" LOG_PRId64 "\r\n", rtos->symbols[FreeRTOS_VAL_uxTopReadyPriority].address, max_used_priority );
+ 	if (max_used_priority > FREERTOS_MAX_PRIORITIES) {
+ 		LOG_ERROR("FreeRTOS maximum used priority is unreasonably big, not proceeding: %" LOG_PRId64 "",
+ 			max_used_priority);
+-- 
+1.8.0.msysgit.0
+

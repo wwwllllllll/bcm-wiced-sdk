@@ -1,0 +1,142 @@
+From 0e2d3f9d0614f85a1af7c02f1b7da34ab88f2056 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Tue, 20 Nov 2012 16:37:35 +1100
+Subject: [PATCH 10/19] Change RnW signal to allow for opposite polarity by
+ changing it to the following signals: RW_read_state
+ RW_mask Add Initial Broadcom SWD tcl
+
+---
+ brcm-swd.tcl                           | 29 +++++++++++++++++++++++++++++
+ src/jtag/drivers/ft2232.c              |  6 ++----
+ src/transport/swd_libswd_drv_openocd.c | 30 ++++++++++++++++++++++++++----
+ 3 files changed, 57 insertions(+), 8 deletions(-)
+ create mode 100644 brcm-swd.tcl
+
+diff --git a/brcm-swd.tcl b/brcm-swd.tcl
+new file mode 100644
+index 0000000..54a5d1f
+--- /dev/null
++++ b/brcm-swd.tcl
+@@ -0,0 +1,29 @@
++#
++# Kristech KT-Link SWD Mode
++#
++# http://www.kristech.eu
++#
++
++#interface dummy
++interface ft2232_swd
++ft2232_layout BCM9WCD1MFI_EVB_SWD
++ft2232_vid_pid 0x0a5c 0x43fa
++interface_signal add RW_mask 0x1000
++interface_signal add RW_read_state 0
++interface_signal add LED 0x0000
++interface_signal add SRST 0x0080
++interface_signal add SRSTin 0x0000
++interface_signal add CLK 0x01
++interface_signal add MOSI 0x02
++interface_signal add MISO 0x04
++interface_signal add nSWDsel 0x00
++
++swd newtap test cpu -irlen 4 -ircapture 0x1 -irmask 0xf -expected-id 0x4ba00477
++
++target create test.cpu cortex_m3 -endian little -chain-position test.cpu
++
++adapter_khz 1000
++init
++halt
++reg
++mdb 0x08000000 0x40
+diff --git a/src/jtag/drivers/ft2232.c b/src/jtag/drivers/ft2232.c
+index c76f18b..711ef42 100644
+--- a/src/jtag/drivers/ft2232.c
++++ b/src/jtag/drivers/ft2232.c
+@@ -314,12 +314,10 @@ static const struct ft2232_layout  ft2232_layouts[] = {
+ 	},
+ 	{ .name = "BCM9WCD1MFI_EVB_SWD",
+ 		.channel = INTERFACE_A,
+-		.TRST      = { .mask = 0x0200, .active_high = false },
+-		.TRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0100, .active_high = false } },
+ 		.SRST      = { .mask = 0x0080, .active_high = false },
+ 		.SRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0400, .active_high = false } },
+-		.initial_output    = STANDARD_JTAG_OUTPUT,
+-		.initial_direction = 0x0f00 | STANDARD_JTAG_DIRECTION,
++		.initial_output    = 0x8080,
++		.initial_direction = 0xD683,
+ 	},
+ 	{ .name = "oocdlink",
+ 		.TRST      = { .mask = 0x0200, .active_high = false },
+diff --git a/src/transport/swd_libswd_drv_openocd.c b/src/transport/swd_libswd_drv_openocd.c
+index 3908a04..98b3f54 100644
+--- a/src/transport/swd_libswd_drv_openocd.c
++++ b/src/transport/swd_libswd_drv_openocd.c
+@@ -22,10 +22,13 @@
+ /** @file libswd_drv_openocd.c Driver Bridge between LibSWD and OpenOCD. */
+ 
+ #include <transport/swd.h>
++#include "jtag/interface.h"
+ 
+ /** OpenOCD as for now use global pointer to driver structure. */
+ extern struct jtag_interface *jtag_interface;
+ 
++int set_RW( bool read );
++
+ /**
+  * Driver code to write 8-bit data (char type).
+  * MOSI (Master Output Slave Input) is a SWD Write Operation.
+@@ -188,10 +191,10 @@ int swd_drv_mosi_trn(swd_ctx_t *swdctx, int bits)
+ 	if (bits < SWD_TURNROUND_MIN_VAL && bits > SWD_TURNROUND_MAX_VAL)
+ 		return SWD_ERROR_TURNAROUND;
+ 
+-	int res, val = 0;
++	int res;
+ 	static char buf[SWD_TURNROUND_MAX_VAL];
+ 	/* Use driver method to set low (write) signal named RnW. */
+-	res = jtag_interface->bitbang(NULL, "RnW", 0, &val);
++	res = set_RW(false);
+ 	if (res < 0)
+ 		return SWD_ERROR_DRIVER;
+ 
+@@ -218,11 +221,11 @@ int swd_drv_miso_trn(swd_ctx_t *swdctx, int bits)
+ 	if (bits < SWD_TURNROUND_MIN_VAL && bits > SWD_TURNROUND_MAX_VAL)
+ 		return SWD_ERROR_TURNAROUND;
+ 
+-	static int res, val = 1;
++	static int res;
+ 	static char buf[SWD_TURNROUND_MAX_VAL];
+ 
+ 	/* Use driver method to set high (read) signal named RnW. */
+-	res = jtag_interface->bitbang(NULL, "RnW", 0xFFFFFFFF, &val);
++	res = set_RW(true);
+ 	if (res < 0)
+ 		return SWD_ERROR_DRIVER;
+ 
+@@ -234,6 +237,25 @@ int swd_drv_miso_trn(swd_ctx_t *swdctx, int bits)
+ 	return bits;
+ }
+ 
++int set_RW( bool read_in )
++{
++	int res;
++	oocd_interface_signal_t *sig = oocd_interface_signal_find("RW_read_state");
++	if (!sig) {
++		LOG_ERROR("RW_read_state signal not defined for the interface!");
++		return ERROR_FAIL;
++	}
++
++	int val = ((read_in)? sig->mask : ~sig->mask);
++
++//	LOG_WARNING("Setting RW_mask to %d\n", val);
++	/* Use driver method to set high (read) signal named RnW. */
++	res = jtag_interface->bitbang(NULL, "RW_mask", 0, &val);
++	if (res < 0)
++		return SWD_ERROR_DRIVER;
++
++	return ERROR_OK;
++}
+ 
+ /**
+  * Set SWD debug level according to OpenOCD settings.
+-- 
+1.8.0.msysgit.0
+

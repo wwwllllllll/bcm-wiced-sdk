@@ -1,0 +1,33 @@
+From 21fba8fbff377503d3d8c95c2eea332ea8d83f36 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Fri, 14 Sep 2012 19:40:28 -0700
+Subject: [PATCH] Ensure Cortex-M reset wakes device from sleep (wfi/wfe)
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/target/cortex_m.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/src/target/cortex_m.c b/src/target/cortex_m.c
+index f7d50ea..bede69f 100644
+--- a/src/target/cortex_m.c
++++ b/src/target/cortex_m.c
+@@ -967,11 +967,10 @@ static int cortex_m3_assert_reset(struct target *target)
+ 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+-	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN)) {
+-		retval = mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+-		if (retval != ERROR_OK)
+-			return retval;
+-	}
++
++	retval = mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_HALT | C_MASKINTS | C_DEBUGEN);
++	if (retval != ERROR_OK)
++		return retval;
+ 
+ 	retval = mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
+ 	if (retval != ERROR_OK)
+-- 
+1.7.11.msysgit.1
+

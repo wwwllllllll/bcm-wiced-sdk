@@ -1,0 +1,51 @@
+From 7d12b0c1de0394ef0e75d81608adb6243ec92549 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Tue, 4 Sep 2012 11:36:50 +1000
+Subject: [PATCH 04/19] Add BCM9WCD1EVAL1 device to FT2232 driver
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/jtag/drivers/ft2232.c | 27 +++++++++++++++++++++++++++
+ 1 file changed, 27 insertions(+)
+
+diff --git a/src/jtag/drivers/ft2232.c b/src/jtag/drivers/ft2232.c
+index 45d98df..ce6e165 100644
+--- a/src/jtag/drivers/ft2232.c
++++ b/src/jtag/drivers/ft2232.c
+@@ -289,6 +289,33 @@ static const struct ft2232_layout  ft2232_layouts[] = {
+ 		.initial_output    = STANDARD_JTAG_OUTPUT,
+ 		.initial_direction = 0x0f10 | STANDARD_JTAG_DIRECTION,
+ 	},
++	{ .name = "BCM9WCD1EVAL1",
++		.channel = INTERFACE_A,
++		.TRST      = { .mask = 0x0200, .active_high = false },
++		.TRST_ctrl = { .type = PUSH_PULL_ONLY },
++		.SRST      = { .mask = 0x0080, .active_high = false },
++		.SRST_ctrl = { .type = PUSH_PULL_ONLY },
++		.initial_output    = STANDARD_JTAG_OUTPUT,
++		.initial_direction = 0x0200 | STANDARD_JTAG_DIRECTION,
++	},
++	{ .name = "BCM9WCD1MFI_EVB",
++		.channel = INTERFACE_A,
++		.TRST      = { .mask = 0x0200, .active_high = false },
++		.TRST_ctrl = { .type = PUSH_PULL_ONLY },
++		.SRST      = { .mask = 0x0080, .active_high = false },
++		.SRST_ctrl = { .type = PUSH_PULL_ONLY },
++		.initial_output    = STANDARD_JTAG_OUTPUT,
++		.initial_direction = 0x0200 | STANDARD_JTAG_DIRECTION,
++	},
++	{ .name = "BCM9WCD1MFI_EVB_SWD",
++		.channel = INTERFACE_A,
++		.TRST      = { .mask = 0x0200, .active_high = false },
++		.TRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0100, .active_high = false } },
++		.SRST      = { .mask = 0x0080, .active_high = false },
++		.SRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0400, .active_high = false } },
++		.initial_output    = STANDARD_JTAG_OUTPUT,
++		.initial_direction = 0x0f00 | STANDARD_JTAG_DIRECTION,
++	},
+ 	{ .name = "oocdlink",
+ 		.TRST      = { .mask = 0x0200, .active_high = false },
+ 		.TRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0100, .active_high = false } },
+-- 
+1.8.0.msysgit.0
+

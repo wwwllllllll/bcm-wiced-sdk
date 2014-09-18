@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <title>Broadcom WICED Device Config</title>
+    <style  type="text/css"><!-- .normal { background-color: #ffffff; } .highlight { background-color: #8f0000;  } --></style>
+    <script src="../scripts/general_ajax_script.js" type="text/javascript" ></script>
+    <script type="text/javascript">
+    /* <![CDATA[ */
+      function save_settings()
+      {
+        var s="";
+        var x=document.getElementById("settings_form");
+        for (var i=0;i<x.length; i++)
+        {
+          s += x.elements[i].name + "=" + encodeURIComponent(x.elements[i].value) + "&";
+        }
+        do_ajax('/config_save?' + s, ajax_handler);
+      }
+      function ajax_handler( result, data )
+      {
+        var text = "";
+        switch( result )
+        {
+            case AJAX_PARTIAL_PROGRESS:
+                text = "Saving...";
+            case AJAX_STARTING:
+                text = "Saving...";
+                break;
+            case AJAX_FINISHED:
+                text = data;
+                break;
+            case AJAX_NO_BROWSER_SUPPORT:
+                text = "Failed - your browser does not support this script";
+                break;
+            case AJAX_FAILED:
+                text = "Failed to save data";
+                break;
+        }
+        document.getElementById("config_res").innerHTML = text;
+      }
+      function getElementsByClassName(className)
+      {
+        if (document.getElementsByClassName)
+        {
+          return document.getElementsByClassName(className);
+        }
+        else
+        {
+          var a = [];
+          var els = document.getElementsByTagName("*");
+          for ( var i = 0, j = els.length ; i < j ; i++ ) {
+            if ((" "+els.item(i).className+" ").indexOf(" " + className + " ") != -1)
+              a.push(els.item(i));
+          }
+          return a;
+        }
+      }
+    /* ]]> */
+    </script>
+  </head>
+  <body style="font-family:verdana;" >
+    <table border='0' cellpadding='0' cellspacing='0' width="98%">
+      <tr style="height:20px"><td>&nbsp;</td></tr>
+      <tr style="border-collapse: collapse; padding: 0;">
+        <td style="width:20px"></td>
+        <td style="width:117px"><img src="../images/brcmlogo.png" alt="Broadcom Logo" /></td>
+        <td style="width:20px;background-image:url('../images/brcmlogo_line.png');"></td>
+        <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('../images/brcmlogo_line.png');">
+        WICED&trade; Device Configuration
+        </td>
+        <td style="width:137px;background-image:url('../images/brcmlogo_line.png');"></td>
+      </tr>
+      <tr><td>&nbsp;</td></tr>
+    </table>
+    <noscript><h2>Javascript is required for this page to work correctly.</h2></noscript>
+    <h3 style="text-align:center;">Application Settings</h3>
+    <form id="settings_form" action="">
+      <table style="margin-left:auto;margin-right:auto;" >
+            <tbody>
+<WICED:section suffix="_dev_settings_str"/>
+            <tr><td class="nameid">String</td><td><input type="text" class="ctrlid"/>
+                <script type="text/javascript">
+    /* <![CDATA[ */
+<WICED:section suffix="_dev_settings_str_end"/>
+      getElementsByClassName("nameid")[elem_num].innerHTML = labelname;
+      getElementsByClassName("ctrlid")[elem_num].name = fieldname;
+      getElementsByClassName("ctrlid")[elem_num].value = fieldvalue;
+    /* ]]> */
+    </script>
+</td></tr>
+<WICED:section suffix="_dev_settings_int"/>
+            <tr><td class="nameid">Integer</td><td><input type="number"  class="ctrlid"/></td></tr>
+    <script type="text/javascript">
+    /* <![CDATA[ */
+<WICED:section suffix="_dev_settings_int_end"/>
+      getElementsByClassName("nameid")[elem_num].innerHTML = labelname;
+      getElementsByClassName("ctrlid")[elem_num].name = fieldname;
+      getElementsByClassName("ctrlid")[elem_num].value = fieldvalue;
+    /* ]]> */
+    </script>
+<WICED:section suffix="_dev_settings_bottom"/>
+        <tr><td colspan="2"><input type="button" value="Save settings" onclick="save_settings();" style="float:right" /><div align="center" id="config_res"></div></td></tr>
+        </tbody>
+      </table>
+    </form>
+    <input style="vertical-align:bottom;float:right;margin-right:50px" type="button" value="Wi-Fi Setup >" onclick="document.location.href='scan_page_outer.html'" />
+  </body>
+</html>

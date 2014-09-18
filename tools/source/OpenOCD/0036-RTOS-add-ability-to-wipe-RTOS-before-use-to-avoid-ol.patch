@@ -1,0 +1,266 @@
+From 7e96aad66dbdd109bb3d7e5727d6b69e1d35a6db Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Fri, 19 Apr 2013 14:19:51 +1000
+Subject: [PATCH 15/19] RTOS: add ability to wipe RTOS before use to avoid old
+ data in memory
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/rtos/FreeRTOS.c | 21 +++++++++++++++++++++
+ src/rtos/ThreadX.c  | 20 ++++++++++++++++++++
+ src/rtos/rtos.c     | 27 ++++++++++++++++++++++++++-
+ src/rtos/rtos.h     |  3 +++
+ src/target/target.c | 13 +++++++++++++
+ src/target/target.h |  2 ++
+ 6 files changed, 85 insertions(+), 1 deletion(-)
+
+diff --git a/src/rtos/FreeRTOS.c b/src/rtos/FreeRTOS.c
+index 7d5cd70..346330a 100644
+--- a/src/rtos/FreeRTOS.c
++++ b/src/rtos/FreeRTOS.c
+@@ -82,6 +82,7 @@ static int FreeRTOS_create(struct target *target);
+ static int FreeRTOS_update_threads(struct rtos *rtos);
+ static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
+ static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
++static int FreeRTOS_wipe(struct rtos *rtos);
+ 
+ struct rtos_type FreeRTOS_rtos = {
+ 	.name = "FreeRTOS",
+@@ -91,6 +92,7 @@ struct rtos_type FreeRTOS_rtos = {
+ 	.update_threads = FreeRTOS_update_threads,
+ 	.get_thread_reg_list = FreeRTOS_get_thread_reg_list,
+ 	.get_symbol_list_to_lookup = FreeRTOS_get_symbol_list_to_lookup,
++	.wipe = FreeRTOS_wipe,
+ };
+ 
+ enum FreeRTOS_symbol_values {
+@@ -122,6 +124,25 @@ static char *FreeRTOS_symbol_list[] = {
+ 	NULL
+ };
+ 
++
++static int FreeRTOS_wipe(struct rtos *rtos)
++{
++	int retval = ERROR_FAIL;
++	uint8_t zeros[4] = { 0, 0, 0, 0 };
++	symbol_table_elem_t *sym = rtos->symbols;
++	while (sym->symbol_name != NULL) {
++		if  (sym->address == 0)
++			return ERROR_FAIL;
++
++		retval = target_write_buffer(rtos->target, sym->address, 4, zeros);
++		if (retval != ERROR_OK)
++			return retval;
++		LOG_DEBUG("Wiped rtos variable: %s at 0x%08X", sym->symbol_name, (uint32_t)sym->address);
++		sym++;
++	}
++	return retval;
++}
++
+ /* TODO: */
+ /* this is not safe for little endian yet */
+ /* may be problems reading if sizes are not 32 bit long integers. */
+diff --git a/src/rtos/ThreadX.c b/src/rtos/ThreadX.c
+index 25cda77..1503068 100644
+--- a/src/rtos/ThreadX.c
++++ b/src/rtos/ThreadX.c
+@@ -36,6 +36,7 @@ static int ThreadX_create(struct target *target);
+ static int ThreadX_update_threads(struct rtos *rtos);
+ static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
+ static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
++static int ThreadX_wipe(struct rtos *rtos);
+ 
+ struct ThreadX_thread_state {
+ 	int value;
+@@ -115,9 +116,28 @@ const struct rtos_type ThreadX_rtos = {
+ 	.update_threads = ThreadX_update_threads,
+ 	.get_thread_reg_list = ThreadX_get_thread_reg_list,
+ 	.get_symbol_list_to_lookup = ThreadX_get_symbol_list_to_lookup,
++	.wipe = ThreadX_wipe,
+ 
+ };
+ 
++static int ThreadX_wipe(struct rtos *rtos)
++{
++	int retval = ERROR_FAIL;
++	uint8_t zeros[4] = { 0, 0, 0, 0 };
++	symbol_table_elem_t *sym = rtos->symbols;
++	while (sym->symbol_name != NULL) {
++		if (sym->address == 0)
++			return ERROR_FAIL;
++
++		retval = target_write_buffer(rtos->target, sym->address, 4, zeros);
++		if (retval != ERROR_OK)
++			return retval;
++		LOG_DEBUG("Wiped rtos variable: %s at 0x%08X", sym->symbol_name, (uint32_t)sym->address);
++		sym++;
++	}
++	return retval;
++}
++
+ static int ThreadX_update_threads(struct rtos *rtos)
+ {
+ 	int retval;
+diff --git a/src/rtos/rtos.c b/src/rtos/rtos.c
+index 61c67bd..313f910 100644
+--- a/src/rtos/rtos.c
++++ b/src/rtos/rtos.c
+@@ -46,6 +46,7 @@ static struct rtos_type *rtos_types[] = {
+ 	NULL
+ };
+ 
++static void rtos_wipe_if_needed(struct target *target);
+ int rtos_thread_packet(struct connection *connection, char *packet, int packet_size);
+ 
+ int rtos_smp_init(struct target *target)
+@@ -67,6 +68,7 @@ static int os_alloc(struct target *target, struct rtos_type *ostype)
+ 	os->current_thread = 0;
+ 	os->symbols = NULL;
+ 	os->target = target;
++	os->wiped = 0;
+ 
+ 	/* RTOS drivers can override the packet handler in _create(). */
+ 	os->gdb_thread_packet = rtos_thread_packet;
+@@ -99,6 +101,13 @@ static int os_alloc_create(struct target *target, struct rtos_type *ostype)
+ 	return ret;
+ }
+ 
++int rtos_set_wipe(Jim_GetOptInfo *goi, struct target *target)
++{
++	target->rtos_wipe = 1;
++	return ERROR_OK;
++}
++
++
+ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
+ {
+ 	int x;
+@@ -324,6 +333,7 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
+ 		if (rtos_qsymbol(connection, packet, packet_size) == 1) {
+ 			target->rtos_auto_detect = false;
+ 			target->rtos->type->create(target);
++			rtos_wipe_if_needed(target);
+ 			target->rtos->type->update_threads(target->rtos);
+ 		}
+ 		return ERROR_OK;
+@@ -411,6 +421,8 @@ int rtos_get_gdb_reg_list(struct connection *connection)
+ 			(target->smp))) {	/* in smp several current thread are possible */
+ 		char *hex_reg_list;
+ 
++		rtos_wipe_if_needed(target);
++
+ 		LOG_DEBUG("RTOS: getting register list for thread 0x%" LOG_PRIx64 ", target->rtos->current_thread=0x%" LOG_PRIx64 "\r\n", current_threadid,target->rtos->current_thread );
+ 		target->rtos->type->get_thread_reg_list(target->rtos,
+ 			current_threadid,
+@@ -513,9 +525,22 @@ int rtos_try_next(struct target *target)
+ 	return 1;
+ }
+ 
++static void rtos_wipe_if_needed(struct target *target)
++{
++	if ((target->rtos_wipe == 1) &&
++		(target->rtos != NULL) &&
++		(target->rtos->wiped == 0) &&
++		(target->rtos->type->wipe != NULL)) {
++		if (ERROR_OK == target->rtos->type->wipe(target->rtos))
++			target->rtos->wiped = 1;
++	}
++}
++
+ int rtos_update_threads(struct target *target)
+ {
+-	if ((target->rtos != NULL) && (target->rtos->type != NULL))
++	if ((target->rtos != NULL) && (target->rtos->type != NULL)) {
++		rtos_wipe_if_needed(target);
+ 		target->rtos->type->update_threads(target->rtos);
++	}
+ 	return ERROR_OK;
+ }
+diff --git a/src/rtos/rtos.h b/src/rtos/rtos.h
+index 12a96d2..d9818da 100644
+--- a/src/rtos/rtos.h
++++ b/src/rtos/rtos.h
+@@ -58,6 +58,7 @@ struct rtos {
+ 	int thread_count;
+ 	int (*gdb_thread_packet)(struct connection *connection, char *packet, int packet_size);
+ 	void *rtos_specific_params;
++	bool wiped;
+ };
+ 
+ struct rtos_type {
+@@ -70,6 +71,7 @@ struct rtos_type {
+ 	int (*get_symbol_list_to_lookup)(symbol_table_elem_t *symbol_list[]);
+ 	int (*clean)(struct target *target);
+ 	char * (*ps_command)(struct target *target);
++	int (*wipe)(struct rtos *rtos);
+ };
+ 
+ struct stack_register_offset {
+@@ -101,5 +103,6 @@ int rtos_update_threads(struct target *target);
+ int rtos_smp_init(struct target *target);
+ /*  function for handling symbol access */
+ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size);
++int rtos_set_wipe(Jim_GetOptInfo *goi, struct target *target);
+ 
+ #endif	/* RTOS_H */
+diff --git a/src/target/target.c b/src/target/target.c
+index 0965be1..ae2af59 100644
+--- a/src/target/target.c
++++ b/src/target/target.c
+@@ -4048,6 +4048,7 @@ enum target_cfg_param {
+ 	TCFG_CHAIN_POSITION,
+ 	TCFG_DBGBASE,
+ 	TCFG_RTOS,
++	TCFG_RTOS_WIPE,
+ 	TCFG_MEMORYMAP,
+ };
+ 
+@@ -4064,6 +4065,7 @@ static Jim_Nvp nvp_config_opts[] = {
+ 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
+ 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
+ 	{ .name = "-rtos",             .value = TCFG_RTOS },
++	{ .name = "-rtos-wipe",        .value = TCFG_RTOS_WIPE },
+ 	{ .name = "-memorymap",        .value = TCFG_MEMORYMAP },
+ 	{ .name = NULL, .value = -1 }
+ };
+@@ -4363,6 +4365,16 @@ no_params:
+ 			/* loop for more */
+ 			break;
+ 
++		case TCFG_RTOS_WIPE:
++			/* RTOS wipe*/
++			{
++				int result = rtos_set_wipe(goi, target);
++				if (result != JIM_OK)
++					return result;
++			}
++			/* loop for more */
++			break;
++
+ 		case TCFG_MEMORYMAP:
+ 			/* RTOS */
+ 			{
+@@ -5189,6 +5201,7 @@ static int target_create(Jim_GetOptInfo *goi)
+ 
+ 	target->rtos = NULL;
+ 	target->rtos_auto_detect = false;
++	target->rtos_wipe = false;
+ 
+ 	/* Do the rest as "configure" options */
+ 	goi->isconfigure = 1;
+diff --git a/src/target/target.h b/src/target/target.h
+index 0655874..444033a 100644
+--- a/src/target/target.h
++++ b/src/target/target.h
+@@ -202,6 +202,8 @@ struct target {
+ 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
+ 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"
+ 										 * and must be detected when symbols are offered */
++	bool rtos_wipe;						/* A flag that indicates that the RTOS variables should be
++										 * wiped before use to avoid old values retained in memory */
+ 	struct backoff_timer backoff;
+ 	int smp;							/* add some target attributes for smp support */
+ 	struct target_list *head;
+-- 
+1.8.0.msysgit.0
+

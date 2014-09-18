@@ -1,0 +1,136 @@
+diff -Naur newlib-1.20.0/config-ml.in newlib-1.20.0-arm/config-ml.in
+--- newlib-1.20.0/config-ml.in	2010-11-20 09:06:27.000000000 +1100
++++ newlib-1.20.0-arm/config-ml.in	2011-09-14 09:39:58.000000000 +1000
+@@ -209,7 +209,7 @@ if [ "${ml_toplevel_p}" = yes ]; then
+ multidirs=
+ for i in `${CC-gcc} --print-multi-lib 2>/dev/null`; do
+   dir=`echo $i | sed -e 's/;.*$//'`
+-  if [ "${dir}" = "." ]; then
++  if [ "${dir}" = "." -o "${dir}" = "thumb/v6m" ]; then
+     true
+   else
+     if [ -z "${multidirs}" ]; then
+@@ -490,7 +490,7 @@ multi-do:
+ 	  compiler="$(CC)"; \
+ 	  for i in `$${compiler} --print-multi-lib 2>/dev/null`; do \
+ 	    dir=`echo $$i | sed -e 's/;.*$$//'`; \
+-	    if [ "$${dir}" = "." ]; then \
++	    if [ "$${dir}" = "." -o "${dir}" = "thumb/v6m" ]; then \
+ 	      true; \
+ 	    else \
+ 	      if [ -d ../$${dir}/$${lib} ]; then \
+@@ -733,7 +733,7 @@ if [ -n "${multidirs}" ] && [ -z "${ml_norecursion}" ]; then
+     # find compiler flag corresponding to ${ml_dir}
+     for i in `${CC-gcc} --print-multi-lib 2>/dev/null`; do
+       dir=`echo $i | sed -e 's/;.*$//'`
+-      if [ "${dir}" = "${ml_dir}" ]; then
++      if [ "${dir}" = "${ml_dir}" -o "${dir}" = "thumb/v6m" ]; then
+         flags=`echo $i | sed -e 's/^[^;]*;//' -e 's/@/ -/g'`
+         break
+       fi
+diff -Naur newlib-1.20.0/newlib/libc/include/sys/types.h newlib-1.20.0-arm/newlib/libc/include/sys/types.h
+--- newlib-1.20.0/newlib/libc/include/sys/types.h	2011-08-02 03:22:18 +1000
++++ newlib-1.20.0-arm/newlib/libc/include/sys/types.h	2012-03-20 09:55:46 +1100
+@@ -235,6 +235,7 @@ typedef	struct _types_fd_set {
+ 	fd_mask	fds_bits[howmany(FD_SETSIZE, NFDBITS)];
+ } _types_fd_set;
+ 
++#ifndef __fd_set_defined
+ #define fd_set _types_fd_set
+ 
+ #  define	FD_SET(n, p)	((p)->fds_bits[(n)/NFDBITS] |= (1L << ((n) % NFDBITS)))
+@@ -246,7 +247,7 @@ typedef	struct _types_fd_set {
+      for (__i = 0; __i < sizeof (*(p)); ++__i) \
+        *__tmp++ = 0; \
+ }))
+-
++#endif /* defined(__fd_set_defined) */
+ # endif	/* !(defined (_POSIX_SOURCE) || defined (_WINSOCK_H) || defined (_WINSOCKAPI_) || defined (__USE_W32_SOCKETS)) */
+ 
+ #undef __MS_types__
+@@ -264,7 +265,10 @@ typedef _TIMER_T_ timer_t;
+ #endif
+ 
+ typedef unsigned long useconds_t;
++
++#ifndef __suseconds_t_defined
+ typedef long suseconds_t;
++#endif
+ 
+ #include <sys/features.h>
+ 
+diff -Naur newlib-1.20.0/libgloss/arm/linux-crt0.c newlib-1.20.0-arm/libgloss/arm/linux-crt0.c
+--- newlib-1.20.0/libgloss/arm/linux-crt0.c	2011-07-14 01:06:21 +1000
++++ newlib-1.20.0-arm/libgloss/arm/linux-crt0.c	2012-03-22 14:15:53 +1100
+@@ -16,6 +16,7 @@ static int _main(int argc, char *argv[]) __attribute__((noreturn));
+ asm("\n"
+ 	".code 32\n"
+ 	".global _start\n"
++	".extern _start_thumb\n"
+ 	".type _start, %function\n"
+ 	"_start:\n"
+ 	"\tldr r0, .LC0\n"
+@@ -24,10 +25,10 @@ asm("\n"
+ 	"\t.word _start_thumb\n"
+ 	".size _start, .-_start\n");
+ 
+-__attribute__((naked, used))
++__attribute__((naked, used))  __attribute__ ((section (".text")))
+ static void _start_thumb(void)
+ #else
+-__attribute__((naked))
++__attribute__((naked))  __attribute__ ((section (".text")))
+ void _start(void)
+ #endif
+ {
+
+diff -Naur newlib-1.20.0/libgloss/arm/Makefile.in newlib-1.20.0-arm/libgloss/arm/Makefile.in
+--- newlib-1.20.0/libgloss/arm/Makefile.in	2011-06-30 01:32:09 +1000
++++ newlib-1.20.0-arm/libgloss/arm/Makefile.in	2012-04-04 11:08:30 +1000
+@@ -146,7 +146,7 @@
+ 	rm -f Makefile config.status *~
+ 
+ .PHONY: install info install-info clean-info
+-install: ${CRT0_INSTALL} ${LINUX_INSTALL} ${REDBOOT_INSTALL} ${RDPMON_INSTALL} ${RDIMON_INSTALL} ${IQ80310_INSTALL}  ${PID_INSTALL}
++install: ${CRT0_INSTALL}
+ 
+ install-crt0:
+ 	${INSTALL_DATA} ${CRT0} $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x
+diff -Naur newlib-1.20.0/newlib/Makefile.in newlib-1.20.0-arm/newlib/Makefile.in
+--- newlib-1.20.0/newlib/Makefile.in	2011-05-19 16:04:59.000000000 +1000
++++ newlib-1.20.0-arm/newlib/Makefile.in	2012-05-24 17:10:46.133094007 +1000
+@@ -376,7 +376,7 @@ FLAGS_TO_PASS = $(AM_MAKEFLAGS)
+ SUBDIRS = libc libm \
+ 	$(DOCDIR) . $(EXTRA_DIRS)
+ 
+-tooldir = $(exec_prefix)/$(host_alias)
++tooldir = $(exec_prefix)
+ toollibdir = $(tooldir)/lib$(MULTISUBDIR)
+ AR_FLAGS = rc
+ @USE_LIBTOOL_TRUE@toollib_LTLIBRARIES = libm.la \
+diff -Naur newlib-1.20.0/configure newlib-1.20.0-arm/configure
+--- newlib-1.20.0/configure	2011-05-19 16:04:59.000000000 +1000
++++ newlib-1.20.0-arm/configure	2012-05-24 17:10:46.133094007 +1000
+@@ -6845,7 +6845,7 @@ esac
+ 
+ # Some systems (e.g., one of the i386-aix systems the gas testers are
+ # using) don't handle "\$" correctly, so don't use it here.
+-tooldir='${exec_prefix}'/${target_noncanonical}
++tooldir='${exec_prefix}'
+ build_tooldir=${tooldir}
+ 
+ # Create a .gdbinit file which runs the one in srcdir
+
+diff -Naur newlib-1.20.0/etc/Makefile.in newlib-1.20.0-arm/etc/Makefile.in
+--- newlib-1.20.0/etc/Makefile.in	2011-05-19 16:04:59.000000000 +1000
++++ newlib-1.20.0-arm/etc/Makefile.in	2012-05-24 17:10:46.133094007 +1000
+@@ -80,6 +80,8 @@ info:
+ 	done
+ 
+ install-info: info
++
++junk:
+ 	$(SHELL) $(srcdir)/../mkinstalldirs $(DESTDIR)$(infodir)
+ 	if test ! -f standards.info; then cd $(srcdir); fi; \
+ 	if test -f standards.info; then \
+

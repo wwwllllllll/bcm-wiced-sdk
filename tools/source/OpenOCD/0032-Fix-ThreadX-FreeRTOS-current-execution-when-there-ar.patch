@@ -1,0 +1,147 @@
+From b01f15b72ccc200963065e0e51115cff0d8f7e2d Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Tue, 2 Apr 2013 15:29:28 +1100
+Subject: [PATCH 13/19] Fix ThreadX/FreeRTOS current execution when there are
+ no threads. Add logging
+
+---
+ src/rtos/FreeRTOS.c | 11 ++++++++++-
+ src/rtos/ThreadX.c  |  2 +-
+ src/rtos/rtos.c     |  8 +++++++-
+ 3 files changed, 18 insertions(+), 3 deletions(-)
+
+diff --git a/src/rtos/FreeRTOS.c b/src/rtos/FreeRTOS.c
+index 4696526..7d5cd70 100644
+--- a/src/rtos/FreeRTOS.c
++++ b/src/rtos/FreeRTOS.c
+@@ -154,6 +154,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 			rtos->symbols[FreeRTOS_VAL_uxCurrentNumberOfTasks].address,
+ 			param->thread_count_width,
+ 			(uint8_t *)&thread_list_size);
++	LOG_DEBUG("FreeRTOS: Read uxCurrentNumberOfTasks at 0x%" LOG_PRIx64 ", value %d\r\n", rtos->symbols[FreeRTOS_VAL_uxCurrentNumberOfTasks].address, thread_list_size );
+ 
+ 	if (retval != ERROR_OK) {
+ 		LOG_ERROR("Could not read FreeRTOS thread count from target");
+@@ -190,6 +191,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 		LOG_ERROR("Error reading current thread in FreeRTOS thread list");
+ 		return retval;
+ 	}
++	LOG_DEBUG("FreeRTOS: Read pxCurrentTCB at 0x%" LOG_PRIx64 ", value 0x%" LOG_PRIx64 "\r\n", rtos->symbols[FreeRTOS_VAL_pxCurrentTCB].address, rtos->current_thread );
+ 
+ 	if ((thread_list_size  == 0) || (rtos->current_thread == 0)) {
+ 		/* Either : No RTOS threads - there is always at least the current execution though */
+@@ -204,7 +206,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 			LOG_ERROR("Error allocating memory for %d threads", thread_list_size);
+ 			return ERROR_FAIL;
+ 		}
+-		rtos->thread_details->threadid = 1;
++		rtos->thread_details->threadid = -1;
+ 		rtos->thread_details->exists = true;
+ 		rtos->thread_details->display_str = NULL;
+ 		rtos->thread_details->extra_info_str = NULL;
+@@ -233,6 +235,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 			(uint8_t *)&max_used_priority);
+ 	if (retval != ERROR_OK)
+ 		return retval;
++	LOG_DEBUG("FreeRTOS: Read uxTopUsedPriority at 0x%" LOG_PRIx64 ", value %" LOG_PRId64 "\r\n", rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address, max_used_priority );
+ 	if (max_used_priority > FREERTOS_MAX_PRIORITIES) {
+ 		LOG_ERROR("FreeRTOS maximum used priority is unreasonably big, not proceeding: %" LOG_PRId64 "",
+ 			max_used_priority);
+@@ -273,6 +276,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 			free(list_of_lists);
+ 			return retval;
+ 		}
++		LOG_DEBUG("FreeRTOS: Read thread count for list %d at 0x%" LOG_PRIx64 ", value %" LOG_PRId64 "\r\n", i, list_of_lists[i], list_thread_count );
+ 
+ 		if (list_thread_count == 0)
+ 			continue;
+@@ -289,6 +293,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 			free(list_of_lists);
+ 			return retval;
+ 		}
++		LOG_DEBUG("FreeRTOS: Read first item for list %d at 0x%" LOG_PRIx64 ", value 0x%" LOG_PRIx64 "\r\n", i, list_of_lists[i] + param->list_next_offset, list_elem_ptr );
+ 
+ 		while ((list_thread_count > 0) && (list_elem_ptr != 0) &&
+ 				(list_elem_ptr != prev_list_elem_ptr) &&
+@@ -304,6 +309,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 				free(list_of_lists);
+ 				return retval;
+ 			}
++			LOG_DEBUG("FreeRTOS: Read Thread ID at 0x%" LOG_PRIx64 ", value 0x%" LOG_PRIx64 "\r\n", list_elem_ptr + param->list_elem_content_offset, rtos->thread_details[tasks_found].threadid );
+ 
+ 			/* get thread name */
+ 
+@@ -321,6 +327,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 				return retval;
+ 			}
+ 			tmp_str[FREERTOS_THREAD_NAME_STR_SIZE-1] = '\x00';
++			LOG_DEBUG("FreeRTOS: Read Thread Name at 0x%" LOG_PRIx64 ", value \"%s\"\r\n", rtos->thread_details[tasks_found].threadid + param->thread_name_offset, tmp_str );
+ 
+ 			if (tmp_str[0] == '\x00')
+ 				strcpy(tmp_str, "No Name");
+@@ -354,6 +361,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
+ 				free(list_of_lists);
+ 				return retval;
+ 			}
++			LOG_DEBUG("FreeRTOS: Read next thread location at 0x%" LOG_PRIx64 ", value 0x%" LOG_PRIx64 "\r\n", prev_list_elem_ptr + param->list_elem_next_offset, list_elem_ptr );
+ 		}
+ 	}
+ 
+@@ -389,6 +397,7 @@ static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, ch
+ 		LOG_ERROR("Error reading stack frame from FreeRTOS thread");
+ 		return retval;
+ 	}
++	LOG_DEBUG("FreeRTOS: Read stack pointer at 0x%" LOG_PRIx64 ", value 0x%" LOG_PRIx64 "\r\n", thread_id + param->thread_stack_offset, stack_ptr );
+ 
+ 	return rtos_generic_stack_read(rtos->target, param->stacking_info, stack_ptr, hex_reg_list);
+ }
+diff --git a/src/rtos/ThreadX.c b/src/rtos/ThreadX.c
+index 19dc463..25cda77 100644
+--- a/src/rtos/ThreadX.c
++++ b/src/rtos/ThreadX.c
+@@ -195,7 +195,7 @@ static int ThreadX_update_threads(struct rtos *rtos)
+ 		tasks_found++;
+ 		rtos->thread_details = (struct thread_detail *) malloc(
+ 				sizeof(struct thread_detail) * thread_list_size);
+-		rtos->thread_details->threadid = 1;
++		rtos->thread_details->threadid = -1;
+ 		rtos->thread_details->exists = true;
+ 		rtos->thread_details->display_str = NULL;
+ 		rtos->thread_details->extra_info_str = NULL;
+diff --git a/src/rtos/rtos.c b/src/rtos/rtos.c
+index 11cb792..61c67bd 100644
+--- a/src/rtos/rtos.c
++++ b/src/rtos/rtos.c
+@@ -390,8 +390,10 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
+ 		return ERROR_OK;
+ 	} else if (packet[0] == 'H') {	/* Set current thread ( 'c' for step and continue, 'g' for
+ 					 * all other operations ) */
+-		if ((packet[1] == 'g') && (target->rtos != NULL))
++		if ((packet[1] == 'g') && (target->rtos != NULL)) {
+ 			sscanf(packet, "Hg%16" SCNx64, &target->rtos->current_threadid);
++			LOG_DEBUG("RTOS: GDB requested to set current thread to 0x%" LOG_PRIx64 "\r\n", target->rtos->current_threadid);
++		}
+ 		gdb_put_packet(connection, "OK", 2);
+ 		return ERROR_OK;
+ 	}
+@@ -408,6 +410,8 @@ int rtos_get_gdb_reg_list(struct connection *connection)
+ 			((current_threadid != target->rtos->current_thread) ||
+ 			(target->smp))) {	/* in smp several current thread are possible */
+ 		char *hex_reg_list;
++
++		LOG_DEBUG("RTOS: getting register list for thread 0x%" LOG_PRIx64 ", target->rtos->current_thread=0x%" LOG_PRIx64 "\r\n", current_threadid,target->rtos->current_thread );
+ 		target->rtos->type->get_thread_reg_list(target->rtos,
+ 			current_threadid,
+ 			&hex_reg_list);
+@@ -448,6 +452,8 @@ int rtos_generic_stack_read(struct target *target,
+ 		LOG_ERROR("Error reading stack frame from thread");
+ 		return retval;
+ 	}
++	LOG_DEBUG("RTOS: Read stack frame at 0x%x\r\n", address );
++
+ #if 0
+ 		LOG_OUTPUT("Stack Data :");
+ 		for (i = 0; i < stacking->stack_registers_size; i++)
+-- 
+1.8.0.msysgit.0
+

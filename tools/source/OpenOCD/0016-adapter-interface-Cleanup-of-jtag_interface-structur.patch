@@ -1,0 +1,964 @@
+From 9ea2632c3aa78c521444e05bd42ce67176b921bf Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Tue, 30 Oct 2012 22:51:04 +1100
+Subject: [PATCH] adapter/interface: Cleanup of jtag_interface structure
+
+Rename struct jtag_interface => adapter_driver (as it represents a driver and no longer is jtag-only)
+
+Convert all uses of the structure to be const as the driver should never be changing at runtime.
+
+Change-Id: If3bdea81eaac81fcc9ed32d27985012e91413b40
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/jtag/adapter.c                 |  61 +++++-----------------
+ src/jtag/core.c                    |  88 ++++++++++++++++++++++++-------
+ src/jtag/drivers/amt_jtagaccel.c   |   2 +-
+ src/jtag/drivers/arm-jtag-ew.c     |   2 +-
+ src/jtag/drivers/at91rm9200.c      |   2 +-
+ src/jtag/drivers/buspirate.c       |   2 +-
+ src/jtag/drivers/dummy.c           |   2 +-
+ src/jtag/drivers/ep93xx.c          |   2 +-
+ src/jtag/drivers/ft2232.c          |   2 +-
+ src/jtag/drivers/ftdi.c            |   2 +-
+ src/jtag/drivers/gw16012.c         |   2 +-
+ src/jtag/drivers/jlink.c           |   2 +-
+ src/jtag/drivers/opendous.c        |   2 +-
+ src/jtag/drivers/osbdm.c           |   2 +-
+ src/jtag/drivers/parport.c         |   2 +-
+ src/jtag/drivers/presto.c          |   2 +-
+ src/jtag/drivers/remote_bitbang.c  |   2 +-
+ src/jtag/drivers/rlink.c           |   2 +-
+ src/jtag/drivers/sysfsgpio.c       |   2 +-
+ src/jtag/drivers/ulink.c           |   2 +-
+ src/jtag/drivers/usb_blaster.c     |   2 +-
+ src/jtag/drivers/usbprog.c         |   2 +-
+ src/jtag/drivers/vsllink.c         |   2 +-
+ src/jtag/interface.h               |   7 +--
+ src/jtag/interfaces.c              | 104 ++++++++++++++++++-------------------
+ src/jtag/interfaces.h              |   2 +-
+ src/jtag/minidummy/minidummy.c     |   2 +-
+ src/jtag/stlink/stlink_interface.c |   2 +-
+ src/jtag/tcl.c                     |   2 -
+ src/jtag/zy1000/zy1000.c           |   2 +-
+ 30 files changed, 161 insertions(+), 151 deletions(-)
+
+diff --git a/src/jtag/adapter.c b/src/jtag/adapter.c
+index ec65827..702ae68 100644
+--- a/src/jtag/adapter.c
++++ b/src/jtag/adapter.c
+@@ -47,7 +47,7 @@
+  * Holds support for configuring debug adapters from TCl scripts.
+  */
+ 
+-extern struct jtag_interface *jtag_interface;
++extern const struct adapter_driver *current_adapter_driver;
+ const char *jtag_only[] = { "jtag", NULL };
+ 
+ static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+@@ -62,35 +62,11 @@ static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+ 		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
+ 		return JIM_ERR;
+ 	}
+-	const char *name = jtag_interface ? jtag_interface->name : NULL;
++	const char *name = current_adapter_driver ? current_adapter_driver->name : NULL;
+ 	Jim_SetResultString(goi.interp, name ? : "undefined", -1);
+ 	return JIM_OK;
+ }
+ 
+-static int default_khz(int khz, int *jtag_speed)
+-{
+-	LOG_ERROR("Translation from khz to jtag_speed not implemented");
+-	return ERROR_FAIL;
+-}
+-
+-static int default_speed_div(int speed, int *khz)
+-{
+-	LOG_ERROR("Translation from jtag_speed to khz not implemented");
+-	return ERROR_FAIL;
+-}
+-
+-static int default_power_dropout(int *dropout)
+-{
+-	*dropout = 0; /* by default we can't detect power dropout */
+-	return ERROR_OK;
+-}
+-
+-static int default_srst_asserted(int *srst_asserted)
+-{
+-	*srst_asserted = 0; /* by default we can't detect srst asserted */
+-	return ERROR_OK;
+-}
+-
+ COMMAND_HANDLER(interface_transport_command)
+ {
+ 	char **transports;
+@@ -116,8 +92,8 @@ COMMAND_HANDLER(handle_interface_list_command)
+ 		return ERROR_COMMAND_SYNTAX_ERROR;
+ 
+ 	command_print(CMD_CTX, "The following debug interfaces are available:");
+-	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++) {
+-		const char *name = jtag_interfaces[i]->name;
++	for (unsigned i = 0; NULL != adapter_drivers[i]; i++) {
++		const char *name = adapter_drivers[i]->name;
+ 		command_print(CMD_CTX, "%u: %s", i + 1, name);
+ 	}
+ 
+@@ -129,7 +105,7 @@ COMMAND_HANDLER(handle_interface_command)
+ 	int retval;
+ 
+ 	/* check whether the interface is already configured */
+-	if (jtag_interface) {
++	if (current_adapter_driver) {
+ 		LOG_WARNING("Interface already configured, ignoring");
+ 		return ERROR_OK;
+ 	}
+@@ -138,41 +114,32 @@ COMMAND_HANDLER(handle_interface_command)
+ 	if (CMD_ARGC != 1 || CMD_ARGV[0][0] == '\0')
+ 		return ERROR_COMMAND_SYNTAX_ERROR;
+ 
+-	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++) {
+-		if (strcmp(CMD_ARGV[0], jtag_interfaces[i]->name) != 0)
++	for (unsigned i = 0; NULL != adapter_drivers[i]; i++) {
++		if (strcmp(CMD_ARGV[0], adapter_drivers[i]->name) != 0)
+ 			continue;
+ 
+-		if (NULL != jtag_interfaces[i]->commands) {
++		if (NULL != adapter_drivers[i]->commands) {
+ 			retval = register_commands(CMD_CTX, NULL,
+-					jtag_interfaces[i]->commands);
++					adapter_drivers[i]->commands);
+ 			if (ERROR_OK != retval)
+ 				return retval;
+ 		}
+ 
+-		jtag_interface = jtag_interfaces[i];
++		current_adapter_driver = adapter_drivers[i];
+ 
+ 	/* LEGACY SUPPORT ... adapter drivers  must declare what
+ 	 * transports they allow.  Until they all do so, assume
+ 	 * the legacy drivers are JTAG-only
+ 	 */
+-	if (!jtag_interface->transports)
++	if (!current_adapter_driver->transports)
+ 		LOG_WARNING("Adapter driver '%s' did not declare "
+ 			"which transports it allows; assuming "
+-			"legacy JTAG-only", jtag_interface->name);
+-		retval = allow_transports(CMD_CTX, jtag_interface->transports
+-						? jtag_interface->transports : jtag_only);
++			"legacy JTAG-only", current_adapter_driver->name);
++		retval = allow_transports(CMD_CTX, current_adapter_driver->transports
++						? current_adapter_driver->transports : jtag_only);
+ 			if (ERROR_OK != retval)
+ 				return retval;
+ 
+-		if (jtag_interface->khz == NULL)
+-			jtag_interface->khz = default_khz;
+-		if (jtag_interface->speed_div == NULL)
+-			jtag_interface->speed_div = default_speed_div;
+-		if (jtag_interface->power_dropout == NULL)
+-			jtag_interface->power_dropout = default_power_dropout;
+-		if (jtag_interface->srst_asserted == NULL)
+-			jtag_interface->srst_asserted = default_srst_asserted;
+-
+ 		return ERROR_OK;
+ 	}
+ 
+diff --git a/src/jtag/core.c b/src/jtag/core.c
+index 5d5803a..d259730 100644
+--- a/src/jtag/core.c
++++ b/src/jtag/core.c
+@@ -58,6 +58,11 @@ static void jtag_add_scan_check(struct jtag_tap *active,
+ 		tap_state_t state),
+ 		int in_num_fields, struct scan_field *in_fields, tap_state_t state);
+ 
++static int default_khz(int khz, int *jtag_speed_in);
++static int default_speed_div(int speed, int *khz);
++static int default_power_dropout(int *dropout);
++static int default_srst_asserted(int *srst_asserted);
++
+ /**
+  * The jtag_error variable is set when an error occurs while executing
+  * the queue.  Application code may set this using jtag_set_error(),
+@@ -132,12 +137,13 @@ static int rclk_fallback_speed_khz;
+ static enum {CLOCK_MODE_UNSELECTED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
+ static int jtag_speed;
+ 
+-static struct jtag_interface *jtag;
+ 
+ const struct swd_driver *swd;
+ 
+ /* configuration */
+-struct jtag_interface *jtag_interface;
++const struct adapter_driver *current_adapter_driver;
++static bool adapter_inited;
++
+ 
+ void jtag_set_flush_queue_sleep(int ms)
+ {
+@@ -499,7 +505,7 @@ int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state state)
+ {
+ 	int retval;
+ 
+-	if (!(jtag->supported & DEBUG_CAP_TMS_SEQ))
++	if (!(current_adapter_driver->supported & DEBUG_CAP_TMS_SEQ))
+ 		return ERROR_JTAG_NOT_IMPLEMENTED;
+ 
+ 	jtag_checks();
+@@ -819,14 +825,14 @@ void jtag_check_value_mask(struct scan_field *field, uint8_t *value, uint8_t *ma
+ 
+ int default_interface_jtag_execute_queue(void)
+ {
+-	if (NULL == jtag) {
++	if (!adapter_inited) {
+ 		LOG_ERROR("No JTAG interface configured yet.  "
+ 			"Issue 'init' command in startup scripts "
+ 			"before communicating with targets.");
+ 		return ERROR_FAIL;
+ 	}
+ 
+-	return jtag->execute_queue();
++	return current_adapter_driver->execute_queue();
+ }
+ 
+ void jtag_execute_queue_noclear(void)
+@@ -1342,10 +1348,10 @@ void jtag_tap_free(struct jtag_tap *tap)
+  */
+ int adapter_init(struct command_context *cmd_ctx)
+ {
+-	if (jtag)
++	if (adapter_inited)
+ 		return ERROR_OK;
+ 
+-	if (!jtag_interface) {
++	if (!current_adapter_driver) {
+ 		/* nothing was previously specified by "interface" command */
+ 		LOG_ERROR("Debug Adapter has to be specified, "
+ 			"see \"interface\" command");
+@@ -1353,10 +1359,10 @@ int adapter_init(struct command_context *cmd_ctx)
+ 	}
+ 
+ 	int retval;
+-	retval = jtag_interface->init();
++	retval = current_adapter_driver->init();
+ 	if (retval != ERROR_OK)
+ 		return retval;
+-	jtag = jtag_interface;
++	adapter_inited = true;
+ 
+ 	/* LEGACY SUPPORT ... adapter drivers  must declare what
+ 	 * transports they allow.  Until they all do so, assume
+@@ -1365,7 +1371,7 @@ int adapter_init(struct command_context *cmd_ctx)
+ 	if (!transports_are_declared()) {
+ 		LOG_ERROR("Adapter driver '%s' did not declare "
+ 			"which transports it allows; assuming "
+-			"JTAG-only", jtag->name);
++			"JTAG-only", current_adapter_driver->name);
+ 		retval = allow_transports(cmd_ctx, jtag_only);
+ 		if (retval != ERROR_OK)
+ 			return retval;
+@@ -1383,7 +1389,7 @@ int adapter_init(struct command_context *cmd_ctx)
+ 	retval = jtag_get_speed(&jtag_speed_var);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+-	retval = jtag->speed(jtag_speed_var);
++	retval = current_adapter_driver->speed(jtag_speed_var);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+ 	retval = jtag_get_speed_readable(&actual_khz);
+@@ -1485,11 +1491,11 @@ int jtag_init_inner(struct command_context *cmd_ctx)
+ 
+ int adapter_quit(void)
+ {
+-	if (!jtag || !jtag->quit)
++	if (!adapter_inited || !current_adapter_driver->quit)
+ 		return ERROR_OK;
+ 
+ 	/* close the JTAG interface */
+-	int result = jtag->quit();
++	int result = current_adapter_driver->quit();
+ 	if (ERROR_OK != result)
+ 		LOG_ERROR("failed: %d", result);
+ 
+@@ -1591,10 +1597,15 @@ static int adapter_khz_to_speed(unsigned khz, int *speed)
+ {
+ 	LOG_DEBUG("convert khz to interface specific speed value");
+ 	speed_khz = khz;
+-	if (jtag != NULL) {
++	if (adapter_inited) {
+ 		LOG_DEBUG("have interface set up");
+ 		int speed_div1;
+-		int retval = jtag->khz(jtag_get_speed_khz(), &speed_div1);
++		int retval;
++		if (current_adapter_driver->khz != NULL)
++			retval = current_adapter_driver->khz(jtag_get_speed_khz(), &speed_div1);
++		else
++			retval = default_khz(jtag_get_speed_khz(), &speed_div1);
++
+ 		if (ERROR_OK != retval)
+ 			return retval;
+ 		*speed = speed_div1;
+@@ -1617,7 +1628,7 @@ static int jtag_set_speed(int speed)
+ 	jtag_speed = speed;
+ 	/* this command can be called during CONFIG,
+ 	 * in which case jtag isn't initialized */
+-	return jtag ? jtag->speed(speed) : ERROR_OK;
++	return adapter_inited ? current_adapter_driver->speed(speed) : ERROR_OK;
+ }
+ 
+ int jtag_config_khz(unsigned khz)
+@@ -1661,7 +1672,13 @@ int jtag_get_speed_readable(int *khz)
+ 	int retval = jtag_get_speed(&jtag_speed_var);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+-	return jtag ? jtag->speed_div(jtag_speed_var, khz) : ERROR_OK;
++	if (!adapter_inited)
++	    return ERROR_OK;
++
++	if (current_adapter_driver->speed_div != NULL)
++	    return current_adapter_driver->speed_div(jtag_speed_var, khz);
++	else
++	    return default_speed_div(jtag_speed_var, khz);
+ }
+ 
+ void jtag_set_verify(bool enable)
+@@ -1686,18 +1703,24 @@ bool jtag_will_verify_capture_ir()
+ 
+ int jtag_power_dropout(int *dropout)
+ {
+-	if (jtag == NULL) {
++	if (!adapter_inited) {
+ 		/* TODO: as the jtag interface is not valid all
+ 		 * we can do at the moment is exit OpenOCD */
+ 		LOG_ERROR("No Valid JTAG Interface Configured.");
+ 		exit(-1);
+ 	}
+-	return jtag->power_dropout(dropout);
++	if (current_adapter_driver->power_dropout != NULL)
++	    return current_adapter_driver->power_dropout(dropout);
++	else
++	    return default_power_dropout(dropout);
+ }
+ 
+ int jtag_srst_asserted(int *srst_asserted)
+ {
+-	return jtag->srst_asserted(srst_asserted);
++	if (current_adapter_driver->srst_asserted != NULL)
++	    return current_adapter_driver->srst_asserted(srst_asserted);
++	else
++	    return default_srst_asserted(srst_asserted);
+ }
+ 
+ enum reset_types jtag_get_reset_config(void)
+@@ -1822,3 +1845,28 @@ void adapter_deassert_reset(void)
+ 	else
+ 		LOG_ERROR("transport is not selected");
+ }
++
++
++static int default_khz(int khz, int *jtag_speed_in)
++{
++	LOG_ERROR("Translation from khz to jtag_speed not implemented");
++	return ERROR_FAIL;
++}
++
++static int default_speed_div(int speed, int *khz)
++{
++	LOG_ERROR("Translation from jtag_speed to khz not implemented");
++	return ERROR_FAIL;
++}
++
++static int default_power_dropout(int *dropout)
++{
++	*dropout = 0; /* by default we can't detect power dropout */
++	return ERROR_OK;
++}
++
++static int default_srst_asserted(int *srst_asserted)
++{
++	*srst_asserted = 0; /* by default we can't detect srst asserted */
++	return ERROR_OK;
++}
+diff --git a/src/jtag/drivers/amt_jtagaccel.c b/src/jtag/drivers/amt_jtagaccel.c
+index d89e5ff..cccf4f2 100644
+--- a/src/jtag/drivers/amt_jtagaccel.c
++++ b/src/jtag/drivers/amt_jtagaccel.c
+@@ -593,7 +593,7 @@ static const struct command_registration amtjtagaccel_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface amt_jtagaccel_interface = {
++const struct adapter_driver amt_jtagaccel_driver = {
+ 	.name = "amt_jtagaccel",
+ 	.commands = amtjtagaccel_command_handlers,
+ 
+diff --git a/src/jtag/drivers/arm-jtag-ew.c b/src/jtag/drivers/arm-jtag-ew.c
+index 35b6b92..906b219 100644
+--- a/src/jtag/drivers/arm-jtag-ew.c
++++ b/src/jtag/drivers/arm-jtag-ew.c
+@@ -493,7 +493,7 @@ static const struct command_registration armjtagew_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface armjtagew_interface = {
++const struct adapter_driver armjtagew_driver = {
+ 	.name = "arm-jtag-ew",
+ 	.commands = armjtagew_command_handlers,
+ 	.transports = jtag_only,
+diff --git a/src/jtag/drivers/at91rm9200.c b/src/jtag/drivers/at91rm9200.c
+index 3bba368..a7bf3d9 100644
+--- a/src/jtag/drivers/at91rm9200.c
++++ b/src/jtag/drivers/at91rm9200.c
+@@ -193,7 +193,7 @@ static const struct command_registration at91rm9200_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface at91rm9200_interface = {
++const struct adapter_driver at91rm9200_driver = {
+ 	.name = "at91rm9200",
+ 	.execute_queue = bitbang_execute_queue,
+ 	.speed = at91rm9200_speed,
+diff --git a/src/jtag/drivers/buspirate.c b/src/jtag/drivers/buspirate.c
+index 86b9882..a969ffd 100644
+--- a/src/jtag/drivers/buspirate.c
++++ b/src/jtag/drivers/buspirate.c
+@@ -423,7 +423,7 @@ static const struct command_registration buspirate_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface buspirate_interface = {
++const struct adapter_driver buspirate_driver = {
+ 	.name = "buspirate",
+ 	.execute_queue = buspirate_execute_queue,
+ 	.speed = buspirate_speed,
+diff --git a/src/jtag/drivers/dummy.c b/src/jtag/drivers/dummy.c
+index be61b37..d69fbfb 100644
+--- a/src/jtag/drivers/dummy.c
++++ b/src/jtag/drivers/dummy.c
+@@ -144,7 +144,7 @@ static const struct command_registration dummy_command_handlers[] = {
+ /* The dummy driver is used to easily check the code path
+  * where the target is unresponsive.
+  */
+-struct jtag_interface dummy_interface = {
++const struct adapter_driver dummy_driver = {
+ 		.name = "dummy",
+ 
+ 		.supported = DEBUG_CAP_TMS_SEQ,
+diff --git a/src/jtag/drivers/ep93xx.c b/src/jtag/drivers/ep93xx.c
+index 9781130..52a3478 100644
+--- a/src/jtag/drivers/ep93xx.c
++++ b/src/jtag/drivers/ep93xx.c
+@@ -53,7 +53,7 @@ static int ep93xx_quit(void);
+ 
+ struct timespec ep93xx_zzzz;
+ 
+-struct jtag_interface ep93xx_interface = {
++const struct adapter_driver ep93xx_driver = {
+ 	.name = "ep93xx",
+ 
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+diff --git a/src/jtag/drivers/ft2232.c b/src/jtag/drivers/ft2232.c
+index 6758dc7..39d40a3 100644
+--- a/src/jtag/drivers/ft2232.c
++++ b/src/jtag/drivers/ft2232.c
+@@ -4261,7 +4261,7 @@ static const struct command_registration ft2232_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface ft2232_interface = {
++const struct adapter_driver ft2232_driver = {
+ 	.name = "ft2232",
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+ 	.commands = ft2232_command_handlers,
+diff --git a/src/jtag/drivers/ftdi.c b/src/jtag/drivers/ftdi.c
+index f04b390..2a22dbb 100644
+--- a/src/jtag/drivers/ftdi.c
++++ b/src/jtag/drivers/ftdi.c
+@@ -870,7 +870,7 @@ static const struct command_registration ftdi_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface ftdi_interface = {
++const struct adapter_driver ftdi_driver = {
+ 	.name = "ftdi",
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+ 	.commands = ftdi_command_handlers,
+diff --git a/src/jtag/drivers/gw16012.c b/src/jtag/drivers/gw16012.c
+index bf027f8..d754bef 100644
+--- a/src/jtag/drivers/gw16012.c
++++ b/src/jtag/drivers/gw16012.c
+@@ -541,7 +541,7 @@ static const struct command_registration gw16012_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface gw16012_interface = {
++const struct adapter_driver gw16012_driver = {
+ 	.name = "gw16012",
+ 	.commands = gw16012_command_handlers,
+ 
+diff --git a/src/jtag/drivers/jlink.c b/src/jtag/drivers/jlink.c
+index 33b15d2..c4e1bae 100644
+--- a/src/jtag/drivers/jlink.c
++++ b/src/jtag/drivers/jlink.c
+@@ -1295,7 +1295,7 @@ static const struct command_registration jlink_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface jlink_interface = {
++const struct adapter_driver jlink_driver = {
+ 	.name = "jlink",
+ 	.commands = jlink_command_handlers,
+ 	.transports = jtag_only,
+diff --git a/src/jtag/drivers/opendous.c b/src/jtag/drivers/opendous.c
+index 1b74bd5..4ba2215 100644
+--- a/src/jtag/drivers/opendous.c
++++ b/src/jtag/drivers/opendous.c
+@@ -190,7 +190,7 @@ static const struct command_registration opendous_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface opendous_interface = {
++const struct adapter_driver opendous_driver = {
+ 	.name = "opendous",
+ 	.commands = opendous_command_handlers,
+ 	.execute_queue = opendous_execute_queue,
+diff --git a/src/jtag/drivers/osbdm.c b/src/jtag/drivers/osbdm.c
+index 66dbf3d..3fa1b51 100644
+--- a/src/jtag/drivers/osbdm.c
++++ b/src/jtag/drivers/osbdm.c
+@@ -707,7 +707,7 @@ static int osbdm_speed_div(int speed, int *khz)
+ 	return ERROR_OK;
+ }
+ 
+-struct jtag_interface osbdm_interface = {
++const struct adapter_driver osbdm_driver = {
+ 	.name = "osbdm",
+ 
+ 	.transports = jtag_only,
+diff --git a/src/jtag/drivers/parport.c b/src/jtag/drivers/parport.c
+index 3c07afb..dde7385 100644
+--- a/src/jtag/drivers/parport.c
++++ b/src/jtag/drivers/parport.c
+@@ -500,7 +500,7 @@ static const struct command_registration parport_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface parport_interface = {
++const struct adapter_driver parport_driver = {
+ 	.name = "parport",
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+ 	.commands = parport_command_handlers,
+diff --git a/src/jtag/drivers/presto.c b/src/jtag/drivers/presto.c
+index 28576a7..5a12628 100644
+--- a/src/jtag/drivers/presto.c
++++ b/src/jtag/drivers/presto.c
+@@ -783,7 +783,7 @@ static int presto_jtag_quit(void)
+ 	return ERROR_OK;
+ }
+ 
+-struct jtag_interface presto_interface = {
++const struct adapter_driver presto_driver = {
+ 	.name = "presto",
+ 	.commands = presto_command_handlers,
+ 
+diff --git a/src/jtag/drivers/remote_bitbang.c b/src/jtag/drivers/remote_bitbang.c
+index 73d9cfc..f29da42 100644
+--- a/src/jtag/drivers/remote_bitbang.c
++++ b/src/jtag/drivers/remote_bitbang.c
+@@ -287,7 +287,7 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE,
+ };
+ 
+-struct jtag_interface remote_bitbang_interface = {
++const struct adapter_driver remote_bitbang_driver = {
+ 	.name = "remote_bitbang",
+ 	.execute_queue = &bitbang_execute_queue,
+ 	.speed = &remote_bitbang_speed,
+diff --git a/src/jtag/drivers/rlink.c b/src/jtag/drivers/rlink.c
+index 0bfe8be..acdce0c 100644
+--- a/src/jtag/drivers/rlink.c
++++ b/src/jtag/drivers/rlink.c
+@@ -1674,7 +1674,7 @@ static int rlink_quit(void)
+ 	return ERROR_OK;
+ }
+ 
+-struct jtag_interface rlink_interface = {
++const struct adapter_driver rlink_driver = {
+ 	.name = "rlink",
+ 	.init = rlink_init,
+ 	.quit = rlink_quit,
+diff --git a/src/jtag/drivers/sysfsgpio.c b/src/jtag/drivers/sysfsgpio.c
+index 1cad268..6f9004f 100644
+--- a/src/jtag/drivers/sysfsgpio.c
++++ b/src/jtag/drivers/sysfsgpio.c
+@@ -410,7 +410,7 @@ static const struct command_registration sysfsgpio_command_handlers[] = {
+ static int sysfsgpio_init(void);
+ static int sysfsgpio_quit(void);
+ 
+-struct jtag_interface sysfsgpio_interface = {
++struct adapter_driver sysfsgpio_driver = {
+ 	.name = "sysfsgpio",
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+ 	.execute_queue = bitbang_execute_queue,
+diff --git a/src/jtag/drivers/ulink.c b/src/jtag/drivers/ulink.c
+index 8ded37b..bdedb38 100644
+--- a/src/jtag/drivers/ulink.c
++++ b/src/jtag/drivers/ulink.c
+@@ -2287,7 +2287,7 @@ static const struct command_registration ulink_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE,
+ };
+ 
+-struct jtag_interface ulink_interface = {
++const struct adapter_driver ulink_driver = {
+ 	.name = "ulink",
+ 
+ 	.commands = ulink_command_handlers,
+diff --git a/src/jtag/drivers/usb_blaster.c b/src/jtag/drivers/usb_blaster.c
+index 088ae34..07cc577 100644
+--- a/src/jtag/drivers/usb_blaster.c
++++ b/src/jtag/drivers/usb_blaster.c
+@@ -581,7 +581,7 @@ static const struct command_registration usb_blaster_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface usb_blaster_interface = {
++const struct adapter_driver usb_blaster_driver = {
+ 	.name = "usb_blaster",
+ 	.commands = usb_blaster_command_handlers,
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+diff --git a/src/jtag/drivers/usbprog.c b/src/jtag/drivers/usbprog.c
+index e90d569..a0e1786 100644
+--- a/src/jtag/drivers/usbprog.c
++++ b/src/jtag/drivers/usbprog.c
+@@ -617,7 +617,7 @@ static void usbprog_jtag_tms_send(struct usbprog_jtag *usbprog_jtag)
+ 	}
+ }
+ 
+-struct jtag_interface usbprog_interface = {
++const struct adapter_driver usbprog_driver = {
+ 	.name = "usbprog",
+ 
+ 	.execute_queue = usbprog_execute_queue,
+diff --git a/src/jtag/drivers/vsllink.c b/src/jtag/drivers/vsllink.c
+index 1c0c3e1..528fe80 100644
+--- a/src/jtag/drivers/vsllink.c
++++ b/src/jtag/drivers/vsllink.c
+@@ -834,7 +834,7 @@ static const struct command_registration vsllink_command_handlers[] = {
+ 
+ static const char *vsllink_transports[] = {"jtag", "swd", NULL};
+ 
+-struct jtag_interface vsllink_interface = {
++const struct adapter_driver vsllink_driver = {
+ 	.name = "vsllink",
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+ 	.commands = vsllink_command_handlers,
+diff --git a/src/jtag/interface.h b/src/jtag/interface.h
+index 72af2fe..541549f 100644
+--- a/src/jtag/interface.h
++++ b/src/jtag/interface.h
+@@ -185,10 +185,7 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
+ #endif /* _DEBUG_JTAG_IO_ */
+ 
+ /**
+- * Represents a driver for a debugging interface.
+- *
+- * @todo Rename; perhaps "debug_driver".  This isn't an interface,
+- * it's a driver!  Also, not all drivers support JTAG.
++ * Represents a driver for a debugging adapter.
+  *
+  * @todo We need a per-instance structure too, and changes to pass
+  * that structure to the driver.  Instances can for example be in
+@@ -196,7 +193,7 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
+  * eventually to cope with systems which have more than one such
+  * debugging interface.
+  */
+-struct jtag_interface {
++struct adapter_driver {
+ 	/** The name of the JTAG interface driver. */
+ 	char *name;
+ 
+diff --git a/src/jtag/interfaces.c b/src/jtag/interfaces.c
+index 19d2fcc..148af9c 100644
+--- a/src/jtag/interfaces.c
++++ b/src/jtag/interfaces.c
+@@ -43,162 +43,162 @@
+  */
+ 
+ #if BUILD_ZY1000 == 1
+-extern struct jtag_interface zy1000_interface;
++extern const struct adapter_driver zy1000_driver;
+ #elif defined(BUILD_MINIDRIVER_DUMMY)
+-extern struct jtag_interface minidummy_interface;
++extern const struct adapter_driver minidummy_driver;
+ #else /* standard drivers */
+ #if BUILD_PARPORT == 1
+-extern struct jtag_interface parport_interface;
++extern const struct adapter_driver parport_driver;
+ #endif
+ #if BUILD_DUMMY == 1
+-extern struct jtag_interface dummy_interface;
++extern const struct adapter_driver dummy_driver;
+ #endif
+ #if BUILD_FT2232_FTD2XX == 1
+-extern struct jtag_interface ft2232_interface;
++extern const struct adapter_driver ft2232_driver;
+ #endif
+ #if BUILD_FT2232_LIBFTDI == 1
+-extern struct jtag_interface ft2232_interface;
++extern const struct adapter_driver ft2232_driver;
+ #endif
+ #if BUILD_FTDI == 1
+-extern struct jtag_interface ftdi_interface;
++extern const struct adapter_driver ftdi_driver;
+ #endif
+ #if BUILD_USB_BLASTER_LIBFTDI == 1 || BUILD_USB_BLASTER_FTD2XX == 1
+-extern struct jtag_interface usb_blaster_interface;
++extern const struct adapter_driver usb_blaster_driver;
+ #endif
+ #if BUILD_AMTJTAGACCEL == 1
+-extern struct jtag_interface amt_jtagaccel_interface;
++extern const struct adapter_driver amt_jtagaccel_driver;
+ #endif
+ #if BUILD_EP93XX == 1
+-extern struct jtag_interface ep93xx_interface;
++extern const struct adapter_driver ep93xx_driver;
+ #endif
+ #if BUILD_AT91RM9200 == 1
+-extern struct jtag_interface at91rm9200_interface;
++extern const struct adapter_driver at91rm9200_driver;
+ #endif
+ #if BUILD_GW16012 == 1
+-extern struct jtag_interface gw16012_interface;
++extern const struct adapter_driver gw16012_driver;
+ #endif
+ #if BUILD_PRESTO_LIBFTDI == 1 || BUILD_PRESTO_FTD2XX == 1
+-extern struct jtag_interface presto_interface;
++extern const struct adapter_driver presto_driver;
+ #endif
+ #if BUILD_USBPROG == 1
+-extern struct jtag_interface usbprog_interface;
++extern const struct adapter_driver usbprog_driver;
+ #endif
+ #if BUILD_JLINK == 1
+-extern struct jtag_interface jlink_interface;
++extern const struct adapter_driver jlink_driver;
+ #endif
+ #if BUILD_VSLLINK == 1
+-extern struct jtag_interface vsllink_interface;
++extern const struct adapter_driver vsllink_driver;
+ #endif
+ #if BUILD_RLINK == 1
+-extern struct jtag_interface rlink_interface;
++extern const struct adapter_driver rlink_driver;
+ #endif
+ #if BUILD_ULINK == 1
+-extern struct jtag_interface ulink_interface;
++extern const struct adapter_driver ulink_driver;
+ #endif
+ #if BUILD_ARMJTAGEW == 1
+-extern struct jtag_interface armjtagew_interface;
++extern const struct adapter_driver armjtagew_driver;
+ #endif
+ #if BUILD_BUSPIRATE == 1
+-extern struct jtag_interface buspirate_interface;
++extern const struct adapter_driver buspirate_driver;
+ #endif
+ #if BUILD_REMOTE_BITBANG == 1
+-extern struct jtag_interface remote_bitbang_interface;
++extern const struct adapter_driver remote_bitbang_driver;
+ #endif
+ #if BUILD_STLINK == 1
+-extern struct jtag_interface stlink_interface;
++extern const struct adapter_driver stlink_driver;
+ #endif
+ #if BUILD_OSBDM == 1
+-extern struct jtag_interface osbdm_interface;
++extern const struct adapter_driver osbdm_driver;
+ #endif
+ #if BUILD_OPENDOUS == 1
+-extern struct jtag_interface opendous_interface;
++extern const struct adapter_driver opendous_driver;
+ #endif
+ #if BUILD_SYSFSGPIO == 1
+-extern struct jtag_interface sysfsgpio_interface;
++extern const struct adapter_driver sysfsgpio_driver;
+ #endif
+ #endif /* standard drivers */
+ 
+ /**
+- * The list of built-in JTAG interfaces, containing entries for those
++ * The list of built-in debug adapter drivers, containing entries for those
+  * drivers that were enabled by the @c configure script.
+  *
+  * The list should be defined to contain either one minidriver interface
+  * or some number of standard driver interfaces, never both.
+  */
+-struct jtag_interface *jtag_interfaces[] = {
++const struct adapter_driver *adapter_drivers[] = {
+ #if BUILD_ZY1000 == 1
+-		&zy1000_interface,
++		&zy1000_driver,
+ #elif defined(BUILD_MINIDRIVER_DUMMY)
+-		&minidummy_interface,
++		&minidummy_driver,
+ #else /* standard drivers */
+ #if BUILD_PARPORT == 1
+-		&parport_interface,
++		&parport_driver,
+ #endif
+ #if BUILD_DUMMY == 1
+-		&dummy_interface,
++		&dummy_driver,
+ #endif
+ #if BUILD_FT2232_FTD2XX == 1
+-		&ft2232_interface,
++		&ft2232_driver,
+ #endif
+ #if BUILD_FT2232_LIBFTDI == 1
+-		&ft2232_interface,
++		&ft2232_driver,
+ #endif
+ #if BUILD_FTDI == 1
+-		&ftdi_interface,
++		&ftdi_driver,
+ #endif
+ #if BUILD_USB_BLASTER_LIBFTDI == 1 || BUILD_USB_BLASTER_FTD2XX == 1
+-		&usb_blaster_interface,
++		&usb_blaster_driver,
+ #endif
+ #if BUILD_AMTJTAGACCEL == 1
+-		&amt_jtagaccel_interface,
++		&amt_jtagaccel_driver,
+ #endif
+ #if BUILD_EP93XX == 1
+-		&ep93xx_interface,
++		&ep93xx_driver,
+ #endif
+ #if BUILD_AT91RM9200 == 1
+-		&at91rm9200_interface,
++		&at91rm9200_driver,
+ #endif
+ #if BUILD_GW16012 == 1
+-		&gw16012_interface,
++		&gw16012_driver,
+ #endif
+ #if BUILD_PRESTO_LIBFTDI == 1 || BUILD_PRESTO_FTD2XX == 1
+-		&presto_interface,
++		&presto_driver,
+ #endif
+ #if BUILD_USBPROG == 1
+-		&usbprog_interface,
++		&usbprog_driver,
+ #endif
+ #if BUILD_JLINK == 1
+-		&jlink_interface,
++		&jlink_driver,
+ #endif
+ #if BUILD_VSLLINK == 1
+-		&vsllink_interface,
++		&vsllink_driver,
+ #endif
+ #if BUILD_RLINK == 1
+-		&rlink_interface,
++		&rlink_driver,
+ #endif
+ #if BUILD_ULINK == 1
+-		&ulink_interface,
++		&ulink_driver,
+ #endif
+ #if BUILD_ARMJTAGEW == 1
+-		&armjtagew_interface,
++		&armjtagew_driver,
+ #endif
+ #if BUILD_BUSPIRATE == 1
+-		&buspirate_interface,
++		&buspirate_driver,
+ #endif
+ #if BUILD_REMOTE_BITBANG == 1
+-		&remote_bitbang_interface,
++		&remote_bitbang_driver,
+ #endif
+ #if BUILD_STLINK == 1
+-		&stlink_interface,
++		&stlink_driver,
+ #endif
+ #if BUILD_OSBDM == 1
+-		&osbdm_interface,
++		&osbdm_driver,
+ #endif
+ #if BUILD_OPENDOUS == 1
+-		&opendous_interface,
++		&opendous_driver,
+ #endif
+ #if BUILD_SYSFSGPIO == 1
+-		&sysfsgpio_interface,
++		&sysfsgpio_driver,
+ #endif
+ #endif /* standard drivers */
+ 		NULL,
+diff --git a/src/jtag/interfaces.h b/src/jtag/interfaces.h
+index a86cccd..1531005 100644
+--- a/src/jtag/interfaces.h
++++ b/src/jtag/interfaces.h
+@@ -41,6 +41,6 @@
+ /** Dynamically load all JTAG interface modules from specified directory. */
+ void jtag_interface_modules_load(const char *path);
+ 
+-extern struct jtag_interface *jtag_interfaces[];
++extern const struct adapter_driver *adapter_drivers[];
+ 
+ #endif /* OPENOCD_JTAG_INTERFACES_H */
+diff --git a/src/jtag/minidummy/minidummy.c b/src/jtag/minidummy/minidummy.c
+index 12a658c..6368cdc 100644
+--- a/src/jtag/minidummy/minidummy.c
++++ b/src/jtag/minidummy/minidummy.c
+@@ -26,7 +26,7 @@
+ #include <jtag/minidriver.h>
+ #include <jtag/interface.h>
+ 
+-struct jtag_interface minidummy_interface = {
++const struct adapter_driver minidummy_driver = {
+ 	.name = "minidummy",
+ 	.execute_queue = NULL,
+ 	.speed = NULL,
+diff --git a/src/jtag/stlink/stlink_interface.c b/src/jtag/stlink/stlink_interface.c
+index c06d86c..1920020 100644
+--- a/src/jtag/stlink/stlink_interface.c
++++ b/src/jtag/stlink/stlink_interface.c
+@@ -253,7 +253,7 @@ static const struct command_registration stlink_interface_command_handlers[] = {
+ 	COMMAND_REGISTRATION_DONE
+ };
+ 
+-struct jtag_interface stlink_interface = {
++const struct adapter_driver stlink_driver = {
+ 	.name = "stlink",
+ 	.supported = 0,
+ 	.commands = stlink_interface_command_handlers,
+diff --git a/src/jtag/tcl.c b/src/jtag/tcl.c
+index b279b1f..312678f 100644
+--- a/src/jtag/tcl.c
++++ b/src/jtag/tcl.c
+@@ -59,8 +59,6 @@ static const Jim_Nvp nvp_jtag_tap_event[] = {
+ 	{ .name = NULL, .value = -1 }
+ };
+ 
+-extern struct jtag_interface *jtag_interface;
+-
+ struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
+ {
+ 	const char *cp = Jim_GetString(o, NULL);
+diff --git a/src/jtag/zy1000/zy1000.c b/src/jtag/zy1000/zy1000.c
+index e246870..e761a0d 100644
+--- a/src/jtag/zy1000/zy1000.c
++++ b/src/jtag/zy1000/zy1000.c
+@@ -1251,7 +1251,7 @@ int zy1000_init(void)
+ 	return ERROR_OK;
+ }
+ 
+-struct jtag_interface zy1000_interface = {
++const struct adapter_driver zy1000_driver = {
+ 	.name = "ZY1000",
+ 	.supported = DEBUG_CAP_TMS_SEQ,
+ 	.execute_queue = NULL,
+-- 
+1.7.11.msysgit.1
+

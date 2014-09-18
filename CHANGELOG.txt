@@ -1,0 +1,548 @@
+=====================================================================
+Broadcom WICED Software Development Kit - CHANGELOG
+=====================================================================
+
+Changes for WICED-SDK 3.0.1 : 15 April 2014
+-----------------------------------------------------------
+* Replaced WLAN firmware with version 5.90.230.3
+  * SoftAP now responds to authentication request from a re-joining client
+  * NOTE: 4-second Wi-Fi sleep time is not supported
+* SoftAP on WWD SPI interface now allows clients to join properly
+* BCM4390 now supports GPIO interrupts, I2C peripheral, and UART4 
+* BCM4390 pin PA00 and PA01 now work as GPIO pins
+* TLS now allows user to validate the peer CN
+* FreeRTOS now supports forcing thread awake
+* FreeRTOS bug fix that prevents a deadlock when using malloc() or free()
+* FreeRTOS wiced_rtos_create_thread() now correctly deals with priorities higher than the maximum
+* NetX-Duo wiced_tcp_listen() now works for both STA and SoftAP sockets
+* NoNS wwd_thread_poll_all() now only sends and receives once to prevent overwriting previously read packets
+* wiced_assert() is now wrapped in do {} while(0)
+* wiced_deinit() now prevents multiple de-initialization
+* canned_send snippet application now uses less memory
+* Documentation update for wiced_rtos_thread_join() and malloc_error()
+* OSX version of OpenOCD now works properly
+
+
+Changes for WICED-SDK-3.0.0 : 7 March 2014
+-----------------------------------------------------------
+WICED-SDK-3.0.0 has changed considerably since the previous 2.4.1 release.
+The accompanying README provides a more detailed summary of the supported 
+features and known limitations for this release.
+
+The following is a brief summary of the major changes:
+* Support for various Broadcom Wi-Fi & combo chips
+  * BCM43362 Wi-Fi SoC
+  * BCM4390 Integrated Apps + Wi-Fi SoC
+  * BCM43341 Wi-Fi + Bluetooth combo SoC
+* Platforms
+  * BCM94390WCD3 platform (BCM4390 Integrated Apps + Wi-Fi SoC)
+  * BCM943341WCD1 platform (STM32F417 MCU + BCM43341 WLAN/BT combos)
+  * BCM943362WCD4_LPCX1769 platform (LPC1769 MCU + BCM943362WCD4 module)
+  * BCM9WCDAUDIO platform
+  * Common Platform components have been re-architected
+  * All platform specific implementation including pin mapping, configuration, 
+    peripheral definitions etc now can be found in <WICED-SDK>/platforms directory
+* RTOS & Network Stack
+  * Updated ThreadX to version 5.6
+  * Updated NetX to version 5.5 service pack 1
+  * Updated NetX-Duo to version 5.7 service pack 1
+  * Updated FreeRTOS to version 7.5.2
+* Libraries & Protocols
+  * Broadcom Embedded Security Library (BESL)
+    * The user provided root CA certificates can now be used to verify intermediate CA certificates 
+      and not just the top root CA certificate
+  * WICED SmartBridge
+    * SmartBridge now supports Passkey entry
+    * SmartBridge now supports both BCM20702 and BCM43341
+  * Apple AirPlay
+  * Apple Wireless Accessory Configuration (WAC) protocol
+  * Bluetooth Audio
+  * WicedFS : Read-only Serial Flash File System
+* WICED API
+  * WICED now provides a simplified approach for defining and mapping RTOS-aware 
+    interrupt handlers
+  * Removed TLS from Config web server - uses WPA2 with passphrase 12345678  
+  * Expanded WICED error codes
+  * Harmonised directory and file names across the SDK
+* WICED Wi-Fi Driver (WWD)
+  * WWD API names now starts with 'wwd' prefix
+* WICED Application Framework (WAF)
+  * Bootloader updated to provide support for loading ELF files from an external serial flash file system
+  * Resources can now be located in an external serial flash file system
+  * WLAN firmware moved into resources to allow it to be located in external serial flash
+  * DCT can now be located in external serial flash
+
+
+Changes for WICED-SDK-2.4.1 : 3 March 2014
+-----------------------------------------------------------
+* ThreadX host_rtos_join_thread() now checks for thread validity before waiting for tx_thread_state to change
+* Fixed definition of END_HTTP_PAGE_DATABASE
+* NetX_Duo wiced_tcp_accept() now ensures that the accept window stays open indefinitely
+* Improved stability of WICED UART API for all ST platforms
+* MCU powersave in bootloader is now disabled by default
+* Updated WLAN firmware to version 5.90.230.7
+* Wi-Fi Direct now allows changing of Group Owner intent via console application
+* Added support for receiving 802.1Q VLAN-tagged ethernet frames (NetX only)
+* Corrected mapping for IP precedence bits
+* Added 'get_associated_client_list' command to console application
+* Changed softAP multicast transmission rate to 11Mbps
+* Improved AMPDU settings for 43362a2 WLAN chip
+* wiced_init() now prints WLAN firmware version and MAC address
+* Improved MCU powersave timing accuracy of SAM4S platform
+* SAM4S wiced_gpio_input_irq_enable() now sets the edge trigger correctly
+* SmartBridge now returns all unfiltered advertisement reports properly
+* Added wiced_bt_smartbridge_set_transmit_power() API to SmartBridge
+* Added capability to independently initialize the WICED core and WLAN connectivity for power optimizations
+* Fixed TLS certificate verification in BESL
+* Updated buildsystem to allow optimizations for components while doing a debug build
+* LwIP wiced_tcp_connect() now connects successfully without socket re-initialization
+
+
+Changes for WICED-SDK-2.4.0 : 27 Nov 2013
+-----------------------------------------------------------
+* Libraries & Protocols
+  * Added Bluetooth SmartBridge for Wi-Fi <-> Bluetooth bridging
+  * BESL (Broadcom Embedded Supplicant Library)
+    * Added support for WPS Registrar
+    * Added support for Wi-Fi Direct
+    * Added support for multiple handshake messages in a single TLS record
+    * Improved management of TLS record fragmentation
+  * DHCP server 
+    * Now caches IP addresses
+    * Fix to generate the web proxy auto discovery URL from the DHCP server's IP address
+  * DHCP client
+    * LwIP updated to correctly cleanup if DHCP resolution fails
+    * NetX dhcp_client_deinit() fix
+  * HTTP client
+    * SIMPLE_GET_REQUEST now includes a host header field
+  * Bluetooth RFCOMM
+    * Fixed execution of callback in incorrect thread
+    * Long incoming datastream is now received in one packet
+  * iAP : Fix to enable WEP
+  * ThreadX : Stopped enabling the systick in _tx_initialize_low_level as it can lead 
+    to a race condition if initialisation takes too long. The systick is turned on by 
+    ThreadX later in initialisation
+  * Xively
+    * Updated to the current Xively API
+    * Now supports HTTPS
+* Platforms
+  * SPI : Implemented wiced_spi_deinit() for all platforms
+  * Improved MCU powersave mechanism for STM32F2xx platforms
+  * Replaced Atmel SAM4S drivers (BCM943362WCD8 platform) with ASF (Atmel Software Framework)
+    * Added support for SAM4S powersave (WAIT MODE)
+  * Harmonized NVRAM parameters across all BCM43362 platforms
+* WICED API
+  * wiced_time API expanded to provide millisecond time resolution
+  * wiced_packet_get_data() now resets output parameters when packet data length equals zero
+  * wiced_tls_receive_packet() now releases empty packets after processing
+  * wiced_get_packet_filter_list() now allocates sufficient buffer length
+  * The config mode AP now uses WPA2 security with password 12345678. TLS has been removed.
+  * The wiced_scan_result_t structure now includes a flag to indicate reception of an off-channel scan result
+    (rather than returning the RSSI of the result as +200dBm)
+  * Added a new library function to print scan results
+  * Scan API now correctly reports max data rate for APs  
+  * wiced_join_ap() now saves the PMK when it calls wiced_join_specific()
+  * Fix to correct occasional failure to join an AP after a link up event
+  * Fix to avoid memory corruption if host_buffer_get() fails
+  * Fix to wiced_udp_send() to correctly clean up the socket if packet send fails
+  * Fix to stop wiced_wifi_leave() reporting TIMEOUT after Wi-Fi powersave is disabled   
+  * Added an option to disable transmission of AMPDUs for 11n rates
+  * Added an option to make the softAP SSID hidden
+* Added the following new applications
+  * demo
+    * bt_smartbridge
+  * snip
+    * ap_clients_rssi
+    * bt_rfcomm
+    * p2p
+    * security_types
+    * service_discovery
+    * sntp_get_time
+    * stdio
+    * tcp_client_powersave
+    * tcp_server
+    * tcp_server_async
+    * wps_enrollee
+    * wps_registrar
+  * test
+    * bt_smartbridge_console
+    * bt_smartbridge_mfg_test
+    * console (Iperf is now included in the generic console application)
+* WICED Wi-Fi Driver
+  * SDIO bus reliability improvements
+* BCM43362 Firmware updated to 5.90.230.3
+  * Concurrent softAP-STA improvements
+  * Provides support for P2P (Wi-Fi Direct)
+  * Throughput & stability improvements
+* Build system 
+  * Added Factory Programming capability (see WICED-AN800-R Factory Programming Application Note) 
+  * Fixed Makefile dependencies for generated .c_opts, .cpp_opts, and .ar_opts files
+  * Native IAR support
+    * Limitations: OTA upgrade works for STM32F2xx platform only (support for other platforms TBD)
+
+
+Changes for WICED-SDK-2.3.1 : 28 May 2013
+--------------------------------------------------
+* Known Issues that have been fixed :
+  * WLAN sleep clock input is now explicitly selected by a directive in the <WICED-SDK>/include/platform<PLATFORM_NAME>/platform.h
+  * The PLATFORM_APP_START_SECTOR definitions for all STM32 platforms have been corrected
+  * Fix to cleanup the WPS thread when a semaphore argument is provided to besl_wps_enrollee()
+  * WICED Wi-Fi clients can now join an AP using WPA2 with EAPOL v1.0
+  * FreeRTOS now forces threads awake that are waiting in a TCP accept when using the wiced_rtos_thread_force_awake() API 
+  * Fixed: Uninitalised nx_ip_driver_packet variable causes wiced_netx_driver_entry() function to attempt to release an invalid packet pointer when the link is down
+  * Fixed marginal hold-time on STM32-WLAN SPI interface
+  * Removed WPRINT_LIB_INFO in bt_smart_gatt.c that was causing a Hard Fault due to insufficient stack space
+  * Default Japan country code now provides support for 802.11n
+  * PWM API now outputs the correct frequency (was 2 x frequency)
+  * #define LWIP_NUM_PACKET_BUFFERS_IN_POOL is now picked up during the build process (when using LwIP)
+  * Changed DEFAULT_NUMBER_OF_SYSTEM_MONITORS to MAXIMUM_NUMBER_OF_SYSTEM_MONITORS and enabled override outside system_monitor.c
+  * TLS now correctly returns decrypted data when there is a partial record in the same packet
+  * TLS library: Added support for generalised time and for certificates which do not have a version tag
+  * SAM4S : STDIO UART pin config moved from sam4s_uart.c (MCU-specific) to platform.c (platform-specific)
+  * Re-architected STM32F1xx-WLAN SDIO driver to address SDIO DMA overrun issue
+  * Wi-Fi scan now notifies application via a semaphore when an error occurs
+  * DHCP client now performs DHCP discovery after the device is re-associated with the wireless network
+  * wiced_network_suspend() now does not stop DHCP client when the IP address has not been assigned 
+  * STM32F1xx platform makefile now correctly overrides LwIP buffer pool sizes
+
+     
+Changes for WICED-SDK-2.3.0 : 29 April 2013
+--------------------------------------------------
+* RTOS & Network Stacks
+  * ThreadX (source code changes are available for ThreadX licensees)
+    * Changes to improve MCU power save functionality
+  * NetX/NetX Duo (source code changes are available for NetX/NetX Duo licensees)
+    * Added support for suspension/resumption of network stack timers to improve MCU power save functionality
+  * LwIP
+    * Added support for network stack timer suspension/resumption to improve MCU power save functionality
+    * Separated packet buffers into individual transmit and receive packet pools to improve throughput and stability 
+* Platforms
+  * Added Atmel SAM4S Support (Platform:BCM943362WCD8)
+  * Added WICED+ Platform Support (Platform:BCM9WCDPLUS114)
+  * Added I2C driver (STM32F2xx platform, others TBD)
+  * Added Real-Time Clock (RTC) support (STM32F2xx platform, others TBD)
+  * Replaced Platform:BCM943362WCD5 (STM32F405) with Platform:BCM943362WCD6 (STM32F415)
+  * Adjusted interrupt priorities for STM32 platforms
+  * Fixed DCT write function for STM32F1xx platform 
+  * Fixed MCU powersave time loss issue for STM32F2xx platform
+  * Added a new platform initialization function, init_memory(), to permit platform specific memory 
+    initialization before globals are set, BSS section is cleared and C++ constructors are called.
+  * Moved all schematics and board reference material to the DOC/Schematics directory    
+* Libraries & Protocols
+  * Added Bluetooth SmartBridge API
+  * Added support for Apple MFi iAP (separate iAP library must be obtained from Apple)
+  * Added beta support for Broadcom Wi-Fi Easy Setup - Cooee(TM)
+  * HTTP server improvements
+  * HTTP client improvements; added query argument to wiced_http_get() and wiced_https_get()
+  * Gedday (Broadcom low-footprint mDNS library) improvements; enabled TXT records, fixes for potential memory leaks
+  * Improved BESL security supplicant library. BESL now includes both TLS and WPS and is RTOS and Network stack independent
+    * SMTP library updated to use BESL improvements
+    * aes_context structure renamed to aes_context_t and moved to <WICED-SDK>/Wiced/Security/besl/crypto/crypto_structures.h  
+* Applications
+  * ota_upgrade example app improvements: web server, browser compatibility, flash writing
+  * Added the following applications
+    * demo/bt_smartbridge (Bluetooth SmartBridge demo application)
+    * snip/packet filter
+    * snip/network keep alive 
+    * snip/stack_overflow
+    * snip/ping powersave
+    * snip/easy setup
+    * wwd/* (raw WICED Wi-Fi Driver example applications)
+  * Modified the following applications
+    * Renamed snip/ping to snip/ping_webserver
+  * Updated tx_start manufacturing test scripts in <WICED-SDK>/Apps/mfg_test/scripts    
+* WICED API
+  * Improved wiced_rtos_set_semaphore() API (FreeRTOS only)
+  * Improved wiced_wifi_set_listen_interval() API
+  * Renamed wiced_wifi_powersave_enable() to wiced_wifi_powersave_enable_with_throughput()
+  * Changed wiced_wifi_powersave_enable() to use legacy 802.11 Powersave Poll
+  * Updated link status API to use callback registration
+    * wiced_link_state_subscribe() changed to wiced_network_register_link_callback()
+    * wiced_link_state_unsubscribe() changed to wiced_network_deregister_link_callback()
+  * Added wiced_enable_powersave() & wiced_disable_powersave() convenience API
+  * Added wiced_tls_deinit_context(), wiced_tls_reset_context()
+  * Added wiced_wifi_get_associated_client_list()
+  * Added wiced_wifi_get_ap_info()
+  * Added network packet filter API functions
+  * Added network keep alive API functions
+  * Added write_ap_list_dct() to bootloader API
+  * Added support for asynchronous TCP and UDP (NetX_Duo only) 
+    * Accessed via new APIs: wiced_tcp_register_callbacks(), wiced_udp_register_callbacks()
+  * Additions to wiced_defaults.h : WICED_DEFAULT_TCP_LISTEN_QUEUE_SIZE, WICED_ENABLE_MCU_RTC
+  * Fixed intermittent failure when bringing up softAP
+  * Resolved WPA, WPA2, WPA2/WPA scan and join issues with different combinations of AES and TKIP ciphers
+  * Extensive additions to API documentation
+* WICED Wi-Fi Driver
+  * SDIO & SPI bus stability improvements
+  * STM32F2xx SDIO & SPI bus interface is now interrupt driven (no longer polls) 
+  * Added the following WWD API functions
+    * wiced_wifi_set_channel()
+    * wiced_wifi_enable_monitor_mode()
+    * wiced_wifi_disable_monitor_mode()
+    * API to manage temperature dutycycle
+  * 43362 firmware updated to 5.90.230.1 
+    * production : Added Passphrase-to-PMK IOCTL to speed up association time   
+    * mfg test   : Added reset counters
+  * Improved wiced_wifi_is_ready_to_transceive() event handling 
+* Build system 
+  * Turned on gcc-compiler pedantic checking
+  * Changes to support multiple toolchains (prep for native IAR support)
+  * Updates to OpenOCD to correctly drive SRST
+  * Improved C++ support
+  * Improved IAR support
+  * Cleaned up resource processing
+* Documentation
+  * Updates to all documentation to include the WICED logo
+  * Updated WICED Powersave App Note to reflect power save changes
+  * Added Application Note : WICED Wi-Fi Easy Setup - Overview
+  * Added Application Note : WICED Wi-Fi Easy Setup - Cooee
+
+
+Changes for WICED-SDK-2.2.1 : 11 February 2012
+--------------------------------------------------
+* Fixes to Gedday to improve stability and reduce memory usage
+* Fixed http client mode infinite loop
+* Fixed a TLS memset issue and added support for v1 TLS certs and generalised time format
+* Fixed Wi-Fi scanning to report off-channel APs and 40MHz APs
+* Fixed a platform issue that failed to correctly set the SPI clock frequency
+* Fixed long join delay timeout if an invalid SSID or Passphrase is provided
+* Enabled storage for WEP keys in the DCT along with WPA/WPA2
+* Stability improvements to the Wi-Fi bus driver
+* General powersave performance improvements including :
+  * Added wiced_network_suspend() / wiced_network_resume() APIs
+  * Refactored listen interval APIs 
+* Provided a way to pass an external global define into the WICED build system
+* Re-instated $(TOOLS_ROOT) into the build system 
+* Renamed Bluetooth firmware image folder for compatibility with Windows XP   
+* WICED API reference documentation updates
+* Updated Powersave Application Note
+
+
+Changes for WICED-SDK-2.2.0 : 14 December 2012
+--------------------------------------------------
+* Added the following documents into the WICED-SDK/Doc directory
+  * WICED SDK Quickstart Guide (WICED-QSG201-R)
+  * WICED Evaluation Board user Guide (WICED-EUM200-R)
+  * Manufacturing Test User Guide (WICED-MFG200-R)
+  * Powersave Application Note (WICED-AN101-R)
+  * WICED Application Framework Overview
+  * Wiced SDK Software Stack Diagram
+* Added support for FreeRTOS and LwIP
+* Added toolchain support to generate and write factory reset flash image
+* Added MCU & Wi-Fi powersave and Wi-Fi poweroff capability
+* Platform additions
+  * Added support for STM32F1xx (BCM943362WCD2 platform)
+  * Added support for STM32F4xx (BCM943362WCD5 platform)
+  * Added support for Freescale Kinetis K60 (TWRK60D100M platform; peripheral API TBD)
+  * Added BCMUSI11_BT1 platform to support Bluetooth expansion board
+* Added system monitor thread to manage system integrity and lockups
+* DCT additions/changes
+  * Added DCT API functions
+  * Added TLS public certificate and private key into DCT 
+  * Added option to store 802.11 MAC address in the DCT   
+* Added generic crypto API (in wiced_security.h) to expose crypto functions for general use
+* Added asynchronous callback API for link up/down notification
+* Example Apps are now segregated into categories in separate directories
+* Added multiple snippet applications in the WICED-SDK/Apps/snip directory
+* Added DCT backup to factory reset image in serial flash
+* Added http client streaming API
+* Added wiced_ip_address_t structure 
+* Added threadsafe malloc to FreeRTOS
+* Added wiced_wifi_get_channel() API
+* Added WICED_COUNTRY_WORLD_WIDE_XX country code
+* Added SNTP API to auto sync time: sntp_start_auto_time_sync() & sntp_stop_auto_time_sync()
+* Refactored and consolidated the platform API to simplify usage of peripherals
+* Improved performance of Wi-Fi roaming
+* Improved DNS client operation
+* Improved DHCP server operation & changed IP address range to 192.168.0.x
+* Fixed WPS authentication failure
+* Fixed packet leak in NetX/NetXDuo network link driver
+* Moved Gedday into daemon directory
+* Fixed max passphrase length to be 64 characters
+* Fixed invalid TIMER_TASK_PRIORITY 
+* TLS optimisation to halve the hash calculation time
+
+
+Changes for WICED-SDK-2.1.0 : 5 October 2012
+--------------------------------------------
+* Added support for BCM43362 SPI interface
+* Added support for NetX TCP/IP network stack (in addition to NetXDuo)
+* Removed Apple Bonjour implementation, Bonjour is now available directly from Apple
+* Added Gedday : Broadcom Zeroconf Network Discovery Library
+* Fixes for all WICED-SDK-2.0 KNOWN ISSUES
+
+
+Changes for WICED-SDK-2.0 : 7 September 2012
+--------------------------------------------
+WICED-SDK-2.0 has changed considerably since the previous 1.2 release.
+The changeset is too large to capture in detail. The accompanying
+README provides a summary of the changes.
+
+
+Changes for WICED-SDK-1.3 : 14 September 2012
+---------------------------------------------
+Known Issues
+  * Fixed memory leak due to invalid WEP key
+  * Fixed USART overrun which may cause the system to lockup
+  * read_usart_nonblocking() now returns a char to avoid possible USART data corruption
+  * Fixed incorrect handling of 'link down' events
+  * Increased WLAN bus timeout during initialisation
+  * Updated BCM43362 mfg_test firmware to address possible OTP write issues at manufacturing 
+Other changes
+* Added Iperf command into the console application
+* Removed endian swapping for IP addresses in NetX related code
+* Added WEP support to join command in the console application
+* Updated BCM43362 mfg firmware
+* Updated BCM43362 release firmware
+* Changed BCM43362 otpimagesize=76 (which is the correct size)
+* Added SPI driver for BCM43362 
+* BCM43362 SDIO bus driver stability improvements
+* Changed ThreadX tick to 1ms
+* Added thread create command to console application
+* Made malloc thread safe for ThreadX/NetX
+* Removed Atmel platforms
+
+
+Changes for WICED-SDK-1.2 : 2 March 2012
+--------------------------------------------
+* Power saving improvements to accommodate STM32 stop-mode + Wi-Fi powersave
+* WICED EVB driver is now WHQL certified for WinXP & Win7
+* Updates to OpenOCD and a number of other toolchain components
+* Updated FreeRTOS to version 7.1.0
+* Updated ThreadX/NetX to versions 5.5/5.4
+* Changed ThreadX and FreeRTOS start stacks to 600 bytes in all applications to prevent stack overflows in interrupt handlers
+* Added support for C++
+* Added WLC_E_ROAM event to the join event list to enable an app to detect roaming so it can notify the network stack
+* Added API support for IPv6 with NetXDuo
+* Added APSTA mode support for BCM43362
+* Added interface to set beacon listen interval for 43362a2
+* Added IAR support for BCM94319WICED5 platform
+* Added BCM943362WCD2 platform : STM32F103 + BCM43362 Chip-on-Board
+* Added BCM943362WCD3 platform : STM32F205 + BCM43362 Chip-on-Board
+* Added BCM943362WCD4 platform : STM32F205 + BCM43362 USI SiP
+* Removed BCM943362WCD1 platform
+
+
+Changes for WICED-SDK-1.1 : 1 November 2011
+--------------------------------------------
+Features
+  * Added WPS Enrollee (beta-release)
+  * Added antenna diversity support to the BCM4319 firmware image
+  * Added support for Atmel AT91SAM3S16C processor - beta feature.
+  * Added support for BCM943362a1 Wi-Fi chip
+Platforms
+  * Added BCM94319WICED2 platform (which has diversity options for two antennae)
+  * Added BCM94319WICED3 platform (similar to WICED1 except with separated internal/external SPI)
+  * Added BCM94319WICED5 platform (demonstrates usage of STM32F2xx - currently SDIO only)
+  * Added BCM943362WCD1 platform (demonstrates usage of BCM943362a1 - currently SDIO only)
+  * Added Atmel SAM3S_EK platform for the SAM3S16C (currently SDIO only)
+  * Added Inventek ISM4319_M3_L44 platform (similar to BCM94319WICED1 but with Ampak 4319 SiP)
+  * Added Murata SN8200 platform (similar to BCM943362WCD1) - alpha release
+  * Expansion platform (previously known as Canary) has been rolled into the respective base platform 
+  * Increased code sharing among similar platforms using Platform/common directory
+API Changes & Fixes
+  * Added API function wiced_wifi_manage_custom_ie() to allow users to add or delete a custom IE  
+  * Added API function wiced_wifi_select_antenna() 
+  * Fixed scanning code to report correct AP channel number
+Example Applications
+  * appliance configuration : new application to demonstrate configuration of a device using AP/client mode, DHCPS, DNS, WPS, webserver (FreeRTOS/LwIP only)  
+  * web server application : added UART-buttons web page, added WPS example, improved uploading functionality
+  * sensor application : added DNS server, any text may now be entered into the browser URL
+  * console application : added join_wps command
+  * ping example application : added WEP example code
+  * mfg_test application : removed, now available as a separate manufacturing test download
+Tools, Build System, RTOS, IP Stack
+  * Added detailed instructions for importing ThreadX-5.4 & NetX-5.3
+  * Cleared windows PATH environment variable to minimise the risk of existing installed tools breaking the WICED build process
+  * Added UART tx/rx non-blocking read and break
+  * OpenOCD updated to fix FreeRTOS thread awareness bug and to support STM32F2XX
+  * Cleaned up the definition of SYSTICK and CPU_CLOCK_HZ
+  * Re-arranged vector table and exception handler assembler files for BCM94319WICED1 
+    to allow better compatibility with ThreadX
+  * Modified host_rtos_create_thread() to support generic thread creation. Thread stack,
+    stack size, and thread priority are now function arguments.
+  * wiced_rtos.h must now define a number of macros and constants to inform WICED how to
+    prioritize threads and how to allocate thread stacks
+  * Updated GNU ARM toolchain based on gcc-4.6.1, binutils-2.21.1a, newlib-1.19.0, gdb-7.3.1, expat-2.0.1, gmp-5.0.2, mpc-0.9, mpfr-3.0.1
+    Allows debugging of release builds, and reduces size of debug builds by fixing --gc-sections option 
+  * Added IAR compiler support for FreeRTOS-LwIP builds 
+  * Modified build and debug system to support different host microprocessors with
+    different OpenOCD initialisation processes. Platforms must now define HOST_MICRO variable.
+
+
+Changes for WICED-SDK-1.0 : 19 July 2011
+----------------------------------------
+* Host-WLAN DMA data transfers are now monitored using an interrupt
+* Improved error checking of API calls
+* Changed UART to be interrupt driven to reduce likelihood of dropped characters
+* Removed API function wiced_wifi_ap_swap_channel()
+* Added API function wiced_wifi_get_rssi()
+* Added API function wiced_management_wifi_on() / _wifi_off() 
+* API documentation improvements
+* Added support for WPA & WPA2 security to AP mode
+* Build system now handles directory names with spaces
+* Added build instructions and patches for OpenOCD
+* Added 'run' make target to reset and run the target platform
+* canned_send application : stability improvements
+* web server application : stability improvements
+* mdns_listen application : now prints instance name as well as the service name
+* console application : added
+* mfg_test application : Fixed memory leak, updated mfg firmware image to 4.218.116.43 
+* Updated BCM4319 firmware to ROMTERM2 v4.219.77.9
+* Updated WICED EVB serial port driver to FTDI 2.08.14
+* OpenOCD fix to stop suspended threads from occasionally vanishing from the debugger   
+
+
+Changes for WICED-SDK-0.6 : 17 June 2011
+----------------------------------------
+* Reformatted all Broadcom code to use a uniform coding style
+* Memory usage reduction, including:
+   - Better control of stack and packet buffer sizes
+   - Remove printf() usage from WICED and TCP/IP threads to reduce stack requirement
+   - Remove all printf() usage from the release build of the canned_send app to minimize RAM usage
+   - FreeRTOS and LwIP now use malloc/free functions from libc (newlib)
+* Moved Wi-Fi firmware image from header file to .c file.
+* Standardised usage of stdint.h types and changed bool to wiced_bool_t to avoid clashes
+* Wi-Fi firmware download improvements to minimise download time
+* Added join failure reasons to wiced_wifi_is_ready_to_transceive() API
+* Minimized delay on AP startup
+* Changed RTOS semaphores from binary to counting
+* Reduced Broadcom Wi-Fi device boot delay
+* Added a 'throughput test' to the web_server app
+* Added manufacturing test application (mfg_test)
+* Added mdns listen application to demonstrate usage of multicast (FreeRTOS/LwIP only)
+* Added support for AMPAK EVB and E225413 WICED module
+* Removed support for STM3210E_Eval board
+* A summary of flash and memory usage is now printed as part of the build process
+* Added toolchain support for IAR Embedded Workbench (for ThreadX/NetX)
+   - Many IAR code compatibility changes
+   - Assembly code moved into separate GCC / IAR directories
+* Build system speed and dependency improvements
+* Fixed GDB debugging on Linux
+
+
+Changes for WICED-SDK-0.5 : 17 May 2011
+---------------------------------------
+* Added APSTA mode
+* Added 802.11 powersave mode
+* Added WEP security
+* Added API to set Tx RF power output
+* Added sensor report application to demonstrate AP mode, DHCP server and low power
+* Added support for multicast (beta) 
+* STM32 sleep enabled during RTOS idle
+* Changes to the way wiced_join() manages event handling
+* Fixed occasional SDIO read timeout  
+* Build system changes for improved error reporting and speed 
+* Debugger now supports thread awareness and is considerably faster
+* UART read fixed
+* Fixed issue with WPA TKIP that prevents join
+* Changed Scan and Ping app names to lowercase 
+
+
+Changes for WICED-SDK-0.4 : 31 March 2011
+-----------------------------------------
+* wiced_wifi_join() API function is now non-blocking
+* wiced_wifi_check_joined() API function has been added
+* wiced_management_set_event_handler() API function now accepts an array of events per handler and allows overlapping event handlers
+* wiced_wifi_scan() now uses a callback to communicate when a new scan record is available and added extended scanning options.
+

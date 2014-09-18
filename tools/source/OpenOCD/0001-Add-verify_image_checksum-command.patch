@@ -1,0 +1,75 @@
+From 7715b0268be1abca928b38820789cb3f21d17c5e Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Fri, 16 Mar 2012 13:01:20 +1100
+Subject: [PATCH 01/19] Add verify_image_checksum command
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/target/target.c | 24 ++++++++++++++++++++----
+ 1 file changed, 20 insertions(+), 4 deletions(-)
+
+diff --git a/src/target/target.c b/src/target/target.c
+index e4235ed..03a2455 100644
+--- a/src/target/target.c
++++ b/src/target/target.c
+@@ -3011,7 +3011,7 @@ COMMAND_HANDLER(handle_dump_image_command)
+ 	return retval;
+ }
+ 
+-static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
++static COMMAND_HELPER(handle_verify_image_command_internal, int verify, int verify_checksum_only)
+ {
+ 	uint8_t *buffer;
+ 	size_t buf_cnt;
+@@ -3082,7 +3082,12 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
+ 				free(buffer);
+ 				break;
+ 			}
+-
++			if ( ( checksum != mem_checksum ) && ( verify_checksum_only == 1 ) ) {
++				LOG_ERROR("checksum mismatch");
++				free(buffer);
++				retval = ERROR_FAIL;
++				goto done;
++			}
+ 			if (checksum != mem_checksum) {
+ 				/* failed crc checksum, fall back to a binary compare */
+ 				uint8_t *data;
+@@ -3147,14 +3152,19 @@ done:
+ 	return retval;
+ }
+ 
++COMMAND_HANDLER(handle_verify_image_checksum_command)
++{
++	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 1, 1);
++}
++
+ COMMAND_HANDLER(handle_verify_image_command)
+ {
+-	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 1);
++	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 1, 0);
+ }
+ 
+ COMMAND_HANDLER(handle_test_image_command)
+ {
+-	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 0);
++	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 0, 0);
+ }
+ 
+ static int handle_bp_command_list(struct command_context *cmd_ctx)
+@@ -5723,6 +5733,12 @@ static const struct command_registration target_exec_command_handlers[] = {
+ 		.usage = "filename address size",
+ 	},
+ 	{
++		.name = "verify_image_checksum",
++		.handler = handle_verify_image_checksum_command,
++		.mode = COMMAND_EXEC,
++		.usage = "filename [offset [type]]",
++	},
++	{
+ 		.name = "verify_image",
+ 		.handler = handle_verify_image_command,
+ 		.mode = COMMAND_EXEC,
+-- 
+1.8.0.msysgit.0
+

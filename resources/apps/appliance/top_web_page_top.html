@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>Broadcom WICED Appliance App</title>
+    <link rel="stylesheet" type="text/css" href="../../styles/buttons.css" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script src="../scripts/general_ajax_script.js" type="text/javascript" ></script>
+       <script type="text/javascript">
+    /* <![CDATA[ */
+      function ajax_handler( result, data )
+      {
+        var text = "";
+        switch( result )
+        {
+            case AJAX_PARTIAL_PROGRESS:
+                text = "Sending...";
+            case AJAX_STARTING:
+                text = "Sending...";
+                break;
+            case AJAX_FINISHED:
+                text = "Button press sent";
+                break;
+            case AJAX_NO_BROWSER_SUPPORT:
+                text = "Failed - your browser does not support this script";
+                break;
+            case AJAX_FAILED:
+                text = "Failed to send button press";
+                break;
+        }
+        document.getElementById("status").innerHTML = text;
+      }
+    /* ]]> */
+    </script>
+  </head>
+  <body style="font-family:verdana;">
+    <table border='0' cellpadding='0' cellspacing='0' width="98%">
+      <tr style="height:20px"><td>&nbsp;</td></tr>
+      <tr style="border-collapse: collapse; padding: 0;">
+        <td style="width:20px"></td>
+        <td style="width:117px"><img src="../../images/brcmlogo.png" alt="Broadcom Logo" /></td>
+        <td style="width:20px;background-image:url('../../images/brcmlogo_line.png');"></td>
+        <td style="vertical-align:middle; text-align:center; font: bold 25px/100% Verdana, Arial, Helvetica, sans-serif;background-image:url('../../images/brcmlogo_line.png');">
+        WICED&trade; Appliance Application
+        </td>
+        <td style="width:137px;background-image:url('../../images/brcmlogo_line.png');"></td>
+      </tr>
+      <tr><td>&nbsp;</td></tr>
+    </table>
+    <div style="margin-left:20px" id="main_text" >
+      <p>Click a button, then look at the UART ... </p>
+      <form name="input" action="/button_handler" method="get"> <table> <tr>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-01', ajax_handler );" value="Button-01" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-02', ajax_handler );" value="Button-02" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-03', ajax_handler );" value="Button-03" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-04', ajax_handler );" value="Button-04" class="button red bigrounded" /></td>
+        </tr>
+        <tr>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-05', ajax_handler );" value="Button-05" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-06', ajax_handler );" value="Button-06" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-07', ajax_handler );" value="Button-07" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-08', ajax_handler );" value="Button-08" class="button red bigrounded" /></td>
+        </tr>
+        <tr>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-09', ajax_handler );" value="Button-09" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-10', ajax_handler );" value="Button-10" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-11', ajax_handler );" value="Button-11" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-12', ajax_handler );" value="Button-12" class="button red bigrounded" /></td>
+        </tr>
+        <tr>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-13', ajax_handler );" value="Button-13" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-14', ajax_handler );" value="Button-14" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-15', ajax_handler );" value="Button-15" class="button red bigrounded" /></td>
+        <td><input type="button" onclick="do_ajax( '/button_handler?btname=Button-16', ajax_handler );" value="Button-16" class="button red bigrounded" /></td>
+        </tr>
+        </table>
+      </form>
+    </div>
+    
+  </div>
+  <div style="margin-left:20px" id="status"></div>
+  </body>
+</html>

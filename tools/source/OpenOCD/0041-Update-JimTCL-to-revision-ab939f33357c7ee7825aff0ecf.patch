@@ -1,0 +1,20 @@
+From 98dad335447cd708ef8e81d358153c3ec7457d77 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Thu, 22 Aug 2013 11:44:09 +1000
+Subject: [PATCH] Update JimTCL to revision
+ ab939f33357c7ee7825aff0ecf51f3f77b0dde30
+
+---
+ jimtcl | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/jimtcl b/jimtcl
+index 2c1eba9..ab939f3 160000
+--- a/jimtcl
++++ b/jimtcl
+@@ -1 +1 @@
+-Subproject commit 2c1eba991e21a6f0b531fb0f83e21f9e6ee7c515
++Subproject commit ab939f33357c7ee7825aff0ecf51f3f77b0dde30
+-- 
+1.8.0.msysgit.0
+

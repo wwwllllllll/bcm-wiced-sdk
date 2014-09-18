@@ -1,0 +1,241 @@
+From 8191001eee86b2fcd6c5978eb9cd8e2b6bff2e72 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Tue, 2 Apr 2013 15:18:29 +1100
+Subject: [PATCH 11/19] Add initial functions for memory map support
+
+---
+ src/target/target.c | 140 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/target/target.h |  17 +++++++
+ 2 files changed, 157 insertions(+)
+
+diff --git a/src/target/target.c b/src/target/target.c
+index f783844..0965be1 100644
+--- a/src/target/target.c
++++ b/src/target/target.c
+@@ -68,6 +68,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
+ static int target_mem2array(Jim_Interp *interp, struct target *target,
+ 		int argc, Jim_Obj * const *argv);
+ static int target_register_user_commands(struct command_context *cmd_ctx);
++static int add_memory_mapping(Jim_GetOptInfo *goi, struct target *target);
+ static int target_get_gdb_fileio_info_default(struct target *target,
+ 		struct gdb_fileio_info *fileio_info);
+ static int target_gdb_fileio_end_default(struct target *target, int retcode,
+@@ -248,6 +249,8 @@ static const Jim_Nvp nvp_reset_modes[] = {
+ 	{ .name = "init"   , .value = RESET_INIT },
+ 	{ .name = NULL     , .value = -1 },
+ };
++ 
++static struct memory_map_elem *memory_map_list_head = NULL;
+ 
+ const char *debug_reason_name(struct target *t)
+ {
+@@ -949,6 +952,22 @@ int target_run_flash_async_algorithm(struct target *target,
+ int target_read_memory(struct target *target,
+ 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+ {
++	if ( memory_map_list_head != NULL )
++	{
++		struct memory_map_elem * curr_elem = memory_map_list_head;
++		do {
++			if ( ( curr_elem->start_address <= address ) &&
++			     ( curr_elem->start_address + curr_elem->size > address + count*size ) &&
++			     ( curr_elem->access != MEMORY_MAP_WRITE_ONLY)) {
++				return target->type->read_memory(target, address, size, count, buffer);
++			}
++			curr_elem = curr_elem->next_elem;
++		} while ( curr_elem != NULL );
++		LOG_WARNING("Ignoring read to non readable area - address: 0x%X, size 0x%X", address, count*size);
++		memset( buffer, 0, count*size );
++		return ERROR_OK;
++	}
++
+ 	if (!target_was_examined(target)) {
+ 		LOG_ERROR("Target not examined yet");
+ 		return ERROR_FAIL;
+@@ -969,6 +988,21 @@ int target_read_phys_memory(struct target *target,
+ int target_write_memory(struct target *target,
+ 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
+ {
++	if ( memory_map_list_head != NULL )
++	{
++		struct memory_map_elem * curr_elem = memory_map_list_head;
++		do {
++			if ( ( curr_elem->start_address <= address ) &&
++			     ( curr_elem->start_address + curr_elem->size > address + count*size ) &&
++			     ( curr_elem->access != MEMORY_MAP_READ_ONLY)) {
++				return target->type->write_memory(target, address, size, count, buffer);
++			}
++			curr_elem = curr_elem->next_elem;
++		} while ( curr_elem != NULL );
++		LOG_WARNING("Ignoring write to non writable area - address: 0x%X, size 0x%X", address, count*size);
++		return ERROR_OK;
++	}
++
+ 	if (!target_was_examined(target)) {
+ 		LOG_ERROR("Target not examined yet");
+ 		return ERROR_FAIL;
+@@ -4014,6 +4048,7 @@ enum target_cfg_param {
+ 	TCFG_CHAIN_POSITION,
+ 	TCFG_DBGBASE,
+ 	TCFG_RTOS,
++	TCFG_MEMORYMAP,
+ };
+ 
+ static Jim_Nvp nvp_config_opts[] = {
+@@ -4029,6 +4064,7 @@ static Jim_Nvp nvp_config_opts[] = {
+ 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
+ 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
+ 	{ .name = "-rtos",             .value = TCFG_RTOS },
++	{ .name = "-memorymap",        .value = TCFG_MEMORYMAP },
+ 	{ .name = NULL, .value = -1 }
+ };
+ 
+@@ -4326,6 +4362,17 @@ no_params:
+ 			}
+ 			/* loop for more */
+ 			break;
++
++		case TCFG_MEMORYMAP:
++			/* RTOS */
++			{
++				int result = add_memory_mapping(goi, target);
++				if (result != JIM_OK)
++					return result;
++			}
++			/* loop for more */
++			break;
++
+ 		}
+ 	} /* while (goi->argc) */
+ 
+@@ -4334,6 +4381,99 @@ no_params:
+ 	return JIM_OK;
+ }
+ 
++static int add_memory_mapping(Jim_GetOptInfo *goi, struct target *target)
++{
++	char *type_str;
++	enum memory_map_access type;
++	char *short_name = NULL;
++	char *long_name = NULL;
++	int64_t start_addr;
++	int64_t size;
++	int retval;
++
++	if ((goi->argc < 3) || (goi->argc > 6)) {
++		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "<type> <start_addr> <size> [short_name] [long_name] [parent]");
++		return JIM_ERR;
++	}
++
++	retval = Jim_GetOpt_String(goi, &type_str, NULL);
++	if (retval != JIM_OK)
++		return retval;
++	if (strcmp(type_str,"RW") == 0)
++	{
++		type = MEMORY_MAP_READ_WRITE;
++	}
++	else if (strcmp(type_str,"RO") == 0)
++	{
++		type = MEMORY_MAP_READ_ONLY;
++	}
++	else if (strcmp(type_str,"WO") == 0)
++	{
++		type = MEMORY_MAP_WRITE_ONLY;
++	}
++	else
++	{
++		Jim_SetResultFormatted(goi->interp,
++				"memory map field type must be \"RW\", \"RO\" or \"WO\"");
++		return JIM_ERR;
++	}
++
++	retval = Jim_GetOpt_Wide(goi, (long long*) &start_addr);
++	if (retval != JIM_OK)
++		return retval;
++
++	retval = Jim_GetOpt_Wide(goi, (long long*) &size);
++	if (retval != JIM_OK)
++		return retval;
++
++	if (goi->argc > 0)
++	{
++		retval = Jim_GetOpt_String(goi, &short_name, NULL);
++		if (retval != JIM_OK)
++			return retval;
++	}
++
++	if (goi->argc > 0)
++	{
++		retval = Jim_GetOpt_String(goi, &long_name, NULL);
++		if (retval != JIM_OK)
++			return retval;
++	}
++
++	struct memory_map_elem *new_item = (struct memory_map_elem *) malloc( sizeof(struct memory_map_elem) );
++	if ( new_item == NULL) {
++		Jim_SetResultFormatted(goi->interp,
++				"Failed to allocate space for new memory map item");
++		return JIM_ERR;
++	}
++
++	new_item->access = type;
++	new_item->short_name = strdup(short_name);
++	new_item->long_name = strdup(long_name);
++	new_item->size = size;
++	new_item->start_address = start_addr;
++	new_item->next_elem = NULL;
++
++	if ( memory_map_list_head == NULL )
++	{
++		memory_map_list_head = new_item;
++	}
++	else
++	{
++		struct memory_map_elem *curr_item = memory_map_list_head;
++		while ( curr_item->next_elem != NULL )
++		{
++			curr_item = curr_item->next_elem;
++		}
++		curr_item->next_elem = new_item;
++	}
++
++	return JIM_OK;
++
++}
++
++
++
+ static int jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+ {
+ 	Jim_GetOptInfo goi;
+diff --git a/src/target/target.h b/src/target/target.h
+index 44f382a..0655874 100644
+--- a/src/target/target.h
++++ b/src/target/target.h
+@@ -115,6 +115,23 @@ struct backoff_timer {
+ 	int times;
+ 	int count;
+ };
++ 
++enum memory_map_access {
++	MEMORY_MAP_READ_WRITE,
++	MEMORY_MAP_READ_ONLY,
++	MEMORY_MAP_WRITE_ONLY,
++};
++
++struct memory_map_elem {
++	uint64_t                start_address;
++	uint64_t                size;
++	char *                  short_name;
++	char *                  long_name;
++	bool                    contiguous;
++	struct memory_map_elem* sub_elems;
++	struct memory_map_elem* next_elem;
++	enum memory_map_access  access;
++};
+ 
+ /* split target registers into multiple class */
+ enum target_register_class {
+-- 
+1.8.0.msysgit.0
+

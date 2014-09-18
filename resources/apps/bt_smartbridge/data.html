@@ -1,0 +1,159 @@
+<!-- Details page suffixes -->
+
+<WICED:section suffix="_connected_page_start"/>
+<table border="0" cellpadding="5"><tr><td><b>Connected to : <br><br></b></td><td><b>
+<WICED:section suffix="_connected_page_start_end"/>
+<br><br></b></td></tr>
+
+<WICED:section suffix="_time_start"/>
+<tr><td><b>Current Time :</td><td>
+<WICED:section suffix="_time_end"/>
+ UTC</b></td></tr>
+
+<WICED:section suffix="_date_start"/>
+<tr><td><b>Current Date :</td><td>
+<WICED:section suffix="_date_end"/>
+ UTC</b></td></tr>
+
+<WICED:section suffix="_device_address_start"/>
+<th><td><b>Device Address :</td><td>
+</b><WICED:section suffix="_device_address_end"/>
+</td></th>
+
+<WICED:section suffix="_device_name_start"/>
+<th><td><b>Device Name :</td><td>
+<WICED:section suffix="_device_name_end"/>
+</b></td></th>
+
+<WICED:section suffix="_service_name_start"/>
+<tr><td><b><br><br>Primary Service :</b></td><td><br><br><b>
+<WICED:section suffix="_service_name_end"/>
+</b></td></tr>
+
+<WICED:section suffix="_char_start"/>
+<tr><td>Characteristic [Value] :</td><td>
+<WICED:section suffix="_char_end"/>
+</td></tr>
+
+<WICED:section suffix="_connected_page_end"/>
+<td><form action="" style="display:table-cell; vertical-align:top;">
+<p>
+<input type="button" onclick="do_ajax( '/return', null, null, 0, null, null, null, null );clearTimeout(timeoutID);reloadData();" value="Return" class="button white bigrounded" />&nbsp;&nbsp;
+</p>
+</form></td>
+</tr></table>
+
+<!-- Scan/Connection page suffixes -->
+
+<WICED:section suffix="_connecting"/>
+<td><center>Connecting ...</center></td>
+
+<WICED:section suffix="_no_device_found"/>
+<table><tr><td>No device found</td><td></td></tr></table>
+
+<WICED:section suffix="_no_device_connected"/>
+<table><tr><td>No device connected</td><td></td></tr></table>
+
+<WICED:section suffix="_scanning_message"/>
+<table><tr><td>Scanning for Bluetooth Smart devices ...</td><td></td></tr></table>
+
+<WICED:section suffix="_passkey_start"/>
+<table border="0" cellpadding="5">
+    <tr>
+    <form action="">
+    <td><p style="font-size:18pt;line-height:25pt;"><b>Enter Passkey</b></td>
+    <td><input type="text" id="passkey" size="6" maxlength="6" onload="display_passkey()" onfocus="clearTimeout(timeoutID)" onblur="set_passkey()" value="
+<WICED:section suffix="_passkey_end"/>
+"></td>
+    </form>
+    </tr>
+</table>
+
+<WICED:section suffix="_scan_title"/>
+<table border="0" cellpadding="5">
+    <tr>
+        <td><p style="font-size:18pt;line-height:25pt;"><b>Scan Results</b></td>
+        <td>
+            <p>
+                <input type="button" onclick="do_ajax( '/rescan', null, null, 0, null, null, null, null );
+                clearTimeout(timeoutID);
+                reloadData();
+                " value="Rescan" class="button white bigrounded"
+                />&nbsp;&nbsp;
+            </p>
+        </td>
+    </tr>
+</table>
+
+<WICED:section suffix="_table_start"/>
+<table border="0" cellpadding="5">
+  <tr>
+    <th>Name</th>
+    <th>Address</th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<WICED:section suffix="_table_end"/>
+</table>
+
+<WICED:section suffix="_row_start"/>
+  <tr>
+
+<WICED:section suffix="_row_end"/>
+  </tr>
+
+<WICED:section suffix="_cell_start"/>
+    <td><center>
+
+<WICED:section suffix="_cell_end"/>
+    </center></td>
+
+<WICED:section suffix="_dev_addr_start1"/>
+<td><label id="scan_result
+<WICED:section suffix="_dev_addr_start2"/>
+">
+<WICED:section suffix="_dev_addr_end1"/>
+</label></b>
+<td><form action="" style="display:table-cell; vertical-align:top;">
+<p>
+<input type="button" onclick="do_connect('scan_result
+<WICED:section suffix="_dev_addr_end2"/>
+');clearTimeout(timeoutID);reloadData();" value="Connect" class="button blue bigrounded" />&nbsp;&nbsp;
+</p>
+</form></td>
+</td>
+
+<WICED:section suffix="_connection_title"/>
+<table border="0" cellpadding="5">
+    <tr>
+        <td><p style="font-size:18pt;line-height:25pt;"><b>Connection List</b></td>
+        <td>
+            <p>
+                <input type="button" onclick="do_ajax( '/clear_bond_info', null, null, 0, null, null, null, null );
+                clearTimeout(timeoutID);
+                reloadData();
+                " value="Clear Pairing Info" class="button white bigrounded"
+                />&nbsp;&nbsp;
+            </p>
+        </td>
+    </tr>
+</table>
+
+<WICED:section suffix="_connected_device_start1"/>
+<td><label id="connected_device
+<WICED:section suffix="_connected_device_start2"/>
+">
+<WICED:section suffix="_connected_device_end1"/>
+</label></b>
+<td><form action="" style="display:table-cell; vertical-align:top;">
+<p>
+<input type="button" onclick="do_disconnect('connected_device
+<WICED:section suffix="_connected_device_end2"/>
+');clearTimeout(timeoutID);reloadData();" value="Disconnect" class="button red bigrounded" />&nbsp;&nbsp;
+<input type="button" onclick="do_details('connected_device
+<WICED:section suffix="_connected_device_end3"/>
+');clearTimeout(timeoutID);reloadData();" value="Details" class="button green bigrounded" />&nbsp;&nbsp;
+</p>
+</form></td>
+</td>

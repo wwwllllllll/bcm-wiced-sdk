@@ -1,0 +1,47 @@
+From 581726dc5229a7c233e95a528b268c895d320b5a Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Fri, 28 Sep 2012 20:18:05 +1000
+Subject: [PATCH 07/19] Add more logging for GDB / arm mode error
+
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/server/gdb_server.c | 9 +++++++++
+ src/target/armv4_5.c    | 2 +-
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/src/server/gdb_server.c b/src/server/gdb_server.c
+index 48015ab..5a7b920 100644
+--- a/src/server/gdb_server.c
++++ b/src/server/gdb_server.c
+@@ -468,6 +468,15 @@ int gdb_put_packet(struct connection *connection, char *buffer, int len)
+ 	int retval = gdb_put_packet_inner(connection, buffer, len);
+ 	gdb_con->busy = 0;
+ 
++    if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
++        char * str = (char *) malloc(len+1);
++        strncpy(str, buffer, len);
++        str[len]='\x00';
++        LOG_DEBUG("sending packet: '%s'", str);
++        free(str);
++    }
++
++
+ 	/* we sent some data, reset timer for keep alive messages */
+ 	kept_alive();
+ 
+diff --git a/src/target/armv4_5.c b/src/target/armv4_5.c
+index a2f0557..13ed5bc 100644
+--- a/src/target/armv4_5.c
++++ b/src/target/armv4_5.c
+@@ -1058,7 +1058,7 @@ int arm_get_gdb_reg_list(struct target *target,
+ 	int i;
+ 
+ 	if (!is_arm_mode(arm->core_mode)) {
+-		LOG_ERROR("not a valid arm core mode - communication failure?");
++		LOG_ERROR("not a valid arm core mode (%d)- communication failure?",arm->core_mode);
+ 		return ERROR_FAIL;
+ 	}
+ 
+-- 
+1.8.0.msysgit.0
+

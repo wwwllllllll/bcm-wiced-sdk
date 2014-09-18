@@ -1,0 +1,641 @@
+From e59e106b4e063d93286fcd24ceeebd3f175beff4 Mon Sep 17 00:00:00 2001
+From: Evan Hunter <ehunter@broadcom.com>
+Date: Tue, 6 Nov 2012 10:03:14 +1100
+Subject: [PATCH 03/19] FT2232: driver simplification
+
+Moves pin definitions to layout structure and implements
+generic functions for init/reset/blink.
+This allows the removal of dozens of init/reset/blink functions
+
+Change-Id: Idd3128a98b81a4612e6afb6636d21f07fdffbace
+Signed-off-by: Evan Hunter <ehunter@broadcom.com>
+---
+ src/jtag/drivers/ft2232.c | 480 +++++++++++++++++++++++++---------------------
+ 1 file changed, 263 insertions(+), 217 deletions(-)
+
+diff --git a/src/jtag/drivers/ft2232.c b/src/jtag/drivers/ft2232.c
+index e07e513..45d98df 100644
+--- a/src/jtag/drivers/ft2232.c
++++ b/src/jtag/drivers/ft2232.c
+@@ -1,9 +1,12 @@
+-/***************************************************************************
++/**************************************************************************
+ *   Copyright (C) 2009 by Øyvind Harboe                                   *
+-*	Øyvind Harboe <oyvind.harboe@zylin.com>                               *
++*   Øyvind Harboe <oyvind.harboe@zylin.com>                               *
+ *                                                                         *
+ *   Copyright (C) 2009 by SoftPLC Corporation.  http://softplc.com        *
+-*	Dick Hollenbeck <dick@softplc.com>                                    *
++*   Dick Hollenbeck <dick@softplc.com>                                    *
++*                                                                         *
++*   Copyright (C) 2012 by Evan Hunter                                     *
++*   ehunter@broadcom.com                                                  *
+ *                                                                         *
+ *   Copyright (C) 2004, 2006 by Dominic Rath                              *
+ *   Dominic.Rath@gmx.de                                                   *
+@@ -163,20 +166,66 @@ static int ft2232_channel = INTERFACE_ANY;
+ static uint16_t ft2232_vid[MAX_USB_IDS + 1] = { 0x0403, 0 };
+ static uint16_t ft2232_pid[MAX_USB_IDS + 1] = { 0x6010, 0 };
+ 
++typedef struct {
++	uint16_t mask;                       /** Pin mask CBus=high, DBus= low byte */
++	bool active_high;                    /** True=active high, false=active low */
++} ft2232_output_pin_t;
++
++typedef struct {
++	enum {
++		PUSH_PULL_ONLY,                  /** Pin has no pull-up/down resistor   */
++		PIN_DIRECTION,                   /** Use pin dir for open drain         */
++		OUTPUT_ENABLE_PIN,               /** Use second pin as Output Enable    */
++		EXTERNAL_OPEN_DRAIN,             /** Pin controls external open drain   */
++	} type;
++	ft2232_output_pin_t oe_pin;          /** Define Output enable if it exists  */
++} ft2232_control_pin_t;
++
+ struct ft2232_layout {
+-	char *name;
+-	int (*init)(void);
+-	void (*reset)(int trst, int srst);
+-	void (*blink)(void);
+-	int channel;
++	char *name;                          /** Layout name                        */
++	int (*init)(void);                   /** Custom initialization function     */
++	void (*reset)(int trst, int srst);   /** Custom reset function              */
++	void (*blink)(void);                 /** Custom LED blink function          */
++	int channel;                         /** FTDI channel ID                    */
++	ft2232_output_pin_t  TRST;           /** TRST pin location                  */
++	ft2232_control_pin_t TRST_ctrl;      /** Control method for TRST pin        */
++	ft2232_output_pin_t  SRST;           /** SRST pin location                  */
++	ft2232_control_pin_t SRST_ctrl;      /** Control method for SRST pin        */
++	ft2232_output_pin_t  blink_pins;     /** LED pins location                  */
++	uint16_t initial_output;             /** Initial pin output values          */
++	uint16_t initial_direction;          /** Initial pin directions, 1=output   */
+ };
+ 
+-/* init procedures for supported layouts */
++/* Macros for setting pin states */
++#define PIN_OP_ACTIVE(pin, output)   (((pin).active_high) ? ((output) | (pin).mask)    : ((output) & (~(pin).mask)))
++#define PIN_OP_INACTIVE(pin, output) (((pin).active_high) ? ((output) & (~(pin).mask)) : ((output) | (pin).mask))
++#define PIN_OP_SET(pin, output, val) ((val) ? (PIN_OP_ACTIVE((pin), (output))) : (PIN_OP_INACTIVE((pin), (output))))
++
++/* Standard pin setups for JTAG */
++#define STANDARD_JTAG_OUTPUT    (0x0008)
++#define STANDARD_JTAG_DIRECTION (0x000B)
++
++/* Standard init/reset/blink functions
++ * that cover the needs of most adapters
++ */
++static int standard_init(void);
++static int standard_reset(int trst, int srst);
++static void standard_blink(void);
++
++/* Custom init/reset/blink procedures for unusual adapters */
++static int signalyzer_h_init(void);
++static void signalyzer_h_reset(int trst, int srst);
++static void signalyzer_h_blink(void);
++
++/* @TODO: The following adapter functions
++ * should be removed in favour of pin definitions
++ * within the layout like the olimex-jtag layout
++ * This conversion should be straightforward, but
++ * needs testing with the particular adapters.
++ */
+ static int usbjtag_init(void);
+-static int jtagkey_init(void);
+ static int lm3s811_jtag_init(void);
+ static int icdi_jtag_init(void);
+-static int olimex_jtag_init(void);
+ static int flyswatter1_init(void);
+ static int flyswatter2_init(void);
+ static int minimodule_init(void);
+@@ -188,18 +237,13 @@ static int sheevaplug_init(void);
+ static int icebear_jtag_init(void);
+ static int cortino_jtag_init(void);
+ static int signalyzer_init(void);
+-static int signalyzer_h_init(void);
+ static int ktlink_init(void);
+ static int redbee_init(void);
+ static int lisa_l_init(void);
+ static int flossjtag_init(void);
+ static int xds100v2_init(void);
+ static int digilent_hs1_init(void);
+-
+-/* reset procedures for supported layouts */
+ static void ftx23_reset(int trst, int srst);
+-static void jtagkey_reset(int trst, int srst);
+-static void olimex_jtag_reset(int trst, int srst);
+ static void flyswatter1_reset(int trst, int srst);
+ static void flyswatter2_reset(int trst, int srst);
+ static void minimodule_reset(int trst, int srst);
+@@ -209,18 +253,13 @@ static void stm32stick_reset(int trst, int srst);
+ static void axm0432_jtag_reset(int trst, int srst);
+ static void sheevaplug_reset(int trst, int srst);
+ static void icebear_jtag_reset(int trst, int srst);
+-static void signalyzer_h_reset(int trst, int srst);
+ static void ktlink_reset(int trst, int srst);
+ static void redbee_reset(int trst, int srst);
+ static void xds100v2_reset(int trst, int srst);
+ static void digilent_hs1_reset(int trst, int srst);
+-
+-/* blink procedures for layouts that support a blinking led */
+-static void olimex_jtag_blink(void);
+ static void flyswatter1_jtag_blink(void);
+ static void flyswatter2_jtag_blink(void);
+ static void turtle_jtag_blink(void);
+-static void signalyzer_h_blink(void);
+ static void ktlink_blink(void);
+ static void lisa_l_blink(void);
+ static void flossjtag_blink(void);
+@@ -235,16 +274,28 @@ static const struct ft2232_layout  ft2232_layouts[] = {
+ 		.reset = ftx23_reset,
+ 	},
+ 	{ .name = "jtagkey",
+-		.init = jtagkey_init,
+-		.reset = jtagkey_reset,
++		.TRST      = { .mask = 0x0100, .active_high = false },
++		.TRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0400, .active_high = false } },
++		.SRST      = { .mask = 0x0200, .active_high = false },
++		.SRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0800, .active_high = false } },
++		.initial_output    = STANDARD_JTAG_OUTPUT,
++		.initial_direction = 0x0f10 | STANDARD_JTAG_DIRECTION,
+ 	},
+ 	{ .name = "jtagkey_prototype_v1",
+-		.init = jtagkey_init,
+-		.reset = jtagkey_reset,
++		.TRST      = { .mask = 0x0200, .active_high = false },
++		.TRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0100, .active_high = false } },
++		.SRST      = { .mask = 0x0800, .active_high = false },
++		.SRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0400, .active_high = false } },
++		.initial_output    = STANDARD_JTAG_OUTPUT,
++		.initial_direction = 0x0f10 | STANDARD_JTAG_DIRECTION,
+ 	},
+ 	{ .name = "oocdlink",
+-		.init = jtagkey_init,
+-		.reset = jtagkey_reset,
++		.TRST      = { .mask = 0x0200, .active_high = false },
++		.TRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0100, .active_high = false } },
++		.SRST      = { .mask = 0x0800, .active_high = false },
++		.SRST_ctrl = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0400, .active_high = false } },
++		.initial_output    = STANDARD_JTAG_OUTPUT,
++		.initial_direction = 0x0f10 | STANDARD_JTAG_DIRECTION,
+ 	},
+ 	{ .name = "signalyzer",
+ 		.init = signalyzer_init,
+@@ -259,9 +310,13 @@ static const struct ft2232_layout  ft2232_layouts[] = {
+ 		.reset = ftx23_reset,
+ 	},
+ 	{ .name = "olimex-jtag",
+-		.init = olimex_jtag_init,
+-		.reset = olimex_jtag_reset,
+-		.blink = olimex_jtag_blink
++		.TRST       = { .mask = 0x0100, .active_high = false },
++		.TRST_ctrl  = { .type = OUTPUT_ENABLE_PIN, .oe_pin = { .mask = 0x0400, .active_high = false } },
++		.SRST       = { .mask = 0x0200, .active_high = true },
++		.SRST_ctrl  = { .type = EXTERNAL_OPEN_DRAIN },
++		.blink_pins = { .mask = 0x0800, .active_high = true },
++		.initial_output    = STANDARD_JTAG_OUTPUT,
++		.initial_direction = 0x0f10 | STANDARD_JTAG_DIRECTION,
+ 	},
+ 	{ .name = "flyswatter",
+ 		.init = flyswatter1_init,
+@@ -370,6 +425,8 @@ static uint8_t high_output;
+ /** default direction bitmask for CBUS GPIOH(0..4) */
+ static uint8_t high_direction;
+ 
++static void get_curr_output_direction(uint16_t *output, uint16_t *direction);
++
+ #if BUILD_FT2232_FTD2XX == 1
+ static FT_HANDLE ftdih;
+ static FT_DEVICE ftdi_device;
+@@ -1365,75 +1422,6 @@ static void ftx23_reset(int trst, int srst)
+ 	buffer_write(low_direction);
+ }
+ 
+-static void jtagkey_reset(int trst, int srst)
+-{
+-	enum reset_types jtag_reset_config = jtag_get_reset_config();
+-	if (trst == 1) {
+-		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+-			high_output &= ~nTRSTnOE;
+-		else
+-			high_output &= ~nTRST;
+-	} else if (trst == 0) {
+-		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+-			high_output |= nTRSTnOE;
+-		else
+-			high_output |= nTRST;
+-	}
+-
+-	if (srst == 1) {
+-		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+-			high_output &= ~nSRST;
+-		else
+-			high_output &= ~nSRSTnOE;
+-	} else if (srst == 0) {
+-		if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+-			high_output |= nSRST;
+-		else
+-			high_output |= nSRSTnOE;
+-	}
+-
+-	/* command "set data bits high byte" */
+-	buffer_write(0x82);
+-	buffer_write(high_output);
+-	buffer_write(high_direction);
+-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+-		trst,
+-		srst,
+-		high_output,
+-		high_direction);
+-}
+-
+-static void olimex_jtag_reset(int trst, int srst)
+-{
+-	enum reset_types jtag_reset_config = jtag_get_reset_config();
+-	if (trst == 1) {
+-		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+-			high_output &= ~nTRSTnOE;
+-		else
+-			high_output &= ~nTRST;
+-	} else if (trst == 0) {
+-		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+-			high_output |= nTRSTnOE;
+-		else
+-			high_output |= nTRST;
+-	}
+-
+-	if (srst == 1)
+-		high_output |= nSRST;
+-	else if (srst == 0)
+-		high_output &= ~nSRST;
+-
+-	/* command "set data bits high byte" */
+-	buffer_write(0x82);
+-	buffer_write(high_output);
+-	buffer_write(high_direction);
+-	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x",
+-		trst,
+-		srst,
+-		high_output,
+-		high_direction);
+-}
+-
+ static void axm0432_jtag_reset(int trst, int srst)
+ {
+ 	if (trst == 1) {
+@@ -1909,7 +1897,12 @@ static int ft2232_execute_reset(struct jtag_command *cmd)
+ 	    (cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
+ 		tap_set_state(TAP_RESET);
+ 
+-	layout->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
++	if (layout->reset) {
++		/* custom reset function */
++		layout->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
++	} else {
++		standard_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
++	}
+ 	require_send = 1;
+ 
+ 	DEBUG_JTAG_IO("trst: %i, srst: %i",
+@@ -2006,6 +1999,8 @@ static int ft2232_execute_queue(void)
+ 	/* blink, if the current layout has that feature */
+ 	if (layout->blink)
+ 		layout->blink();
++	else
++		standard_blink();
+ 
+ 	while (cmd) {
+ 		/* fill the write buffer with the desired command */
+@@ -2311,7 +2306,8 @@ static int ft2232_set_data_bits_low_byte(uint8_t value, uint8_t direction)
+ 		LOG_ERROR("couldn't initialize data bits low byte");
+ 		return ERROR_JTAG_INIT_FAILED;
+ 	}
+-
++	low_output = value;
++	low_direction = direction;
+ 	return ERROR_OK;
+ }
+ 
+@@ -2330,10 +2326,20 @@ static int ft2232_set_data_bits_high_byte(uint8_t value, uint8_t direction)
+ 		LOG_ERROR("couldn't initialize data bits high byte");
+ 		return ERROR_JTAG_INIT_FAILED;
+ 	}
+-
++	high_output = value;
++	high_direction = direction;
+ 	return ERROR_OK;
+ }
+ 
++static int ft2232_set_data_bits_both_bytes(uint16_t output, uint16_t direction)
++{
++	int retval = ft2232_set_data_bits_high_byte((output >> 8) & 0xff, (direction >> 8) & 0xff);
++	if (retval != ERROR_OK)
++		return retval;
++
++	return ft2232_set_data_bits_low_byte(output & 0xff, direction & 0xff);
++}
++
+ static int ft2232_init(void)
+ {
+ 	uint8_t buf[1];
+@@ -2378,8 +2384,14 @@ static int ft2232_init(void)
+ 	ft2232_buffer_size = 0;
+ 	ft2232_buffer = malloc(FT2232_BUFFER_SIZE);
+ 
+-	if (layout->init() != ERROR_OK)
+-		return ERROR_JTAG_INIT_FAILED;
++	if (layout->init) {
++		/* custom init function */
++		if (layout->init() != ERROR_OK)
++			return ERROR_JTAG_INIT_FAILED;
++	} else {
++		if (standard_init() != ERROR_OK)
++			return ERROR_JTAG_INIT_FAILED;
++	}
+ 
+ 	if (ft2232_device_is_highspeed()) {
+ #ifndef BUILD_FT2232_HIGHSPEED
+@@ -2412,6 +2424,153 @@ static int ft2232_init(void)
+ 	return ERROR_OK;
+ }
+ 
++static void standard_blink(void)
++{
++	uint16_t output;
++	uint16_t direction;
++	get_curr_output_direction(&output, &direction);
++
++	if (layout->blink_pins.mask != 0)
++		output ^= layout->blink_pins.mask;
++
++	/* Set FT2232 GPIO values */
++	if (ft2232_set_data_bits_both_bytes(output, direction) != ERROR_OK)
++		LOG_WARNING("couldn't blink LED on '%s' layout", layout->name);
++}
++
++static int standard_set_reset(bool rst_active,
++								bool open_drain,
++								ft2232_output_pin_t pin,
++								ft2232_control_pin_t ctrl,
++								char *name,
++								uint16_t *output,
++								uint16_t *direction)
++{
++	if (open_drain) {
++		switch (ctrl.type) {
++			case PUSH_PULL_ONLY:
++				LOG_ERROR("Layout %s does not support pin %s being open-drain", layout->name, name);
++				return ERROR_FAIL;
++			case PIN_DIRECTION:
++				/* Set pin to active state */
++				*output    = PIN_OP_ACTIVE(pin, *output);
++				if (rst_active) {
++					/* Set direction to output */
++					*direction |=  pin.mask;
++				} else {
++					/* Set to input (High-Z) */
++					*direction &=  (~pin.mask);
++				}
++				break;
++			case OUTPUT_ENABLE_PIN:
++				/* Set OE pin to requested active/inactive state */
++				*output = PIN_OP_SET(ctrl.oe_pin, *output, rst_active);
++				/* Fall through */
++			case EXTERNAL_OPEN_DRAIN:
++				/* Set pin to active state */
++				*output    = PIN_OP_SET(pin, *output, rst_active);
++				break;
++			default:
++				LOG_ERROR("Unknown %s pin type %d", name, ctrl.type);
++				return ERROR_FAIL;
++		}
++	} else {
++		/* Push pull specified */
++		switch (ctrl.type) {
++			case OUTPUT_ENABLE_PIN:
++				/* Set OE to active */
++				*output    = PIN_OP_ACTIVE(ctrl.oe_pin, *output);
++				 /* fall through */
++			case PUSH_PULL_ONLY: /* fall through */
++			case PIN_DIRECTION:
++				/* Set direction to output */
++				*direction |=  pin.mask;
++				/* Set pin to requested active/inactive state */
++				*output = PIN_OP_SET(pin, *output, rst_active);
++				break;
++			case EXTERNAL_OPEN_DRAIN:  /* Fall through */
++				LOG_ERROR("Layout %s does not support pin %s being push-pull", layout->name, name);
++				return ERROR_FAIL;
++			default:
++				LOG_ERROR("Unknown %s pin type %d", name, ctrl.type);
++				return ERROR_FAIL;
++		}
++	}
++	return ERROR_OK;
++}
++
++static int standard_set_resets(bool trst_active, bool srst_active, uint16_t *output, uint16_t *direction)
++{
++	enum reset_types jtag_reset_config = jtag_get_reset_config();
++	int retval = ERROR_OK;
++	bool trst_opendrain = ((jtag_reset_config & RESET_TRST_OPEN_DRAIN) != 0);
++	bool srst_opendrain = ((jtag_reset_config & RESET_SRST_PUSH_PULL) == 0);
++
++	if (layout->TRST.mask) {
++		retval = standard_set_reset(trst_active, trst_opendrain, layout->TRST,
++								layout->TRST_ctrl, "TRST", output, direction);
++		if (retval != ERROR_OK)
++			return retval;
++	}
++
++	if (layout->SRST.mask)
++		retval = standard_set_reset(srst_active, srst_opendrain, layout->SRST,
++								layout->SRST_ctrl, "SRST", output, direction);
++
++	return retval;
++}
++
++static void get_curr_output_direction(uint16_t *output, uint16_t *direction)
++{
++	*output = low_output | (high_output << 8);
++	*direction = low_direction | (high_direction << 8);
++}
++
++static int standard_reset(int trst, int srst)
++{
++	int retval;
++	uint16_t output;
++	uint16_t direction;
++	get_curr_output_direction(&output, &direction);
++
++	retval = standard_set_resets(trst, srst, &output, &direction);
++	if (retval != ERROR_OK)
++			return ERROR_FAIL;
++
++	/* Initialize FT2232 GPIO values */
++	if (ft2232_set_data_bits_both_bytes(output, direction) != ERROR_OK) {
++		LOG_ERROR("Couldn't set resets for '%s' layout", layout->name);
++		return ERROR_FAIL;
++	}
++
++	LOG_DEBUG("trst: %i, srst: %i, output: 0x%04x, direction: 0x%04x",
++		trst,
++		srst,
++		output,
++		direction);
++
++	return ERROR_OK;
++}
++static int standard_init(void)
++{
++	int retval;
++	uint16_t output = layout->initial_output;
++	uint16_t direction = layout->initial_direction;
++
++	retval = standard_set_resets(false, false, &output, &direction);
++	if (retval != ERROR_OK)
++			return ERROR_JTAG_INIT_FAILED;
++
++	/* Initialize FT2232 GPIO values */
++	if (ft2232_set_data_bits_both_bytes(output, direction) != ERROR_OK) {
++		LOG_ERROR("couldn't initialize FT2232 with '%s' layout", layout->name);
++		return ERROR_JTAG_INIT_FAILED;
++	}
++
++	return ERROR_OK;
++
++}
++
+ /** Updates defaults for DBUS signals:  the four JTAG signals
+  * (TCK, TDI, TDO, TMS) and * the four GPIOL signals.
+  */
+@@ -2625,107 +2784,6 @@ static int redbee_init(void)
+ 	return ERROR_OK;
+ }
+ 
+-static int jtagkey_init(void)
+-{
+-	low_output    = 0x08;
+-	low_direction = 0x1b;
+-
+-	/* initialize low byte for jtag */
+-	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
+-		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
+-		return ERROR_JTAG_INIT_FAILED;
+-	}
+-
+-	if (strcmp(layout->name, "jtagkey") == 0) {
+-		nTRST    = 0x01;
+-		nTRSTnOE = 0x4;
+-		nSRST    = 0x02;
+-		nSRSTnOE = 0x08;
+-	} else if ((strcmp(layout->name, "jtagkey_prototype_v1") == 0)
+-		   || (strcmp(layout->name, "oocdlink") == 0)) {
+-		nTRST    = 0x02;
+-		nTRSTnOE = 0x1;
+-		nSRST    = 0x08;
+-		nSRSTnOE = 0x04;
+-	} else {
+-		LOG_ERROR("BUG: jtagkey_init called for non jtagkey layout");
+-		exit(-1);
+-	}
+-
+-	high_output    = 0x0;
+-	high_direction = 0x0f;
+-
+-	enum reset_types jtag_reset_config = jtag_get_reset_config();
+-	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
+-		high_output |= nTRSTnOE;
+-		high_output &= ~nTRST;
+-	} else {
+-		high_output &= ~nTRSTnOE;
+-		high_output |= nTRST;
+-	}
+-
+-	if (jtag_reset_config & RESET_SRST_PUSH_PULL) {
+-		high_output &= ~nSRSTnOE;
+-		high_output |= nSRST;
+-	} else {
+-		high_output |= nSRSTnOE;
+-		high_output &= ~nSRST;
+-	}
+-
+-	/* initialize high byte for jtag */
+-	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
+-		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
+-		return ERROR_JTAG_INIT_FAILED;
+-	}
+-
+-	return ERROR_OK;
+-}
+-
+-static int olimex_jtag_init(void)
+-{
+-	low_output    = 0x08;
+-	low_direction = 0x1b;
+-
+-	/* initialize low byte for jtag */
+-	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
+-		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
+-		return ERROR_JTAG_INIT_FAILED;
+-	}
+-
+-	nTRST    = 0x01;
+-	nTRSTnOE = 0x4;
+-	nSRST    = 0x02;
+-	nSRSTnOE = 0x00;/* no output enable for nSRST */
+-
+-	high_output    = 0x0;
+-	high_direction = 0x0f;
+-
+-	enum reset_types jtag_reset_config = jtag_get_reset_config();
+-	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN) {
+-		high_output |= nTRSTnOE;
+-		high_output &= ~nTRST;
+-	} else {
+-		high_output &= ~nTRSTnOE;
+-		high_output |= nTRST;
+-	}
+-
+-	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+-		LOG_ERROR("can't set nSRST to push-pull on the Olimex ARM-USB-OCD");
+-	else
+-		high_output &= ~nSRST;
+-
+-	/* turn red LED on */
+-	high_output |= 0x08;
+-
+-	/* initialize high byte for jtag */
+-	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
+-		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
+-		return ERROR_JTAG_INIT_FAILED;
+-	}
+-
+-	return ERROR_OK;
+-}
+-
+ static int flyswatter_init(int rev)
+ {
+ 	low_output    = 0x18;
+@@ -3058,18 +3116,6 @@ static int xds100v2_init(void)
+ 	return ERROR_OK;
+ }
+ 
+-static void olimex_jtag_blink(void)
+-{
+-	/* Olimex ARM-USB-OCD has a LED connected to ACBUS3
+-	 * ACBUS3 is bit 3 of the GPIOH port
+-	 */
+-	high_output ^= 0x08;
+-
+-	buffer_write(0x82);
+-	buffer_write(high_output);
+-	buffer_write(high_direction);
+-}
+-
+ static void flyswatter_jtag_blink(unsigned char led)
+ {
+ 	buffer_write(0x82);
+-- 
+1.8.0.msysgit.0
+
